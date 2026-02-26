@@ -1,13 +1,12 @@
 using System.Text;
 using System.Text.Json;
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.Extensions;
 using OfX.Implementations;
 
 namespace OfX.Nats.Messages;
 
-public class NatsMessageRequestWrapped<TAttribute> where TAttribute : OfXAttribute
+public class NatsMessageRequestWrapped<TAttribute> where TAttribute : IDistributedKey
 {
     public Dictionary<string, string> Headers { get; set; }
     public OfXQueryRequest<TAttribute> Query { get; set; }

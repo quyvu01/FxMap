@@ -1,3 +1,4 @@
+using OfX.Fluent;
 using OfX.Tests.TestData.Attributes;
 
 namespace OfX.Tests.TestData.Dtos;
@@ -10,10 +11,19 @@ public class RuntimeParametersResponse
     public string CountryId { get; set; } = string.Empty;
 
     // Uses runtime parameters: ${index|0} and ${order|asc}
-    [CountryOf(nameof(CountryId), Expression = "Provinces[${index|0} ${order|asc} Name].Name")]
     public string ProvinceName { get; set; } = string.Empty;
 
     // Pagination with runtime parameters
-    [CountryOf(nameof(CountryId), Expression = "Provinces[${offset|0} ${limit|10} ${order|asc} Name]")]
     public List<ProvinceDto> Provinces { get; set; } = [];
+}
+
+public class RuntimeParametersResponseProfile : ProfileOf<RuntimeParametersResponse>
+{
+    protected override void Configure()
+    {
+        UseAnnotate<CountryOfAttribute>()
+            .Of(x => x.CountryId)
+            .For(x => x.ProvinceName, "Provinces[${index|0} ${order|asc} Name].Name")
+            .For(x => x.Provinces, "Provinces[${offset|0} ${limit|10} ${order|asc} Name]");
+    }
 }

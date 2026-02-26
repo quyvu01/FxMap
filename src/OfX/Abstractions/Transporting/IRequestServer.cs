@@ -1,5 +1,3 @@
-using OfX.Attributes;
-
 namespace OfX.Abstractions.Transporting;
 
 /// <summary>
@@ -73,7 +71,7 @@ public interface IRequestServer
 /// Generic server interface for handling requests for a specific model and attribute combination.
 /// </summary>
 /// <typeparam name="TModel">The model type this server handles.</typeparam>
-/// <typeparam name="TAttribute">The <see cref="OfXAttribute"/> type this server responds to.</typeparam>
+/// <typeparam name="TAttribute">The <see cref="IDistributedKey"/> type this server responds to.</typeparam>
 /// <remarks>
 /// <para>
 /// Each transport implementation creates a server instance per model/attribute combination.
@@ -87,4 +85,4 @@ public interface IRequestServer
 /// </remarks>
 public interface IRequestServer<TModel, TAttribute> : IRequestServer
     where TModel : class
-    where TAttribute : OfXAttribute;
+    where TAttribute : IDistributedKey;

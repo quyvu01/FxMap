@@ -1,5 +1,4 @@
 using OfX.Abstractions;
-using OfX.Attributes;
 
 namespace OfX.Implementations;
 
@@ -18,7 +17,7 @@ public class RequestContextImpl<TAttribute>(
     OfXQueryRequest<TAttribute> query,
     Dictionary<string, string> headers,
     CancellationToken token)
-    : RequestContext<TAttribute> where TAttribute : OfXAttribute
+    : RequestContext<TAttribute> where TAttribute : IDistributedKey
 {
     /// <inheritdoc />
     public Dictionary<string, string> Headers { get; } = headers ?? [];

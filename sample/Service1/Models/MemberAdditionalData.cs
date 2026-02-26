@@ -1,11 +1,20 @@
-using OfX.Attributes;
+using OfX.Fluent;
 using Shared.Attributes;
 
 namespace Service1.Models;
 
-[OfXConfigFor<MemberAdditionalOfAttribute>(nameof(Id), nameof(Name))]
 public class MemberAdditionalData
 {
     public string Id { get; set; }
     public string Name { get; set; }
+}
+
+public class MemberAdditionalDataConfig : AbstractOfXConfig<MemberAdditionalData>
+{
+    protected override void Configure()
+    {
+        Id(x => x.Id);
+        DefaultProperty(x => x.Name);
+        UseAnnotate<MemberAdditionalOfAttribute>();
+    }
 }

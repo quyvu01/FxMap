@@ -5,7 +5,6 @@ using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.Azure.ServiceBus.Extensions;
 using OfX.Azure.ServiceBus.Statics;
 using OfX.Azure.ServiceBus.Wrappers;
@@ -17,7 +16,7 @@ using OfX.Telemetry;
 
 namespace OfX.Azure.ServiceBus.Implementations;
 
-internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable where TAttribute : OfXAttribute
+internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable where TAttribute : IDistributedKey
 {
     private readonly ServiceBusSender _serviceBusSender;
     private readonly ServiceBusSessionProcessor _replyProcessor;

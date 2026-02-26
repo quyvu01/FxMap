@@ -1,5 +1,4 @@
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.Implementations;
 using OfX.Responses;
 using OfX.Configuration;
@@ -20,7 +19,7 @@ namespace OfX.BuiltInPipelines;
 /// </remarks>
 internal sealed class SendPipelineRoutingBehavior<TAttribute>(
     IServiceProvider serviceProvider) :
-    ISendPipelineBehavior<TAttribute> where TAttribute : OfXAttribute
+    ISendPipelineBehavior<TAttribute> where TAttribute : IDistributedKey
 {
     private static Type _receivedPipelinesOrchestratorType;
 

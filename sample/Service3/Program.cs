@@ -1,12 +1,8 @@
 using System.Reflection;
-using Amazon;
 using Microsoft.EntityFrameworkCore;
-using OfX.Aws.Sqs.Extensions;
 using OfX.EntityFrameworkCore.Extensions;
 using OfX.Extensions;
-using OfX.Grpc.Extensions;
 using OfX.Nats.Extensions;
-using OfX.RabbitMq.Extensions;
 using OfX.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -15,7 +11,6 @@ using Serilog;
 using Service3Api;
 using Service3Api.Contexts;
 using Shared;
-using Shared.RunSqlMigration;
 
 var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
@@ -44,7 +39,7 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddOfX(cfg =>
     {
         cfg.AddAttributesContainNamespaces(typeof(IKernelAssemblyMarker).Assembly);
-        cfg.AddModelConfigurationsFromNamespaceContaining<IAssemblyMarker>();
+        cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -54,16 +49,16 @@ builder.Services.AddOfX(cfg =>
         });
         // cfg.AddRabbitMq(c => c.Host("localhost", "/"));
         // cfg.AddKafka(c => c.Host("localhost:9092"));
-        // cfg.AddNats(c => c.Url("nats://localhost:4222"));
-        cfg.AddSqs(c =>
-        {
-            c.Region(RegionEndpoint.USEast1, credential =>
-            {
-                credential.ServiceUrl("http://localhost:4566");
-                credential.AccessKeyId("test");
-                credential.SecretAccessKey("test");
-            });
-        });
+        cfg.AddNats(c => c.Url("nats://localhost:4222"));
+        // cfg.AddSqs(c =>
+        // {
+        //     c.Region(RegionEndpoint.USEast1, credential =>
+        //     {
+        //         credential.ServiceUrl("http://localhost:4566");
+        //         credential.AccessKeyId("test");
+        //         credential.SecretAccessKey("test");
+        //     });
+        // });
         cfg.ThrowIfException();
     })
     .AddOfXEFCore(cfg => cfg.AddDbContexts(typeof(Service3Context)));

@@ -1,4 +1,3 @@
-using OfX.Attributes;
 using OfX.Responses;
 
 namespace OfX.Abstractions;
@@ -13,10 +12,10 @@ namespace OfX.Abstractions;
 public interface IClientRequestHandler;
 
 /// <summary>
-/// Defines a request handler that processes client requests for a given <see cref="OfXAttribute"/>.
+/// Defines a request handler that processes client requests for a given <see cref="IDistributedKey"/>.
 /// </summary>
 /// <typeparam name="TAttribute">
-/// The type of <see cref="OfXAttribute"/> representing the model or entity being requested.
+/// The type of <see cref="IDistributedKey"/> representing the model or entity being requested.
 /// </typeparam>
 /// <remarks>
 /// This interface is primarily used on the **client side** of the OfX framework.  
@@ -24,7 +23,7 @@ public interface IClientRequestHandler;
 /// selector IDs and expressions, and receive a response from the server.
 /// </remarks>
 public interface IClientRequestHandler<TAttribute> : IOfXBase<TAttribute>, IClientRequestHandler
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     /// <summary>
     /// Sends a request to the server using the provided <paramref name="requestContext"/> 
@@ -44,14 +43,14 @@ public interface IClientRequestHandler<TAttribute> : IOfXBase<TAttribute>, IClie
 /// Default no-op implementation of <see cref="IClientRequestHandler{TAttribute}"/>.
 /// </summary>
 /// <typeparam name="TAttribute">
-/// The type of <see cref="OfXAttribute"/> representing the model or entity being requested.
+/// The type of <see cref="IDistributedKey"/> representing the model or entity being requested.
 /// </typeparam>
 /// <remarks>
 /// This default implementation always returns an empty <see cref="ItemsResponse{OfXDataResponse}"/>.
 /// It is typically used when no specific handler has been registered for a given <typeparamref name="TAttribute"/>.
 /// </remarks>
 internal class NoOpClientRequestHandler<TAttribute> : IClientRequestHandler<TAttribute>
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     /// <inheritdoc />
     public Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TAttribute> requestContext) =>

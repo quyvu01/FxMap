@@ -1,14 +1,13 @@
-using OfX.Attributes;
 using OfX.Responses;
 
 namespace OfX.Abstractions;
 
 /// <summary>
 /// Represents the orchestrator responsible for executing all received pipelines 
-/// for a specific <see cref="OfXAttribute"/> type.
+/// for a specific <see cref="IDistributedKey"/> type.
 /// </summary>
 /// <typeparam name="TAttribute">
-/// The <see cref="OfXAttribute"/> type that defines the request's context and processing rules.
+/// The <see cref="IDistributedKey"/> type that defines the request's context and processing rules.
 /// </typeparam>
 /// <remarks>
 /// <para>
@@ -27,7 +26,7 @@ namespace OfX.Abstractions;
 /// are executed in the correct order before producing a response.
 /// </remarks>
 public interface IReceivedPipelinesOrchestrator<TAttribute> : IOfXBase<TAttribute>
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     /// <summary>
     /// Executes the entire received pipeline for the specified request context.

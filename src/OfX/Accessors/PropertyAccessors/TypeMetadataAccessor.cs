@@ -1,6 +1,9 @@
 using System.Reflection;
-using OfX.Attributes;
+using OfX.Abstractions;
+using OfX.Configuration;
 using OfX.Extensions;
+using OfX.Fluent;
+using OfX.Fluent.Rules;
 using OfX.PropertyMappingContexts;
 
 namespace OfX.Accessors.PropertyAccessors;
@@ -15,7 +18,7 @@ namespace OfX.Accessors.PropertyAccessors;
 /// </para>
 /// <list type="bullet">
 /// <item>Build compiled property accessors for efficient runtime access.</item>
-/// <item>Construct a dependency graph based on <see cref="OfXAttribute"/> annotations.</item>
+/// <item>Construct a dependency graph based on <see cref="IDistributedKey"/> annotations.</item>
 /// <item>Identify properties that require mapping based on their attribute decorations.</item>
 /// </list>
 /// <para>
@@ -36,7 +39,7 @@ public class TypeMetadataAccessor
     public IReadOnlyDictionary<PropertyInfo, IPropertyAccessor> Accessors { get; }
 
     /// <summary>
-    /// Gets the dependency graph for properties decorated with <see cref="OfXAttribute"/>.
+    /// Gets the dependency graph for properties decorated with <see cref="IDistributedKey"/>.
     /// Each key is a property that depends on other properties, and the value is an array
     /// of <see cref="PropertyContext"/> representing its dependencies in resolution order.
     /// </summary>
@@ -49,9 +52,10 @@ public class TypeMetadataAccessor
     public TypeMetadataAccessor(Type clrType)
     {
         ClrType = clrType;
+        if (!FluentConfigStore.ProfileConfigs.TryGetValue(clrType, out var ruleGroups)) return;
         var properties = clrType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        // Find Properties and dependencies, which has OfXAttribute
-        var dependencyGraph = BuildDependencyGraph(properties);
+        var dependencyGraph = BuildDependencyGraphFromFluentRules(properties, ruleGroups);
+
         var propertiesWithinAttribute = dependencyGraph
             .Keys
             .Concat(dependencyGraph.Values
@@ -69,7 +73,7 @@ public class TypeMetadataAccessor
             .Concat(nonPrimitiveProperties)
             .ToDictionary(p => p, p => CreateAccessor(clrType, p));
 
-        DependencyGraphs = BuildDependencyGraph(properties);
+        DependencyGraphs = dependencyGraph;
     }
 
     private static IPropertyAccessor CreateAccessor(Type type, PropertyInfo p)
@@ -78,43 +82,59 @@ public class TypeMetadataAccessor
         return (IPropertyAccessor)Activator.CreateInstance(accessorType, p)!;
     }
 
-    private static Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraph(PropertyInfo[] properties)
+    private static Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraphFromFluentRules(
+        PropertyInfo[] properties, List<AttributeRuleGroup> ruleGroups)
     {
-        var graph = new Dictionary<PropertyInfo, PropertyContext[]>();
+        var knownAttributes = OfXStatics.OfXAttributeTypes.Value;
 
-        foreach (var property in properties)
+        // Build a lookup of target property → its direct PropertyContext
+        var directDeps = new Dictionary<PropertyInfo, PropertyContext>();
+
+        foreach (var group in ruleGroups)
         {
-            var dependencies = GetDependenciesRecursive(property, properties)
-                .ToArray();
-            if (dependencies is { Length: > 0 }) graph[property] = dependencies;
+            var attributeType = FluentConfigStore.ResolveAttributeType(group, knownAttributes);
+            var selectorProperty = properties.FirstOrDefault(p => p.Name == group.SelectorPropertyName);
+            if (selectorProperty is null || attributeType is null) continue;
+
+            foreach (var rule in group.Rules)
+            {
+                var targetProperty = properties.FirstOrDefault(p => p.Name == rule.TargetPropertyName);
+                if (targetProperty is null) continue;
+
+                directDeps[targetProperty] = new PropertyContext
+                {
+                    TargetPropertyInfo = targetProperty,
+                    Expression = rule.Expression,
+                    SelectorPropertyName = selectorProperty.Name,
+                    RuntimeAttributeType = attributeType,
+                    RequiredPropertyInfo = selectorProperty,
+                    ConditionalExpression = rule.ConditionalExpression
+                };
+            }
+        }
+
+        // Build recursive dependency graph
+        var graph = new Dictionary<PropertyInfo, PropertyContext[]>();
+        foreach (var (targetProp, _) in directDeps)
+        {
+            var deps = CollectDependencies(targetProp, directDeps, []);
+            if (deps is { Length: > 0 }) graph[targetProp] = deps;
         }
 
         return graph;
     }
 
-    private static IEnumerable<PropertyContext> GetDependenciesRecursive(PropertyInfo property,
-        PropertyInfo[] allProperties, HashSet<PropertyInfo> visited = null)
+    private static PropertyContext[] CollectDependencies(
+        PropertyInfo property, Dictionary<PropertyInfo, PropertyContext> directDeps,
+        HashSet<PropertyInfo> visited)
     {
-        visited ??= [];
-        if (!visited.Add(property)) yield break; // Avoid circular dependencies
+        if (!visited.Add(property)) return [];
+        if (!directDeps.TryGetValue(property, out var context)) return [];
 
-        foreach (var attribute in property.GetCustomAttributes(true).OfType<OfXAttribute>())
-        {
-            var dependentProperty = allProperties.FirstOrDefault(p => p.Name == attribute.PropertyName);
-            if (dependentProperty is null) continue;
-            yield return new PropertyContext
-            {
-                TargetPropertyInfo = property,
-                Expression = attribute.Expression,
-                SelectorPropertyName = dependentProperty.Name,
-                RuntimeAttributeType = attribute.GetType(),
-                RequiredPropertyInfo = dependentProperty
-            };
-
-            // Recursively get dependencies of the dependent property
-            foreach (var nestedDependency in GetDependenciesRecursive(dependentProperty, allProperties, visited))
-                yield return nestedDependency;
-        }
+        var result = new List<PropertyContext> { context };
+        // Recursively resolve if the selector property is itself a mapped target
+        result.AddRange(CollectDependencies(context.RequiredPropertyInfo, directDeps, visited));
+        return result.ToArray();
     }
 
     /// <summary>
@@ -142,6 +162,6 @@ public class TypeMetadataAccessor
         var dependency = dependencies.First();
         var requiredAccessor = GetAccessor(dependency.RequiredPropertyInfo);
         return new PropertyInformation(dependencies.Length - 1, dependency.Expression, dependency.RuntimeAttributeType,
-            requiredAccessor);
+            requiredAccessor) { ConditionalExpression = dependency.ConditionalExpression };
     }
 }

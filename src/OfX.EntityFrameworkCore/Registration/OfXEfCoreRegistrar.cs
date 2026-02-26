@@ -47,7 +47,7 @@ public sealed class OfXEfCoreRegistrar(IServiceCollection serviceCollection)
         if (dbContextTypes.Count == 0)
             throw new OfXEntityFrameworkException.DbContextsMustNotBeEmpty();
 
-        if (OfXStatics.ModelConfigurationAssembly is null)
+        if (!OfXStatics.HasModelConfigurations)
             throw new OfXException.ModelConfigurationMustBeSet();
 
         dbContextTypes.Distinct().ForEach(type =>

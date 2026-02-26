@@ -1,7 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using OfX.Attributes;
+using OfX.Abstractions;
 using OfX.Exceptions;
 using OfX.Extensions;
+using OfX.Fluent;
 using OfX.Tests.UnitTests.Exceptions.TestFixtures;
 using Shouldly;
 using Xunit;
@@ -15,7 +16,7 @@ namespace OfX.Tests.UnitTests.Exceptions
     {
         #region Test Attributes
 
-        private sealed class TestOfAttribute(string propertyName) : OfXAttribute(propertyName);
+        private sealed class TestOfAttribute : IDistributedKey;
 
         #endregion
 
@@ -133,7 +134,7 @@ namespace OfX.Tests.UnitTests.Exceptions
             var act = () => services.AddOfX(cfg =>
             {
                 cfg.AddAttributesContainNamespaces(typeof(DuplicateTestOfAttribute).Assembly);
-                cfg.AddModelConfigurationsFromNamespaceContaining<IAssemblyMarker>();
+                cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
             });
 
             // Assert
@@ -152,20 +153,38 @@ namespace OfX.Tests.UnitTests.Exceptions
     {
         public interface IAssemblyMarker;
 
-        public sealed class DuplicateTestOfAttribute(string propertyName) : OfXAttribute(propertyName);
+        public sealed class DuplicateTestOfAttribute : IDistributedKey;
 
-        [OfXConfigFor<DuplicateTestOfAttribute>(nameof(Id), nameof(Name))]
         public sealed class EntityA
         {
             public Guid Id { get; set; }
             public string Name { get; set; } = string.Empty;
         }
 
-        [OfXConfigFor<DuplicateTestOfAttribute>(nameof(Id), nameof(Title))]
         public sealed class EntityB
         {
             public string Id { get; set; } = string.Empty;
             public string Title { get; set; } = string.Empty;
+        }
+
+        public sealed class EntityAConfig : AbstractOfXConfig<EntityA>
+        {
+            protected override void Configure()
+            {
+                Id(x => x.Id);
+                DefaultProperty(x => x.Name);
+                UseAnnotate<DuplicateTestOfAttribute>();
+            }
+        }
+
+        public sealed class EntityBConfig : AbstractOfXConfig<EntityB>
+        {
+            protected override void Configure()
+            {
+                Id(x => x.Id);
+                DefaultProperty(x => x.Title);
+                UseAnnotate<DuplicateTestOfAttribute>();
+            }
         }
     }
 

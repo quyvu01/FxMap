@@ -7,7 +7,6 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using OfX.Abstractions;
 using OfX.Abstractions.Transporting;
-using OfX.Attributes;
 using OfX.Aws.Sqs.Constants;
 using OfX.Aws.Sqs.Extensions;
 using OfX.Aws.Sqs.Statics;
@@ -30,7 +29,7 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
     private const string TransportName = "sqs";
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : OfXAttribute
+        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
     {
         // Start client-side activity for distributed tracing
         using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);

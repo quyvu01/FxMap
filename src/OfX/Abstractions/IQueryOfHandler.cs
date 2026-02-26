@@ -1,4 +1,3 @@
-using OfX.Attributes;
 using OfX.Responses;
 
 namespace OfX.Abstractions;
@@ -11,7 +10,7 @@ namespace OfX.Abstractions;
 /// The model type representing the entity being queried (e.g., <c>User</c>, <c>Order</c>).
 /// </typeparam>
 /// <typeparam name="TAttribute">
-/// The <see cref="OfXAttribute"/> type that describes the query mapping for <typeparamref name="TModel"/>.
+/// The <see cref="IDistributedKey"/> type that describes the query mapping for <typeparamref name="TModel"/>.
 /// </typeparam>
 /// <remarks>
 /// This interface is implemented on the **server side** of the OfX framework.  
@@ -19,7 +18,7 @@ namespace OfX.Abstractions;
 /// (e.g., Entity Framework, MongoDB...) in response to
 /// a client request sent via <see cref="IClientRequestHandler{TAttribute}"/>.
 /// </remarks>
-public interface IQueryOfHandler<TModel, TAttribute> where TModel : class where TAttribute : OfXAttribute
+public interface IQueryOfHandler<TModel, TAttribute> where TModel : class where TAttribute : IDistributedKey
 {
     /// <summary>
     /// Retrieves data for the given <typeparamref name="TModel"/> based on the incoming request context.
@@ -49,7 +48,7 @@ internal class NoOpQueryOfHandler;
 /// The model type representing the entity being queried.
 /// </typeparam>
 /// <typeparam name="TAttribute">
-/// The <see cref="OfXAttribute"/> type that describes the query mapping for <typeparamref name="TModel"/>.
+/// The <see cref="IDistributedKey"/> type that describes the query mapping for <typeparamref name="TModel"/>.
 /// </typeparam>
 /// <remarks>
 /// This default implementation always returns an empty <see cref="ItemsResponse{OfXDataResponse}"/>.
@@ -58,7 +57,7 @@ internal class NoOpQueryOfHandler;
 internal sealed class NoOpQueryOfHandler<TModel, TAttribute>
     : NoOpQueryOfHandler, IQueryOfHandler<TModel, TAttribute>
     where TModel : class
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     /// <inheritdoc />
     public Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TAttribute> context) =>

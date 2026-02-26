@@ -85,7 +85,7 @@ internal static class ReflectionHelpers
             {
                 var value = dt.Data
                     .OfXValues
-                    .FirstOrDefault(a => a.Expression == ap.PropertyInformation.Expression)?.Value;
+                    .FirstOrDefault(a => a.Expression == ap.PropertyInformation.EffectiveExpression)?.Value;
                 if (value is null || ap.PropertyInfo is not { } propertyInfo) return value;
                 try
                 {

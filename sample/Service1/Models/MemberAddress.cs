@@ -1,9 +1,8 @@
-using OfX.Attributes;
+using OfX.Fluent;
 using Shared.Attributes;
 
 namespace Service1.Models;
 
-[OfXConfigFor<MemberAddressOfAttribute>(nameof(Id), nameof(ProvinceId))]
 public sealed class MemberAddress
 {
     public string Id { get; set; }
@@ -11,4 +10,14 @@ public sealed class MemberAddress
     public string Street { get; set; }
     public string City { get; set; }
     public string ZipCode { get; set; }
+}
+
+public class MemberAddressConfig : AbstractOfXConfig<MemberAddress>
+{
+    protected override void Configure()
+    {
+        Id(x => x.Id);
+        DefaultProperty(x => x.ProvinceId);
+        UseAnnotate<MemberAddressOfAttribute>();
+    }
 }

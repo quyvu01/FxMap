@@ -1,7 +1,7 @@
 namespace OfX.Abstractions;
 
 /// <summary>
-/// Defines the configuration metadata that associates an <see cref="OfX.Attributes.OfXAttribute"/>
+/// Defines the configuration metadata that associates an <see cref="IDistributedKey"/>
 /// with a specific model and its key properties.
 /// </summary>
 /// <remarks>
@@ -21,3 +21,10 @@ public interface IOfXConfigAttribute
     /// </summary>
     string DefaultProperty { get; }
 }
+
+/// <summary>
+/// Internal record for storing OfX configuration metadata.
+/// </summary>
+/// <param name="IdProperty">The name of the ID property.</param>
+/// <param name="DefaultProperty">The name of the default property.</param>
+internal sealed record OfXConfig(string IdProperty, string DefaultProperty) : IOfXConfigAttribute;

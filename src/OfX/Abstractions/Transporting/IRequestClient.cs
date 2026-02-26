@@ -1,4 +1,3 @@
-using OfX.Attributes;
 using OfX.Responses;
 
 namespace OfX.Abstractions.Transporting;
@@ -31,7 +30,7 @@ public interface IRequestClient
     /// Sends a request to the server using the configured transport and returns the response.
     /// </summary>
     /// <typeparam name="TAttribute">
-    /// The <see cref="OfXAttribute"/> type representing the model or entity being requested.
+    /// The <see cref="IDistributedKey"/> type representing the model or entity being requested.
     /// </typeparam>
     /// <param name="requestContext">
     /// The request context containing selector IDs, expressions, headers, and cancellation token.
@@ -41,5 +40,5 @@ public interface IRequestClient
     /// the data returned from the server.
     /// </returns>
     Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(RequestContext<TAttribute> requestContext)
-        where TAttribute : OfXAttribute;
+        where TAttribute : IDistributedKey;
 }

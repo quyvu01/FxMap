@@ -2,7 +2,6 @@ using System.Diagnostics;
 using OfX.Abstractions;
 using OfX.Abstractions.Transporting;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Grpc.Delegates;
 using OfX.Grpc.Internals;
 using OfX.Responses;
@@ -23,7 +22,7 @@ public sealed class GrpcRequestClient(GetOfXResponseFunc ofXResponseFunc) : IReq
     private const string TransportName = "grpc";
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : OfXAttribute
+        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
     {
         // Start client-side activity for distributed tracing
         using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);

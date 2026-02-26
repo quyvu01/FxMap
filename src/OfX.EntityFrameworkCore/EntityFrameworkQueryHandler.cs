@@ -2,7 +2,6 @@ using System.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.Builders;
 using OfX.EntityFrameworkCore.Abstractions;
 using OfX.Expressions.Building;
@@ -37,7 +36,7 @@ namespace OfX.EntityFrameworkCore;
 internal class EntityFrameworkQueryHandler<TModel, TAttribute>(IServiceProvider serviceProvider)
     : QueryHandlerBuilder<TModel, TAttribute>(serviceProvider), IQueryOfHandler<TModel, TAttribute>
     where TModel : class
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private const string DbSystem = "efcore";

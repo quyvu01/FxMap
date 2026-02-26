@@ -28,7 +28,7 @@ public static class MongoDbExtensions
     /// services.AddOfX(cfg =>
     /// {
     ///     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Assembly);
-    ///     cfg.AddModelConfigurationsFromNamespaceContaining&lt;User&gt;();
+    ///     cfg.AddProfilesFromAssemblyContaining&lt;User&gt;();
     /// })
     /// .AddMongoDb(cfg =>
     /// {
@@ -39,7 +39,7 @@ public static class MongoDbExtensions
     public static OfXConfiguratorWrapped AddMongoDb(this OfXConfiguratorWrapped ofXServiceInjector,
         Action<OfXMongoDbRegistrar> registrarAction)
     {
-        if (OfXStatics.ModelConfigurationAssembly is null) throw new OfXException.ModelConfigurationMustBeSet();
+        if (!OfXStatics.HasModelConfigurations) throw new OfXException.ModelConfigurationMustBeSet();
         var registrar = new OfXMongoDbRegistrar(ofXServiceInjector.OfXConfigurator.ServiceCollection);
         registrarAction.Invoke(registrar);
         var mongoModelTypes = registrar.MongoModelTypes;

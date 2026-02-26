@@ -5,6 +5,7 @@ using OfX.Abstractions;
 using OfX.Models;
 using OfX.Exceptions;
 using OfX.Extensions;
+using OfX.Fluent;
 using OfX.Helpers;
 using OfX.Configuration;
 using OfX.Supervision;
@@ -24,7 +25,7 @@ namespace OfX.Registries;
 /// services.AddOfX(cfg =>
 /// {
 ///     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Assembly);
-///     cfg.AddModelConfigurationsFromNamespaceContaining&lt;User&gt;();
+///     cfg.AddProfilesFromAssemblyContaining&lt;User&gt;();
 ///     cfg.SetRequestTimeOut(TimeSpan.FromSeconds(60));
 /// });
 /// </code>
@@ -80,11 +81,55 @@ public class OfXConfigurator(IServiceCollection serviceCollection)
     }
 
     /// <summary>
-    /// Registers the assembly containing model configurations decorated with <see cref="Attributes.OfXConfigForAttribute{TAttribute}"/>.
+    /// Scans the specified assembly for <see cref="AbstractOfXConfig{TModel}"/> and <see cref="ProfileOf{TModel}"/>
+    /// implementations, builds them, and registers their configurations.
     /// </summary>
-    /// <typeparam name="TAssembly">A type in the assembly containing model configurations.</typeparam>
-    public void AddModelConfigurationsFromNamespaceContaining<TAssembly>() =>
-        OfXStatics.ModelConfigurationAssembly = typeof(TAssembly).Assembly;
+    /// <typeparam name="TAssemblyMarker">A type in the assembly to scan for fluent configurations.</typeparam>
+    public void AddProfilesFromAssemblyContaining<TAssemblyMarker>()
+    {
+        var assembly = typeof(TAssemblyMarker).Assembly;
+        ScanFluentConfigs(assembly);
+    }
+
+    /// <summary>
+    /// Scans the specified assemblies for fluent configurations.
+    /// </summary>
+    public void AddProfilesFromAssemblies(params Assembly[] assemblies)
+    {
+        foreach (var assembly in assemblies)
+            ScanFluentConfigs(assembly);
+    }
+
+    private static void ScanFluentConfigs(Assembly assembly)
+    {
+        var concreteTypes = assembly.ExportedTypes
+            .Where(t => t is { IsClass: true, IsAbstract: false })
+            .ToArray();
+
+        foreach (var type in concreteTypes)
+        {
+            if (type.IsAssignableTo(typeof(IFluentEntityConfig)))
+            {
+                var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
+                config.Build();
+                FluentConfigStore.EntityConfigs[config.ModelType] = new EntityConfigMetadata(
+                    config.ModelType,
+                    config.AttributeType,
+                    config.AttributeKey,
+                    config.IdPropertyName,
+                    config.DefaultPropertyName,
+                    config.ExposedNameStores);
+            }
+            else if (type.IsAssignableTo(typeof(IFluentProfileConfig)))
+            {
+                var profile = (IFluentProfileConfig)Activator.CreateInstance(type)!;
+                profile.Build();
+                if (!FluentConfigStore.ProfileConfigs.ContainsKey(profile.ModelType))
+                    FluentConfigStore.ProfileConfigs[profile.ModelType] = [];
+                FluentConfigStore.ProfileConfigs[profile.ModelType].AddRange(profile.RuleGroups);
+            }
+        }
+    }
 
     /// <summary>
     /// Enables throwing exceptions during mapping operations instead of silently failing.

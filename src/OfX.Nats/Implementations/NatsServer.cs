@@ -4,7 +4,6 @@ using Microsoft.Extensions.Logging;
 using NATS.Client.Core;
 using OfX.Abstractions;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Implementations;
 using OfX.Nats.Abstractions;
 using OfX.Nats.Extensions;
@@ -17,7 +16,7 @@ namespace OfX.Nats.Implementations;
 
 internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider serviceProvider)
     : INatsServer<TModel, TAttribute>
-    where TAttribute : OfXAttribute where TModel : class
+    where TAttribute : IDistributedKey where TModel : class
 {
     private const string TransportName = "nats";
 

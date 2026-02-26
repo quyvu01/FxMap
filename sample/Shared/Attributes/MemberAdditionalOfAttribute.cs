@@ -1,5 +1,5 @@
-using OfX.Attributes;
+using OfX.Abstractions;
 
 namespace Shared.Attributes;
 
-public class MemberAdditionalOfAttribute(string propertyName) : OfXAttribute(propertyName);
+public class MemberAdditionalOfAttribute : IDistributedKey;

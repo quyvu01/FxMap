@@ -1,5 +1,3 @@
-using OfX.Attributes;
-
 namespace OfX.Abstractions;
 
 /// <summary>
@@ -11,9 +9,9 @@ namespace OfX.Abstractions;
 /// you can implement this interface to define the custom expression and provide a handler for it.
 /// </remarks>
 /// <typeparam name="TAttribute">
-/// The type of <see cref="OfXAttribute"/> associated with the custom expression.
+/// The type of <see cref="IDistributedKey"/> associated with the custom expression.
 /// </typeparam>
-public interface ICustomExpressionBehavior<TAttribute> where TAttribute : OfXAttribute
+public interface ICustomExpressionBehavior<TAttribute> where TAttribute : IDistributedKey
 {
     /// <summary>
     /// Defines the custom expression name or key that the server should recognize.

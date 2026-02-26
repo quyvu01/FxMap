@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OfX.Abstractions;
 using OfX.Abstractions.Transporting;
-using OfX.Attributes;
 using OfX.Exceptions;
 using OfX.Responses;
 
@@ -13,7 +12,7 @@ namespace OfX.Handlers;
 /// <typeparam name="TAttribute">The OfX attribute type for this handler.</typeparam>
 /// <param name="serviceProvider">The service provider for resolving the transport client.</param>
 internal sealed class ClientRequestHandler<TAttribute>(IServiceProvider serviceProvider)
-    : IClientRequestHandler<TAttribute> where TAttribute : OfXAttribute
+    : IClientRequestHandler<TAttribute> where TAttribute : IDistributedKey
 {
     /// <inheritdoc />
     public async Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TAttribute> requestContext)

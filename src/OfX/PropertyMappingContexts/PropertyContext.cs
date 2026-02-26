@@ -1,4 +1,5 @@
 using System.Reflection;
+using OfX.Fluent.Rules;
 
 namespace OfX.PropertyMappingContexts;
 
@@ -32,4 +33,10 @@ public sealed class PropertyContext
     /// Gets or sets the runtime type of the OfX attribute decorating the target property.
     /// </summary>
     public Type RuntimeAttributeType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the conditional expression for runtime expression resolution.
+    /// When set, the Expression is resolved dynamically at mapping time.
+    /// </summary>
+    internal ConditionalExpression ConditionalExpression { get; set; }
 }

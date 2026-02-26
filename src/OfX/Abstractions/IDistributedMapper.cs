@@ -1,4 +1,3 @@
-using OfX.Attributes;
 using OfX.Queries;
 using OfX.Responses;
 
@@ -55,7 +54,7 @@ public interface IDistributedMapper
     /// Fetches data for a given <typeparamref name="TAttribute"/> type.
     /// </summary>
     /// <typeparam name="TAttribute">
-    /// The type of <see cref="OfXAttribute"/> representing the model or entity being queried.
+    /// The type of <see cref="IDistributedKey"/> representing the model or entity being queried.
     /// </typeparam>
     /// <param name="query">
     /// The input data, such as selector IDs and expressions used to filter or project the result.
@@ -67,13 +66,13 @@ public interface IDistributedMapper
     /// A task that resolves to an <see cref="ItemsResponse{OfXDataResponse}"/> containing the fetched data.
     /// </returns>
     Task<ItemsResponse<DataResponse>> FetchDataAsync<TAttribute>(DataFetchQuery query, IContext context = null)
-        where TAttribute : OfXAttribute;
+        where TAttribute : IDistributedKey;
 
     /// <summary>
     /// Fetches data for a model determined at runtime, using the specified <see cref="Type"/>.
     /// </summary>
     /// <param name="runtimeType">
-    /// The runtime type of the <see cref="OfXAttribute"/> (e.g., <c>typeof(UserOfAttribute)</c>).
+    /// The runtime type of the <see cref="IDistributedKey"/> (e.g., <c>typeof(UserOfAttribute)</c>).
     /// </param>
     /// <param name="query">
     /// The input data, such as selector IDs and expressions used to filter or project the result.

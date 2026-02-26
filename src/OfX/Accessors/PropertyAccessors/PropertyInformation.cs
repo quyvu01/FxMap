@@ -1,3 +1,6 @@
+using OfX.Abstractions;
+using OfX.Fluent.Rules;
+
 namespace OfX.Accessors.PropertyAccessors;
 
 /// <summary>
@@ -12,7 +15,7 @@ namespace OfX.Accessors.PropertyAccessors;
 /// Can be <c>null</c> if no expression is specified (uses default property).
 /// </param>
 /// <param name="RuntimeAttributeType">
-/// The runtime <see cref="Type"/> of the <see cref="Attributes.OfXAttribute"/> decorating this property.
+/// The runtime <see cref="Type"/> of the <see cref="IDistributedKey"/> decorating this property.
 /// </param>
 /// <param name="RequiredAccessor">
 /// The compiled property accessor for the dependency property that this property requires.
@@ -22,4 +25,25 @@ public sealed record PropertyInformation(
     int Order,
     string Expression,
     Type RuntimeAttributeType,
-    IPropertyAccessor RequiredAccessor);
+    IPropertyAccessor RequiredAccessor)
+{
+    /// <summary>
+    /// Gets the conditional expression for runtime expression resolution, if any.
+    /// </summary>
+    internal ConditionalExpression ConditionalExpression { get; init; }
+
+    /// <summary>
+    /// Returns true if this property uses a conditional expression that must be resolved at runtime.
+    /// </summary>
+    internal bool IsConditional => ConditionalExpression is not null;
+
+    /// <summary>
+    /// Stores the resolved expression value after evaluating a conditional expression at runtime.
+    /// </summary>
+    internal string ResolvedExpression { get; set; }
+
+    /// <summary>
+    /// Returns the effective expression: resolved conditional if available, otherwise the static expression.
+    /// </summary>
+    internal string EffectiveExpression => ResolvedExpression ?? Expression;
+}

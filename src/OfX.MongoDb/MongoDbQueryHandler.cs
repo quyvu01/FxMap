@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.MetadataCache;
 using OfX.Delegates;
 using OfX.MongoDb.Abstractions;
@@ -39,7 +38,7 @@ namespace OfX.MongoDb;
 internal class MongoDbQueryHandler<TModel, TAttribute>(IServiceProvider serviceProvider)
     : IQueryOfHandler<TModel, TAttribute>
     where TModel : class
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     private readonly IOfXConfigAttribute _ofXConfigAttribute = serviceProvider
         .GetRequiredService<GetOfXConfiguration>()

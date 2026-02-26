@@ -1,9 +1,6 @@
 using System.Reflection;
-using Amazon;
-using Amazon.Internal;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
-using OfX.Aws.Sqs.Extensions;
 using OfX.EntityFrameworkCore.Extensions;
 using OfX.Extensions;
 using OfX.Nats.Extensions;
@@ -14,7 +11,6 @@ using OpenTelemetry.Metrics;
 using Service2;
 using Service2.Contexts;
 using Shared;
-using Shared.RunSqlMigration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -40,7 +36,7 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddOfX(cfg =>
     {
         cfg.AddAttributesContainNamespaces(typeof(IKernelAssemblyMarker).Assembly);
-        cfg.AddModelConfigurationsFromNamespaceContaining<IAssemblyMarker>();
+        cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -48,16 +44,16 @@ builder.Services.AddOfX(cfg =>
             opts.EnableCircuitBreaker = true;
             opts.CircuitBreakerThreshold = 3;
         });
-        // cfg.AddNats(c => c.Url("nats://localhost:4222"));
-        cfg.AddSqs(c =>
-        {
-            c.Region(RegionEndpoint.USEast1, credential =>
-            {
-                credential.ServiceUrl("http://localhost:4566");
-                credential.AccessKeyId("test");
-                credential.SecretAccessKey("test");
-            });
-        });
+        cfg.AddNats(c => c.Url("nats://localhost:4222"));
+        // cfg.AddSqs(c =>
+        // {
+        //     c.Region(RegionEndpoint.USEast1, credential =>
+        //     {
+        //         credential.ServiceUrl("http://localhost:4566");
+        //         credential.AccessKeyId("test");
+        //         credential.SecretAccessKey("test");
+        //     });
+        // });
         cfg.ThrowIfException();
     })
     .AddOfXEFCore(cfg => cfg.AddDbContexts(typeof(Service2Context)));

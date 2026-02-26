@@ -1,9 +1,9 @@
 using System.Reflection;
 using OfX.Abstractions;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Exceptions;
 using OfX.Extensions;
+using OfX.Fluent;
 using OfX.Supervision;
 
 namespace OfX.Configuration;
@@ -34,7 +34,7 @@ public static class OfXStatics
         SupervisorOptions = null;
         ThrowIfExceptions = false;
         RetryPolicy = null;
-        ModelConfigurationAssembly = null;
+        FluentConfigStore.Clear();
     }
 
     internal static List<Assembly> AttributesRegister { get; set; } = [];
@@ -52,51 +52,40 @@ public static class OfXStatics
     public static readonly Type QueryOfHandlerType = typeof(IQueryOfHandler<,>);
 
     public static readonly Type NoOpQueryOfHandlerType = typeof(NoOpQueryOfHandler<,>);
-    public static Assembly ModelConfigurationAssembly { get; internal set; }
+
+    /// <summary>
+    /// Returns true if entity configurations have been registered via fluent configuration.
+    /// </summary>
+    public static bool HasModelConfigurations => FluentConfigStore.EntityConfigs.Count > 0;
 
     public static readonly Lazy<IReadOnlyCollection<OfXModelData>> ModelConfigurations = new(() =>
     {
-        var configForAttributeType = typeof(OfXConfigForAttribute<>);
-        OfXModelData[] attributeMapModels =
+        var knownAttributes = OfXAttributeTypes.Value;
+        OfXModelData[] models =
         [
-            ..ModelConfigurationAssembly?
-                .ExportedTypes
-                .Where(a => a.IsConcrete())
-                .Where(a => a.GetCustomAttributes().Any(x =>
-                {
-                    var attributeType = x.GetType();
-                    return attributeType.IsGenericType &&
-                           attributeType.GetGenericTypeDefinition() == configForAttributeType;
-                })).Select(modelType =>
-                {
-                    var attributes = modelType.GetCustomAttributes();
-                    var configAttribute = attributes.Select(x =>
-                    {
-                        var attributeType = x.GetType();
-                        if (!attributeType.IsGenericType ||
-                            attributeType.GetGenericTypeDefinition() != configForAttributeType)
-                            return (null, null);
-                        return (OfXConfigAttribute: x, OfXAttribute: attributeType.GetGenericArguments()[0]);
-                    }).First(x => x is { OfXConfigAttribute: not null, OfXAttribute: not null });
-                    return new OfXModelData(modelType, configAttribute.OfXAttribute,
-                        configAttribute.OfXConfigAttribute as IOfXConfigAttribute);
-                }) ?? []
+            ..FluentConfigStore.EntityConfigs.Values.Select(cfg =>
+            {
+                var attributeType = cfg.AttributeType
+                                    ?? knownAttributes.FirstOrDefault(t => t.Name == cfg.AttributeKey);
+                return new OfXModelData(cfg.ModelType, attributeType,
+                    new OfXConfig(cfg.IdPropertyName, cfg.DefaultPropertyName));
+            })
         ];
         // Validate if one attribute is assigned to multiple models.
-        attributeMapModels.GroupBy(a => a.OfXAttributeType)
+        models.GroupBy(a => a.OfXAttributeType)
             .ForEach(a =>
             {
                 if (a.Count() <= 1) return;
                 throw new OfXException.OneAttributedHasBeenAssignToMultipleEntities(a.Key,
                     [..a.Select(o => o.ModelType)]);
             });
-        return attributeMapModels;
+        return models;
     });
 
     internal static readonly Lazy<IReadOnlyCollection<Type>> OfXAttributeTypes = new(() =>
     [
         ..AttributesRegister.SelectMany(a => a.ExportedTypes)
-            .Where(a => typeof(OfXAttribute).IsAssignableFrom(a) && a.IsConcrete())
+            .Where(a => typeof(IDistributedKey).IsAssignableFrom(a) && a.IsConcrete())
     ]);
 
     internal static Dictionary<Type, Type> InternalAttributeMapHandlers { get; } = [];

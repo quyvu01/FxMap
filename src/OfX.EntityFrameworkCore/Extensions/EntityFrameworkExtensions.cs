@@ -29,7 +29,7 @@ public static class EntityFrameworkExtensions
     /// services.AddOfX(cfg =>
     /// {
     ///     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Assembly);
-    ///     cfg.AddModelConfigurationsFromNamespaceContaining&lt;User&gt;();
+    ///     cfg.AddProfilesFromAssemblyContaining&lt;User&gt;();
     /// })
     /// .AddOfXEFCore(cfg =>
     /// {
@@ -40,7 +40,7 @@ public static class EntityFrameworkExtensions
     public static OfXConfiguratorWrapped AddOfXEFCore(this OfXConfiguratorWrapped ofXServiceInjector,
         Action<OfXEfCoreRegistrar> registrarAction)
     {
-        if (OfXStatics.ModelConfigurationAssembly is null) throw new OfXException.ModelConfigurationMustBeSet();
+        if (!OfXStatics.HasModelConfigurations) throw new OfXException.ModelConfigurationMustBeSet();
 
         var serviceCollection = ofXServiceInjector.OfXConfigurator.ServiceCollection;
         var newOfXEfCoreRegistrar = new OfXEfCoreRegistrar(serviceCollection);

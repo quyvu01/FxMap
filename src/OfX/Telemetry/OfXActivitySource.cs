@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using OfX.Attributes;
+using OfX.Abstractions;
 using OfX.Configuration;
 
 namespace OfX.Telemetry;
@@ -37,7 +37,7 @@ public static class OfXActivitySource
     /// They should be disposed when the request completes.
     /// </remarks>
     public static Activity StartClientActivity<TAttribute>(string transport, string operationName = null)
-        where TAttribute : OfXAttribute
+        where TAttribute : IDistributedKey
     {
         var activity = Source.StartActivity(operationName ?? Constants.Telemetry.OperationRequest, ActivityKind.Client);
         if (activity == null) return null;
@@ -96,7 +96,7 @@ public static class OfXActivitySource
     /// <param name="operationName">Optional operation name. Defaults to "ofx.db.query".</param>
     /// <returns>An Activity if tracing is enabled, otherwise null.</returns>
     public static Activity StartDatabaseActivity<TAttribute>(string dbSystem, string operationName = null)
-        where TAttribute : OfXAttribute
+        where TAttribute : IDistributedKey
     {
         var activity = Source.StartActivity(operationName ?? "ofx.db.query", ActivityKind.Client);
 

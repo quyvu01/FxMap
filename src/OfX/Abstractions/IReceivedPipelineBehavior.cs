@@ -1,4 +1,3 @@
-using OfX.Attributes;
 using OfX.Responses;
 
 namespace OfX.Abstractions;
@@ -8,7 +7,7 @@ namespace OfX.Abstractions;
 /// before they are handled by the <see cref="IQueryOfHandler{TModel, TAttribute}"/>.
 /// </summary>
 /// <typeparam name="TAttribute">
-/// The <see cref="OfXAttribute"/> type representing the model or entity being requested.
+/// The <see cref="IDistributedKey"/> type representing the model or entity being requested.
 /// </typeparam>
 /// <remarks>
 /// This interface allows you to customize the **request pipeline** on the server side.  
@@ -23,7 +22,7 @@ namespace OfX.Abstractions;
 /// to continue to the next pipeline behavior or to the final <see cref="IQueryOfHandler{TModel, TAttribute}"/>.
 /// </remarks>
 public interface IReceivedPipelineBehavior<TAttribute> : IOfXBase<TAttribute> 
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     /// <summary>
     /// Handles the incoming request and optionally invokes the next behavior in the pipeline.

@@ -1,7 +1,6 @@
 using System.Collections.Concurrent;
 using OfX.Abstractions;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.MetadataCache;
 using OfX.Exceptions;
 using OfX.Extensions;
@@ -73,8 +72,13 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
                     var requestCt = new RequestContext([], ParameterConverter.ConvertToDictionary(parameters), token);
 
+                    // Resolve conditional expressions and store on PropertyInformation
+                    foreach (var a in accessors.Where(a => a.PropertyInformation is { IsConditional: true }))
+                        a.PropertyInformation.ResolvedExpression =
+                            await a.PropertyInformation.ConditionalExpression.ResolveAsync();
+
                     var expressions = new HashSet<string>(accessors
-                        .Select(a => a.PropertyInformation.Expression));
+                        .Select(a => a.PropertyInformation.EffectiveExpression));
 
                     var result = await FetchDataAsync(x.OfXAttributeType,
                         new DataFetchQuery(selectorIds, [..expressions]), requestCt);
@@ -102,7 +106,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     }
 
     public Task<ItemsResponse<DataResponse>> FetchDataAsync<TAttribute>(DataFetchQuery query,
-        IContext context = null) where TAttribute : OfXAttribute => FetchDataAsync(typeof(TAttribute), query, context);
+        IContext context = null) where TAttribute : IDistributedKey => FetchDataAsync(typeof(TAttribute), query, context);
 
     public async Task<ItemsResponse<DataResponse>> FetchDataAsync(Type runtimeType, DataFetchQuery query,
         IContext context = null)

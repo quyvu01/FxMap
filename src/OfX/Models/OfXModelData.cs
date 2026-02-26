@@ -10,7 +10,7 @@ namespace OfX.Models;
 /// The CLR type of the model entity (e.g., <c>typeof(User)</c>, <c>typeof(Order)</c>).
 /// </param>
 /// <param name="OfXAttributeType">
-/// The type of <see cref="Attributes.OfXAttribute"/> associated with this model
+/// The type of <see cref="IDistributedKey"/> associated with this model
 /// (e.g., <c>typeof(UserOfAttribute)</c>).
 /// </param>
 /// <param name="OfXConfigAttribute">

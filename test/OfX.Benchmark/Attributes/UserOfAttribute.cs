@@ -1,5 +1,5 @@
-using OfX.Attributes;
+using OfX.Abstractions;
 
 namespace OfX.Benchmark.Attributes;
 
-public sealed class UserOfAttribute(string propertyName) : OfXAttribute(propertyName); 
+public sealed class UserOfAttribute : IDistributedKey;

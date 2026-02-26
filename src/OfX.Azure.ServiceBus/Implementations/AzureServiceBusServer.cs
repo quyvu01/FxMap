@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OfX.Abstractions;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Azure.ServiceBus.Abstractions;
 using OfX.Azure.ServiceBus.Extensions;
 using OfX.Azure.ServiceBus.Statics;
@@ -23,7 +22,7 @@ internal class AzureServiceBusServer<TModel, TAttribute>(
     AzureServiceBusClientWrapper clientWrapper,
     IServiceProvider serviceProvider)
     : IAzureServiceBusServer<TModel, TAttribute>
-    where TAttribute : OfXAttribute where TModel : class
+    where TAttribute : IDistributedKey where TModel : class
 {
     private readonly ILogger<AzureServiceBusServer<TModel, TAttribute>> _logger =
         serviceProvider.GetService<ILogger<AzureServiceBusServer<TModel, TAttribute>>>();

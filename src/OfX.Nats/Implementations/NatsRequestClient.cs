@@ -2,7 +2,6 @@ using System.Diagnostics;
 using NATS.Client.Core;
 using OfX.Abstractions;
 using OfX.Abstractions.Transporting;
-using OfX.Attributes;
 using OfX.Exceptions;
 using OfX.Extensions;
 using OfX.Nats.Extensions;
@@ -18,7 +17,7 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
     private const string TransportName = "nats";
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : OfXAttribute
+        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
     {
         // Start client-side activity for distributed tracing
         using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);

@@ -1,7 +1,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
-using OfX.Attributes;
 using OfX.Exceptions;
+using OfX.Fluent;
 
 namespace OfX.Accessors.TypeAccessors;
 
@@ -12,20 +12,23 @@ public sealed class TypeAccessor(Type objectType) : ITypeAccessor
 
     public PropertyInfo GetPropertyInfo(string name)
     {
+        var objectTypeCached = FluentConfigStore.EntityConfigs[objectType];
         var result = _properties.GetOrAdd(name, n =>
         {
             var properties = objectType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
             var matches = properties.Where(p =>
             {
-                var attribute = p.GetCustomAttribute<ExposedNameAttribute>();
-                if (attribute is not null) return attribute.Name == n;
+                var exposedNameStore = objectTypeCached.ExposedNameStores
+                    .FirstOrDefault(a => a.PropertyInfo == p);
+                if (exposedNameStore is not null) return exposedNameStore.ExposedPropertyName == n;
                 return p.Name == n;
             }).ToArray();
             return matches.Length switch
             {
                 0 => null,
                 1 => matches[0],
-                _ => throw new OfXException.DuplicatedNameByExposedName(objectType, matches)
+                _ => throw new OfXException.DuplicatedNameByExposedName(objectType, n)
             };
         });
         return result;

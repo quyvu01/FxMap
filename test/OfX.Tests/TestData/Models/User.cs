@@ -1,9 +1,8 @@
-using OfX.Attributes;
+using OfX.Fluent;
 using OfX.Tests.TestData.Attributes;
 
 namespace OfX.Tests.TestData.Models;
 
-[OfXConfigFor<UserOfAttribute>(nameof(Id), nameof(Name))]
 public class User
 {
     public string Id { get; set; } = string.Empty;
@@ -12,4 +11,14 @@ public class User
     public string ProvinceId { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
     public bool IsActive { get; set; }
+}
+
+public class UserConfig : AbstractOfXConfig<User>
+{
+    protected override void Configure()
+    {
+        Id(x => x.Id);
+        DefaultProperty(x => x.Name);
+        UseAnnotate<UserOfAttribute>();
+    }
 }

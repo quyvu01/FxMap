@@ -7,7 +7,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OfX.Abstractions;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Implementations;
 using OfX.Kafka.Abstractions;
 using OfX.Kafka.Constants;
@@ -21,7 +20,7 @@ using OfX.Telemetry;
 namespace OfX.Kafka.Implementations;
 
 internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute>, IDisposable
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
     where TModel : class
 {
     private readonly IServiceProvider _serviceProvider;

@@ -4,7 +4,6 @@ using System.Text;
 using System.Text.Json;
 using OfX.Abstractions;
 using OfX.Abstractions.Transporting;
-using OfX.Attributes;
 using OfX.Exceptions;
 using OfX.Extensions;
 using OfX.RabbitMq.Constants;
@@ -31,7 +30,7 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
     private const string TransportName = "rabbitmq";
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : OfXAttribute
+        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
     {
         // Start client-side activity for distributed tracing
         using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);

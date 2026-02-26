@@ -1,5 +1,5 @@
-using OfX.Attributes;
+using OfX.Abstractions;
 
 namespace OfX.Tests.TestData.Attributes;
 
-public sealed class CountryOfAttribute(string propertyName) : OfXAttribute(propertyName);
+public sealed class CountryOfAttribute : IDistributedKey;

@@ -32,7 +32,7 @@ public class BasicMappingTests : TestDbContextBase<BasicMappingTestDbContext>
         services.AddOfX(options =>
         {
             options.AddAttributesContainNamespaces(typeof(ITestAssemblyMarker).Assembly);
-            options.AddModelConfigurationsFromNamespaceContaining<ITestAssemblyMarker>();
+            options.AddProfilesFromAssemblyContaining<ITestAssemblyMarker>();
         }).AddOfXEFCore(options =>
         {
             options.AddDbContexts(typeof(BasicMappingTestDbContext));

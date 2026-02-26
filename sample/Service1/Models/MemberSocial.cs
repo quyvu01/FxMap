@@ -1,10 +1,9 @@
 using MongoDB.Bson.Serialization.Attributes;
-using OfX.Attributes;
+using OfX.Fluent;
 using Shared.Attributes;
 
 namespace Service1.Models;
 
-[OfXConfigFor<MemberSocialOfAttribute>(nameof(Id), nameof(Name))]
 public sealed class MemberSocial
 {
     [BsonId] public int Id { get; set; }
@@ -25,4 +24,14 @@ public sealed class MemerSocialMetadata
 public sealed class ExternalOfMetadata
 {
     public string JustForTest { get; set; }
+}
+
+public class MemberSocialConfig : AbstractOfXConfig<MemberSocial>
+{
+    protected override void Configure()
+    {
+        Id(x => x.Id);
+        DefaultProperty(x => x.Name);
+        UseAnnotate<MemberSocialOfAttribute>();
+    }
 }

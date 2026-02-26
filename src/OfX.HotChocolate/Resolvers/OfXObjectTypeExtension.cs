@@ -1,5 +1,3 @@
-using System.Reflection;
-using OfX.Attributes;
 using OfX.MetadataCache;
 using OfX.Extensions;
 using OfX.HotChocolate.Constants;
@@ -21,79 +19,71 @@ namespace OfX.HotChocolate.Resolvers;
 /// </remarks>
 internal class OfXObjectTypeExtension<T> : ObjectTypeExtension<T> where T : class
 {
-    protected override void Configure(IObjectTypeDescriptor<T> descriptor) => typeof(T)
-        .GetProperties()
-        .Where(p => p.GetCustomAttributes(true)
-            .Any(a => typeof(OfXAttribute).IsAssignableFrom(a.GetType())))
-        .Select(x =>
-        {
-            var attr = x.GetCustomAttribute<OfXAttribute>();
-            if (attr is null) return null;
-            var requiredProperty = typeof(T).GetProperty(attr.PropertyName);
-            if (requiredProperty is null)
-                throw new InvalidOperationException(
-                    $"Property '{attr.PropertyName}' not found on type '{typeof(T).FullName}'. " +
-                    $"Required by OfX attribute on property '{x.Name}'.");
-            return new
+    protected override void Configure(IObjectTypeDescriptor<T> descriptor)
+    {
+        var cached = OfXModelCache.GetModelAccessor(typeof(T));
+        cached.DependencyGraphs
+            .SelectMany(a => a.Value)
+            .Select(x => new
             {
-                TargetPropertyInfo = x, Attribute = attr,
-                RequiredPropertyInfo = requiredProperty
-            };
-        })
-        .Where(data => data is not null)
-        .ForEach(data => descriptor.Field(data!.TargetPropertyInfo)
-            .Use(next => async context =>
-            {
-                var methodPath = context.Path.ToList().FirstOrDefault()?.ToString();
-                var modelCached = OfXModelCache.ContainsModel(typeof(T));
-                if (!modelCached)
-                {
-                    await next(context);
-                    return;
-                }
-
-                var expressionParameters = context.ContextData
-                        .TryGetValue(GraphQlConstants.GetContextDataParametersHeader(methodPath),
-                            out var value) switch
-                    {
-                        true => value switch
-                        {
-                            Dictionary<string, string> parameters => parameters,
-                            _ => null
-                        },
-                        _ => null
-                    };
-
-                var groupId = context.ContextData
-                        .TryGetValue(GraphQlConstants.GetContextDataGroupIdHeader(methodPath),
-                            out var groupIdFromHeader) switch
-                    {
-                        true => groupIdFromHeader?.ToString(),
-                        _ => null
-                    };
-
-                var attribute = data.Attribute;
-                
-                var dependencyGraphs = OfXModelCache
-                    .GetModelAccessor(typeof(T))
-                    .DependencyGraphs;
-
-                var ctx = new FieldContext
-                {
-                    TargetPropertyInfo = data.TargetPropertyInfo,
-                    Expression = attribute.Expression,
-                    RuntimeAttributeType = attribute.GetType(),
-                    SelectorPropertyName = attribute.PropertyName,
-                    RequiredPropertyInfo = data.RequiredPropertyInfo,
-                    Order = dependencyGraphs.GetPropertyOrder(data.TargetPropertyInfo),
-                    ExpressionParameters = expressionParameters,
-                    GroupId = groupId
-                };
-
-                context.ContextData[GraphQlConstants.GetContextFieldContextHeader(methodPath)] = ctx;
-
-                await next(context);
+                x.TargetPropertyInfo, x.RequiredPropertyInfo,
+                AttributeData = new { x.Expression, PropertyName = x.SelectorPropertyName },
+                x.RuntimeAttributeType
             })
-            .ResolveWith<DataResolvers<T>>(x => x.GetDataAsync(null!, null!))
-            .Type(data.TargetPropertyInfo.PropertyType));
+            .ForEach(data => descriptor.Field(data!.TargetPropertyInfo)
+                .Use(next => async context =>
+                {
+                    var methodPath = context.Path.ToList().FirstOrDefault()?.ToString();
+                    var modelCached = OfXModelCache.ContainsModel(typeof(T));
+                    if (!modelCached)
+                    {
+                        await next(context);
+                        return;
+                    }
+
+                    var expressionParameters = context.ContextData
+                            .TryGetValue(GraphQlConstants.GetContextDataParametersHeader(methodPath),
+                                out var value) switch
+                        {
+                            true => value switch
+                            {
+                                Dictionary<string, string> parameters => parameters,
+                                _ => null
+                            },
+                            _ => null
+                        };
+
+                    var groupId = context.ContextData
+                            .TryGetValue(GraphQlConstants.GetContextDataGroupIdHeader(methodPath),
+                                out var groupIdFromHeader) switch
+                        {
+                            true => groupIdFromHeader?.ToString(),
+                            _ => null
+                        };
+
+                    var attribute = data.AttributeData;
+
+                    var dependencyGraphs = OfXModelCache
+                        .GetModelAccessor(typeof(T))
+                        .DependencyGraphs;
+
+                    var ctx = new FieldContext
+                    {
+                        TargetPropertyInfo = data.TargetPropertyInfo,
+                        Expression = attribute.Expression,
+                        RuntimeAttributeType = data.RuntimeAttributeType,
+                        SelectorPropertyName = attribute.PropertyName,
+                        RequiredPropertyInfo = data.RequiredPropertyInfo,
+                        Order = dependencyGraphs.GetPropertyOrder(data.TargetPropertyInfo),
+                        ExpressionParameters = expressionParameters,
+                        GroupId = groupId
+                    };
+
+                    context.ContextData[GraphQlConstants.GetContextFieldContextHeader(methodPath)] = ctx;
+
+                    await next(context);
+                })
+                .ResolveWith<DataResolvers<T>>(x => x.GetDataAsync(null!, null!))
+                .Type(data.TargetPropertyInfo.PropertyType));
+    }
 }

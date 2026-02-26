@@ -1,4 +1,3 @@
-using OfX.Attributes;
 using OfX.Responses;
 
 namespace OfX.Abstractions;
@@ -8,7 +7,7 @@ namespace OfX.Abstractions;
 /// <see cref="IReceivedPipelineBehavior{TAttribute}"/> on the server side.
 /// </summary>
 /// <typeparam name="TAttribute">
-/// The <see cref="OfXAttribute"/> type associated with the outgoing request.
+/// The <see cref="IDistributedKey"/> type associated with the outgoing request.
 /// </typeparam>
 /// <remarks>
 /// <para>
@@ -27,7 +26,7 @@ namespace OfX.Abstractions;
 /// Multiple send pipeline behaviors can be registered and will be executed in order.
 /// </remarks>
 public interface ISendPipelineBehavior<TAttribute> : IOfXBase<TAttribute>
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     /// <summary>
     /// Handles the request context as part of the send pipeline and invokes the next behavior or the final request handler.

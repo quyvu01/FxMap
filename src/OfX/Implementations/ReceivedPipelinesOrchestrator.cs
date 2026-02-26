@@ -1,7 +1,6 @@
 using System.Text.Json;
 using OfX.Abstractions;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Exceptions;
 using OfX.Extensions;
 using OfX.Responses;
@@ -51,7 +50,7 @@ public class ReceivedPipelinesOrchestrator<TModel, TAttribute>(
     IEnumerable<ICustomExpressionBehavior<TAttribute>> customExpressionHandlers) :
     ReceivedPipelinesOrchestrator,
     IReceivedPipelinesOrchestrator<TAttribute>
-    where TAttribute : OfXAttribute where TModel : class
+    where TAttribute : IDistributedKey where TModel : class
 {
     public async Task<ItemsResponse<DataResponse>> ExecuteAsync(RequestContext<TAttribute> requestContext)
     {

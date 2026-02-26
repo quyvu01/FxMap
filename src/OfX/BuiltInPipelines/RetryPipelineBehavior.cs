@@ -1,5 +1,4 @@
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.Responses;
 using OfX.Configuration;
 
@@ -19,7 +18,7 @@ namespace OfX.BuiltInPipelines;
 /// </list>
 /// </remarks>
 internal sealed class RetryPipelineBehavior<TAttribute> : ISendPipelineBehavior<TAttribute>
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TAttribute> requestContext,
         Func<Task<ItemsResponse<DataResponse>>> next)

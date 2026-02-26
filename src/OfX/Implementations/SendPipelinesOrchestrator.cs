@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using OfX.Abstractions;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Extensions;
 using OfX.Helpers;
 using OfX.Responses;
@@ -42,7 +41,7 @@ internal abstract class SendPipelinesOrchestrator
 /// </list>
 /// </remarks>
 internal sealed class SendPipelinesOrchestrator<TAttribute>(IServiceProvider serviceProvider) :
-    SendPipelinesOrchestrator where TAttribute : OfXAttribute
+    SendPipelinesOrchestrator where TAttribute : IDistributedKey
 {
     internal override async Task<ItemsResponse<DataResponse>> ExecuteAsync(OfXRequest message, IContext context)
     {

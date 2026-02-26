@@ -1,4 +1,3 @@
-using System.Reflection;
 using OfX.Abstractions;
 using OfX.Configuration;
 
@@ -48,7 +47,7 @@ public static class OfXException
 
     public sealed class ModelConfigurationMustBeSet()
         : Exception(
-            "You have to call the method: `AddModelConfigurationsFromNamespaceContaining<TAssembly>` to create handlers mapping!");
+            "You have to call the method: `AddProfilesFromAssemblyContaining<TAssembly>` to register entity configurations!");
 
     public sealed class ReceivedException(string message)
         : Exception($"{AppDomain.CurrentDomain.FriendlyName} : {message}");
@@ -79,8 +78,8 @@ public static class OfXException
 
     public sealed class NoHandlerForAttribute(Type type) : Exception($"There is no handler for '{type.FullName}'!");
 
-    public sealed class DuplicatedNameByExposedName(Type type, PropertyInfo[] propertyInfos) : Exception(
-        $"Properties: {string.Join(", ", propertyInfos.Select(p => p.Name))} cannot be dupplicated for type '{type.FullName}'.");
+    public sealed class DuplicatedNameByExposedName(Type type, string exposedName) : Exception(
+        $"ExposedName: {exposedName} cannot be duplicated for type '{type.FullName}'.");
 
     public sealed class OneAttributedHasBeenAssignToMultipleEntities(Type attributeType, Type[] entityTypes)
         : Exception(

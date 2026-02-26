@@ -1,10 +1,8 @@
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.MetadataCache;
 using OfX.Delegates;
 using OfX.Expressions.Building;
@@ -36,7 +34,7 @@ namespace OfX.Builders;
 /// </remarks>
 public abstract class QueryHandlerBuilder<TModel, TAttribute>(IServiceProvider serviceProvider)
     where TModel : class
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     private const string ParameterName = "x";
 

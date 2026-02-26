@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.Delegates;
 using OfX.Exceptions;
 using OfX.Handlers;
@@ -33,7 +32,7 @@ public static class OfXExtensions
     /// services.AddOfX(cfg =>
     /// {
     ///     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Assembly);
-    ///     cfg.AddModelConfigurationsFromNamespaceContaining&lt;User&gt;();
+    ///     cfg.AddProfilesFromAssemblyContaining&lt;User&gt;();
     /// })
     /// .AddOfXEFCore(cfg => cfg.AddDbContexts(typeof(Service1Context)));
     /// </code>

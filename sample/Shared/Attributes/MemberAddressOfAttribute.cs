@@ -1,5 +1,5 @@
-using OfX.Attributes;
+using OfX.Abstractions;
 
 namespace Shared.Attributes;
 
-public sealed class MemberAddressOfAttribute(string propertyName) : OfXAttribute(propertyName);
+public sealed class MemberAddressOfAttribute : IDistributedKey;

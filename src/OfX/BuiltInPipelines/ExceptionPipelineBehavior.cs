@@ -1,7 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using OfX.Abstractions;
-using OfX.Attributes;
 using OfX.Responses;
 using OfX.Configuration;
 
@@ -18,7 +17,7 @@ namespace OfX.BuiltInPipelines;
 /// </remarks>
 internal sealed class ExceptionPipelineBehavior<TAttribute>(IServiceProvider serviceProvider)
     : ISendPipelineBehavior<TAttribute>
-    where TAttribute : OfXAttribute
+    where TAttribute : IDistributedKey
 {
     private readonly ILogger<ExceptionPipelineBehavior<TAttribute>> _logger =
         serviceProvider.GetService<ILogger<ExceptionPipelineBehavior<TAttribute>>>();

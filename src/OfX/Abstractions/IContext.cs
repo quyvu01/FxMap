@@ -1,5 +1,3 @@
-using OfX.Attributes;
-
 namespace OfX.Abstractions;
 
 /// <summary>
@@ -29,9 +27,9 @@ public interface IContext
 /// Represents the context for a received request, including headers and cancellation support.
 /// </summary>
 /// <typeparam name="TAttribute">
-/// The type of <see cref="OfXAttribute"/> that describes the request.
+/// The type of <see cref="IDistributedKey"/> that describes the request.
 /// </typeparam>
-public interface RequestContext<TAttribute> : IOfXBase<TAttribute>, IContext where TAttribute : OfXAttribute
+public interface RequestContext<TAttribute> : IOfXBase<TAttribute>, IContext where TAttribute : IDistributedKey
 {
     /// <summary>
     /// The request payload and metadata for the given <typeparamref name="TAttribute"/>.

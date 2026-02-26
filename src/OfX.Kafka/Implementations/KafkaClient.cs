@@ -7,7 +7,6 @@ using Microsoft.Extensions.Logging;
 using OfX.Abstractions;
 using OfX.Abstractions.Transporting;
 using OfX.Models;
-using OfX.Attributes;
 using OfX.Exceptions;
 using OfX.Kafka.Constants;
 using OfX.Kafka.Extensions;
@@ -66,7 +65,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
     }
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : OfXAttribute
+        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
     {
         // Start client-side activity for distributed tracing
         using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);
