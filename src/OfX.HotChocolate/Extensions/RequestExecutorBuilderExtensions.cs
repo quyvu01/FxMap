@@ -26,7 +26,6 @@ internal static class RequestExecutorBuilderExtensions
         ConcurrentDictionary<ParameterInfo, Func<IResolverContext, object>> parameterInfoLookup = [];
         builder.UseField(next => async context =>
         {
-            var methodPath = context.Path.ToList().FirstOrDefault()?.ToString();
             if (context.Selection.Field.ResolverMember is not MethodInfo method)
             {
                 await next.Invoke(context);
