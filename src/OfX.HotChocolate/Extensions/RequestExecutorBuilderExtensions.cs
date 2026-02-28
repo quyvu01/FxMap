@@ -51,22 +51,7 @@ internal static class RequestExecutorBuilderExtensions
                 return;
             }
 
-            var methodSignature = $"{method.DeclaringType?.FullName}.{method.Name}".ToLower();
-
-            context.ContextData[GraphQlConstants.GetContextDataParametersHeader(methodPath)] = ObjectToDictionary();
-            context.ContextData[GraphQlConstants.GetContextDataGroupIdHeader(methodPath)] = methodSignature;
-
             await next(context);
-            return;
-
-            Dictionary<string, string> ObjectToDictionary() => paramValue switch
-            {
-                Dictionary<string, string> val => val,
-                _ => paramValue
-                    .GetType()
-                    .GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .ToDictionary(p => p.Name, p => p.GetValue(paramValue)?.ToString())
-            };
         });
         return builder;
     }

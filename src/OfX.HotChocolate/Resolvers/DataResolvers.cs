@@ -1,13 +1,11 @@
 using System.Text.Json;
 using HotChocolate.Resolvers;
-using Microsoft.Extensions.Logging;
-using OfX.MetadataCache;
 using OfX.Extensions;
-using OfX.Fluent;
-using OfX.HotChocolate.Registration;
 using OfX.HotChocolate.Constants;
 using OfX.HotChocolate.GraphQlContext;
 using OfX.HotChocolate.Implementations;
+using OfX.HotChocolate.Registration;
+using OfX.MetadataCache;
 
 namespace OfX.HotChocolate.Resolvers;
 
