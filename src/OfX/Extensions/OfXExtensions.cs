@@ -47,7 +47,7 @@ public static class OfXExtensions
         var defaultClientRequestHandlerType = typeof(NoOpClientRequestHandler<>);
 
         var modelConfigurations = OfXStatics.ModelConfigurations.Value;
-        var attributeTypes = OfXStatics.OfXAttributeTypes.Value;
+        var attributeTypes = OfXStatics.DistributedKeyTypes.Value;
 
         var clientHandlerGenericType = typeof(ClientRequestHandler<>);
         attributeTypes

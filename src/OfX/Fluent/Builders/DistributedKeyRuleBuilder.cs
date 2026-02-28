@@ -3,11 +3,11 @@ using OfX.Fluent.Rules;
 
 namespace OfX.Fluent.Builders;
 
-public sealed class AttributeRuleBuilder<TModel>
+public sealed class DistributedKeyRuleBuilder<TModel>
 {
-    private readonly AttributeRuleGroup _group;
+    private readonly KeyRuleGroup _group;
 
-    internal AttributeRuleBuilder(AttributeRuleGroup group) => _group = group;
+    internal DistributedKeyRuleBuilder(KeyRuleGroup group) => _group = group;
 
     public PropertyRuleBuilder<TModel> Of<TProp>(Expression<Func<TModel, TProp>> selectorProperty)
     {

@@ -32,7 +32,7 @@ public sealed class PropertyContext
     /// <summary>
     /// Gets or sets the runtime type of the OfX attribute decorating the target property.
     /// </summary>
-    public Type RuntimeAttributeType { get; set; }
+    public Type RuntimeDistributedKeyType { get; set; }
 
     /// <summary>
     /// Gets or sets the conditional expression for runtime expression resolution.

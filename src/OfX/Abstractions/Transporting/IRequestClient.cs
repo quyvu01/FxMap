@@ -29,7 +29,7 @@ public interface IRequestClient
     /// <summary>
     /// Sends a request to the server using the configured transport and returns the response.
     /// </summary>
-    /// <typeparam name="TAttribute">
+    /// <typeparam name="TDistributedKey">
     /// The <see cref="IDistributedKey"/> type representing the model or entity being requested.
     /// </typeparam>
     /// <param name="requestContext">
@@ -39,6 +39,6 @@ public interface IRequestClient
     /// A task that resolves to an <see cref="ItemsResponse{OfXDataResponse}"/> containing
     /// the data returned from the server.
     /// </returns>
-    Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(RequestContext<TAttribute> requestContext)
-        where TAttribute : IDistributedKey;
+    Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(RequestContext<TDistributedKey> requestContext)
+        where TDistributedKey : IDistributedKey;
 }

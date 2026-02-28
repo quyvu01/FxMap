@@ -31,7 +31,7 @@ public abstract class ReceivedPipelinesOrchestrator
 /// Server-side pipeline orchestrator that executes received pipeline behaviors and query handlers.
 /// </summary>
 /// <typeparam name="TModel">The entity model type being queried.</typeparam>
-/// <typeparam name="TAttribute">The OfX attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The OfX attribute type associated with this handler.</typeparam>
 /// <param name="behaviors">The collection of received pipeline behaviors to execute.</param>
 /// <param name="handlers">The query handlers that fetch data from the data source.</param>
 /// <param name="customExpressionHandlers">Handlers for custom expression evaluation.</param>
@@ -44,24 +44,24 @@ public abstract class ReceivedPipelinesOrchestrator
 ///   <item><description>Merges results from custom expression handlers with standard results</description></item>
 /// </list>
 /// </remarks>
-public class ReceivedPipelinesOrchestrator<TModel, TAttribute>(
-    IEnumerable<IReceivedPipelineBehavior<TAttribute>> behaviors,
-    IEnumerable<IQueryOfHandler<TModel, TAttribute>> handlers,
-    IEnumerable<ICustomExpressionBehavior<TAttribute>> customExpressionHandlers) :
+public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
+    IEnumerable<IReceivedPipelineBehavior<TDistributedKey>> behaviors,
+    IEnumerable<IQueryOfHandler<TModel, TDistributedKey>> handlers,
+    IEnumerable<ICustomExpressionBehavior<TDistributedKey>> customExpressionHandlers) :
     ReceivedPipelinesOrchestrator,
-    IReceivedPipelinesOrchestrator<TAttribute>
-    where TAttribute : IDistributedKey where TModel : class
+    IReceivedPipelinesOrchestrator<TDistributedKey>
+    where TDistributedKey : IDistributedKey where TModel : class
 {
-    public async Task<ItemsResponse<DataResponse>> ExecuteAsync(RequestContext<TAttribute> requestContext)
+    public async Task<ItemsResponse<DataResponse>> ExecuteAsync(RequestContext<TDistributedKey> requestContext)
     {
         var executableHandlers = handlers
             .Where(x => x is not NoOpQueryOfHandler)
             .ToArray();
         var handler = executableHandlers.Length switch
         {
-            0 => throw new OfXException.CannotFindHandlerForOfAttribute(typeof(TAttribute)),
+            0 => throw new OfXException.CannotFindHandlerForOfAttribute(typeof(TDistributedKey)),
             1 => executableHandlers.First(),
-            _ => throw new OfXException.AttributeHasBeenConfiguredForModel(typeof(TModel), typeof(TAttribute)),
+            _ => throw new OfXException.AttributeHasBeenConfiguredForModel(typeof(TModel), typeof(TDistributedKey)),
         };
 
         // Deserialize expressions from Expression, we handle the custom expressions and original expression as well
@@ -72,7 +72,7 @@ public class ReceivedPipelinesOrchestrator<TModel, TAttribute>(
         var newExpressions = expressions.Except(customExpressions).ToArray();
         var customExpressionsToExecute = customExpressions.Intersect(expressions);
 
-        var newRequestContext = new RequestContextImpl<TAttribute>(
+        var newRequestContext = new RequestContextImpl<TDistributedKey>(
             requestContext.Query with { Expressions = newExpressions }, requestContext.Headers,
             requestContext.CancellationToken);
 
@@ -86,7 +86,7 @@ public class ReceivedPipelinesOrchestrator<TModel, TAttribute>(
         var customResults = customExpressionHandlers
             .Where(a => customExpressionsToExecute.Contains(a.CustomExpression()))
             .Select(a => (Expression: a.CustomExpression(), ResultTask: a.HandleAsync(
-                new RequestContextImpl<TAttribute>(requestContext.Query with { Expressions = [a.CustomExpression()] },
+                new RequestContextImpl<TDistributedKey>(requestContext.Query with { Expressions = [a.CustomExpression()] },
                     requestContext.Headers, requestContext.CancellationToken)))).ToList();
 
         await Task.WhenAll([resultTask, ..customResults.Select(a => a.ResultTask)]);
@@ -114,8 +114,8 @@ public class ReceivedPipelinesOrchestrator<TModel, TAttribute>(
     public override Task<ItemsResponse<DataResponse>> ExecuteAsync(OfXRequest message,
         Dictionary<string, string> headers, CancellationToken cancellationToken)
     {
-        var requestOf = new OfXQueryRequest<TAttribute>(message.SelectorIds, message.Expressions);
-        var requestContext = new RequestContextImpl<TAttribute>(requestOf, headers ?? [], cancellationToken);
+        var requestOf = new OfXQueryRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
+        var requestContext = new RequestContextImpl<TDistributedKey>(requestOf, headers ?? [], cancellationToken);
         return ExecuteAsync(requestContext);
     }
 }

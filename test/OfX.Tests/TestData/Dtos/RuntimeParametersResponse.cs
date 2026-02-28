@@ -21,7 +21,7 @@ public class RuntimeParametersResponseProfile : ProfileOf<RuntimeParametersRespo
 {
     protected override void Configure()
     {
-        UseAnnotate<CountryOfAttribute>()
+        UseDistributedKey<CountryOfAttribute>()
             .Of(x => x.CountryId)
             .For(x => x.ProvinceName, "Provinces[${index|0} ${order|asc} Name].Name")
             .For(x => x.Provinces, "Provinces[${offset|0} ${limit|10} ${order|asc} Name]");

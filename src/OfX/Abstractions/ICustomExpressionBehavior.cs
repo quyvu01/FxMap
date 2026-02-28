@@ -8,10 +8,10 @@ namespace OfX.Abstractions;
 /// For example, if a client requests a <c>SpecialExpression</c> that does not match any existing model expression,  
 /// you can implement this interface to define the custom expression and provide a handler for it.
 /// </remarks>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The type of <see cref="IDistributedKey"/> associated with the custom expression.
 /// </typeparam>
-public interface ICustomExpressionBehavior<TAttribute> where TAttribute : IDistributedKey
+public interface ICustomExpressionBehavior<TDistributedKey> where TDistributedKey : IDistributedKey
 {
     /// <summary>
     /// Defines the custom expression name or key that the server should recognize.
@@ -26,5 +26,5 @@ public interface ICustomExpressionBehavior<TAttribute> where TAttribute : IDistr
     /// <returns>
     /// A dictionary of key-value pairs representing the result of the custom expression.
     /// </returns>
-    Task<Dictionary<string, object>> HandleAsync(RequestContext<TAttribute> requestContext);
+    Task<Dictionary<string, object>> HandleAsync(RequestContext<TDistributedKey> requestContext);
 }

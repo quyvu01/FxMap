@@ -29,11 +29,11 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
     private const string RoutingKey = OfXRabbitMqConstants.RoutingKey;
     private const string TransportName = "rabbitmq";
 
-    public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
+    public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
+        RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
     {
         // Start client-side activity for distributed tracing
-        using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);
+        using var activity = OfXActivitySource.StartClientActivity<TDistributedKey>(TransportName);
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -43,14 +43,14 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
 
             if (_channel is null) throw new InvalidOperationException("RabbitMQ channel is not initialized");
 
-            var exchangeName = typeof(TAttribute).GetExchangeName();
+            var exchangeName = typeof(TDistributedKey).GetExchangeName();
             var cancellationToken = requestContext.CancellationToken;
             var correlationId = Guid.NewGuid().ToString();
             var props = new BasicProperties
             {
                 CorrelationId = correlationId,
                 ReplyTo = _replyQueueName,
-                Type = typeof(TAttribute).GetAssemblyName()
+                Type = typeof(TDistributedKey).GetAssemblyName()
             };
             props.Headers ??= new Dictionary<string, object>();
             requestContext.Headers?.ForEach(h => props.Headers.Add(h.Key, h.Value));
@@ -70,7 +70,7 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
             }
 
             // Emit diagnostic event
-            OfXDiagnostics.RequestStart(typeof(TAttribute).Name, TransportName, requestContext.Query.SelectorIds,
+            OfXDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
                 requestContext.Query.Expressions);
 
             // Track active requests
@@ -108,10 +108,10 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
                 stopwatch.Stop();
                 var itemCount = response.Data?.Items?.Length ?? 0;
 
-                OfXMetrics.RecordRequest(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+                OfXMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                     itemCount);
 
-                OfXDiagnostics.RequestStop(typeof(TAttribute).Name, TransportName, itemCount, stopwatch.Elapsed);
+                OfXDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
                 activity?.SetOfXTags(itemCount: itemCount);
                 activity?.SetStatus(ActivityStatusCode.Ok);
@@ -129,10 +129,10 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
             stopwatch.Stop();
 
             // Record error metrics
-            OfXMetrics.RecordError(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 ex.GetType().Name);
 
-            OfXDiagnostics.RequestError(typeof(TAttribute).Name, TransportName, ex, stopwatch.Elapsed);
+            OfXDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
 
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);

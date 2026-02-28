@@ -26,13 +26,13 @@ public class UserResponseProfile : ProfileOf<UserResponse>
 {
     protected override void Configure()
     {
-        UseAnnotate<UserOfAttribute>()
+        UseDistributedKey<UserOfAttribute>()
             .Of(x => x.UserId)
             .For(x => x.UserName)
             .For(x => x.UserEmail, "Email")
             .For(x => x.ProvinceId, "ProvinceId");
 
-        UseAnnotate<ProvinceOfAttribute>()
+        UseDistributedKey<ProvinceOfAttribute>()
             .Of(x => x.ProvinceId)
             .For(x => x.ProvinceName)
             .For(x => x.CountryName, "Country.Name");

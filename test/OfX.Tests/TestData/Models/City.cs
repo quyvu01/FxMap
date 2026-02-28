@@ -17,6 +17,6 @@ public class CityConfig : AbstractOfXConfig<City>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseAnnotate<CityOfAttribute>();
+        UseDistributedKey<CityOfAttribute>();
     }
 }

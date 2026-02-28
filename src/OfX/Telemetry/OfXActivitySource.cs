@@ -28,7 +28,7 @@ public static class OfXActivitySource
     /// <summary>
     /// Starts a client-side activity for an OfX request.
     /// </summary>
-    /// <typeparam name="TAttribute">The OfX attribute type being requested.</typeparam>
+    /// <typeparam name="TDistributedKey">The OfX attribute type being requested.</typeparam>
     /// <param name="transport">The transport mechanism (e.g., "kafka", "grpc", "rabbitmq").</param>
     /// <param name="operationName">Optional custom operation name. Defaults to "OfX.Request".</param>
     /// <returns>An Activity if tracing is enabled, otherwise null.</returns>
@@ -36,14 +36,14 @@ public static class OfXActivitySource
     /// Client activities represent outbound requests from the application to OfX servers.
     /// They should be disposed when the request completes.
     /// </remarks>
-    public static Activity StartClientActivity<TAttribute>(string transport, string operationName = null)
-        where TAttribute : IDistributedKey
+    public static Activity StartClientActivity<TDistributedKey>(string transport, string operationName = null)
+        where TDistributedKey : IDistributedKey
     {
         var activity = Source.StartActivity(operationName ?? Constants.Telemetry.OperationRequest, ActivityKind.Client);
         if (activity == null) return null;
 
         // OpenTelemetry semantic conventions
-        activity.SetTag(Constants.Telemetry.TagOfXAttribute, typeof(TAttribute).Name);
+        activity.SetTag(Constants.Telemetry.TagOfXAttribute, typeof(TDistributedKey).Name);
         activity.SetTag(Constants.Telemetry.TagOfXTransport, transport);
         activity.SetTag(Constants.Telemetry.TagOfXVersion, Constants.Version);
 
@@ -91,18 +91,18 @@ public static class OfXActivitySource
     /// <summary>
     /// Starts a database activity for query operations.
     /// </summary>
-    /// <typeparam name="TAttribute">The OfX attribute type.</typeparam>
+    /// <typeparam name="TDistributedKey">The OfX attribute type.</typeparam>
     /// <param name="dbSystem">The database system (e.g., "efcore", "mongodb").</param>
     /// <param name="operationName">Optional operation name. Defaults to "ofx.db.query".</param>
     /// <returns>An Activity if tracing is enabled, otherwise null.</returns>
-    public static Activity StartDatabaseActivity<TAttribute>(string dbSystem, string operationName = null)
-        where TAttribute : IDistributedKey
+    public static Activity StartDatabaseActivity<TDistributedKey>(string dbSystem, string operationName = null)
+        where TDistributedKey : IDistributedKey
     {
         var activity = Source.StartActivity(operationName ?? "ofx.db.query", ActivityKind.Client);
 
         if (activity == null) return null;
 
-        activity.SetTag(Constants.Telemetry.TagOfXAttribute, typeof(TAttribute).Name);
+        activity.SetTag(Constants.Telemetry.TagOfXAttribute, typeof(TDistributedKey).Name);
         activity.SetTag(Constants.Telemetry.TagOfXVersion, Constants.Version);
         activity.SetTag(Constants.Telemetry.TagDbSystem, dbSystem);
 

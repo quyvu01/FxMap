@@ -18,6 +18,6 @@ public class ProvinceConfig : AbstractOfXConfig<Province>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseAnnotate<ProvinceOfAttribute>();
+        UseDistributedKey<ProvinceOfAttribute>();
     }
 }

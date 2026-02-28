@@ -7,14 +7,14 @@ namespace OfX.Abstractions;
 /// </summary>
 /// <remarks>
 /// This non-generic interface is used for internal resolution of request handlers.
-/// Use the generic <see cref="IClientRequestHandler{TAttribute}"/> for actual implementation.
+/// Use the generic <see cref="IClientRequestHandler{TDistributedKey}"/> for actual implementation.
 /// </remarks>
 public interface IClientRequestHandler;
 
 /// <summary>
 /// Defines a request handler that processes client requests for a given <see cref="IDistributedKey"/>.
 /// </summary>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The type of <see cref="IDistributedKey"/> representing the model or entity being requested.
 /// </typeparam>
 /// <remarks>
@@ -22,8 +22,8 @@ public interface IClientRequestHandler;
 /// It allows clients (e.g., NATS, gRPC, RabbitMQ... clients) to send requests containing
 /// selector IDs and expressions, and receive a response from the server.
 /// </remarks>
-public interface IClientRequestHandler<TAttribute> : IOfXBase<TAttribute>, IClientRequestHandler
-    where TAttribute : IDistributedKey
+public interface IClientRequestHandler<TDistributedKey> : IOfXBase<TDistributedKey>, IClientRequestHandler
+    where TDistributedKey : IDistributedKey
 {
     /// <summary>
     /// Sends a request to the server using the provided <paramref name="requestContext"/> 
@@ -36,23 +36,23 @@ public interface IClientRequestHandler<TAttribute> : IOfXBase<TAttribute>, IClie
     /// A task that resolves to an <see cref="ItemsResponse{OfXDataResponse}"/> containing
     /// the data returned from the server.
     /// </returns>
-    Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TAttribute> requestContext);
+    Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TDistributedKey> requestContext);
 }
 
 /// <summary>
-/// Default no-op implementation of <see cref="IClientRequestHandler{TAttribute}"/>.
+/// Default no-op implementation of <see cref="IClientRequestHandler{TDistributedKey}"/>.
 /// </summary>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The type of <see cref="IDistributedKey"/> representing the model or entity being requested.
 /// </typeparam>
 /// <remarks>
 /// This default implementation always returns an empty <see cref="ItemsResponse{OfXDataResponse}"/>.
-/// It is typically used when no specific handler has been registered for a given <typeparamref name="TAttribute"/>.
+/// It is typically used when no specific handler has been registered for a given <typeparamref name="TDistributedKey"/>.
 /// </remarks>
-internal class NoOpClientRequestHandler<TAttribute> : IClientRequestHandler<TAttribute>
-    where TAttribute : IDistributedKey
+internal class NoOpClientRequestHandler<TDistributedKey> : IClientRequestHandler<TDistributedKey>
+    where TDistributedKey : IDistributedKey
 {
     /// <inheritdoc />
-    public Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TAttribute> requestContext) =>
+    public Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TDistributedKey> requestContext) =>
         Task.FromResult(new ItemsResponse<DataResponse>([]));
 }

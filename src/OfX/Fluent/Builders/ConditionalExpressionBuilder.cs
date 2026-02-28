@@ -4,24 +4,23 @@ namespace OfX.Fluent.Builders;
 
 public sealed class ConditionalExpressionBuilder
 {
-    private readonly List<(Func<bool> SyncCondition, Func<Task<bool>> AsyncCondition, string Expression)> _conditions =
-        [];
+    private readonly List<(Func<IServiceProvider, Task<bool>> AsyncCondition, string Expression)> _conditions = [];
 
     private string _defaultExpression;
 
-    public ConditionalExpressionBuilder When(Func<bool> condition, string expression)
+    public ConditionalExpressionBuilder If(Func<IServiceProvider, bool> condition, string expression)
     {
-        _conditions.Add((condition, null, expression));
+        _conditions.Add((sp => Task.FromResult(condition(sp)), expression));
         return this;
     }
 
-    public ConditionalExpressionBuilder WhenAsync(Func<Task<bool>> condition, string expression)
+    public ConditionalExpressionBuilder IfAsync(Func<IServiceProvider, Task<bool>> condition, string expression)
     {
-        _conditions.Add((null, condition, expression));
+        _conditions.Add((condition, expression));
         return this;
     }
 
-    public void OrElse(string defaultExpression) => _defaultExpression = defaultExpression;
+    public void Else(string defaultExpression) => _defaultExpression = defaultExpression;
 
     internal ConditionalExpression Build() => new(_conditions, _defaultExpression);
 }

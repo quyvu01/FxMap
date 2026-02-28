@@ -3,7 +3,7 @@ namespace OfX.Abstractions;
 /// <summary>
 /// Represents the raw request payload used to initiate a query in OfX.
 /// </summary>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The <see cref="IDistributedKey"/> type that defines the mapping or behavior for the request.
 /// </typeparam>
 /// <param name="SelectorIds">
@@ -12,16 +12,16 @@ namespace OfX.Abstractions;
 /// </param>
 /// <param name="Expressions">
 /// The filter or selection expression (in string form) used to shape or restrict the query results.  
-/// This expression will be parsed and executed by the server-side <see cref="IQueryOfHandler{TModel, TAttribute}"/>.
+/// This expression will be parsed and executed by the server-side <see cref="IQueryOfHandler{TModel, TDistributedKey}"/>.
 /// </param>
 /// <remarks>
 /// <para>
-/// The <see cref="OfXQueryRequest{TAttribute}"/> is a lightweight, immutable record that holds the 
+/// The <see cref="OfXQueryRequest{TDistributedKey}"/> is a lightweight, immutable record that holds the 
 /// **essential request data** (selector IDs and expression).  
 /// </para>
 /// <para>
-/// It is later wrapped in a <see cref="RequestContext{TAttribute}"/>, which adds additional context 
+/// It is later wrapped in a <see cref="RequestContext{TDistributedKey}"/>, which adds additional context 
 /// such as headers and <see cref="CancellationToken"/> for end-to-end request processing.
 /// </para>
 /// </remarks>
-public sealed record OfXQueryRequest<TAttribute>(string[] SelectorIds, string[] Expressions) where TAttribute : IDistributedKey;
+public sealed record OfXQueryRequest<TDistributedKey>(string[] SelectorIds, string[] Expressions) where TDistributedKey : IDistributedKey;

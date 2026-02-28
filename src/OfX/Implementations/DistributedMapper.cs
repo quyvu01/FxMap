@@ -29,23 +29,23 @@ namespace OfX.Implementations;
 internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDistributedMapper
 {
     private int _currentNestingLevel;
+    private readonly ItemsResponse<DataResponse> _emptyResponse = new([]);
 
     private static readonly ConcurrentDictionary<Type, Type> SendOrchestratorTypes = new();
 
-    public async Task MapDataAsync(object value, object parameters = null, CancellationToken token = default)
+    public async Task MapDataAsync(object value, CancellationToken token = default)
     {
         while (true)
         {
             if (_currentNestingLevel >= OfXStatics.MaxNestingDepth)
             {
-                if (OfXStatics.ThrowIfExceptions)
-                    throw new OfXException.MaxNestingDepthReached();
+                if (OfXStatics.ThrowIfExceptions) throw new OfXException.MaxNestingDepthReached();
                 return;
             }
 
             var allPropertyDatas = ReflectionHelpers.DiscoverResolvableProperties(value).ToArray();
 
-            var attributes = OfXStatics.OfXAttributeTypes.Value;
+            var attributes = OfXStatics.DistributedKeyTypes.Value;
             var typeData = ReflectionHelpers.GetOfXTypesData(allPropertyDatas, attributes);
 
             var typesDataGrouped = typeData
@@ -58,8 +58,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                     .Where(x => x.PropertyInformation.Order == mappableTypes.Key);
                 var tasks = mappableTypes.Select(async x =>
                 {
-                    var emptyCollection = new ItemsResponse<DataResponse>([]);
-                    var emptyResponse = (x.OfXAttributeType, Response: emptyCollection);
+                    var emptyResponse = (x.OfXAttributeType, Response: _emptyResponse);
                     var accessors = x.Accessors.ToList();
                     if (accessors is not { Count: > 0 }) return emptyResponse;
                     var selectorIds = accessors
@@ -70,12 +69,12 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
                     if (selectorIds is not { Length: > 0 }) return emptyResponse;
 
-                    var requestCt = new RequestContext([], ParameterConverter.ConvertToDictionary(parameters), token);
+                    var requestCt = new RequestContext([], token);
 
                     // Resolve conditional expressions and store on PropertyInformation
                     foreach (var a in accessors.Where(a => a.PropertyInformation is { IsConditional: true }))
                         a.PropertyInformation.ResolvedExpression =
-                            await a.PropertyInformation.ConditionalExpression.ResolveAsync();
+                            await a.PropertyInformation.ConditionalExpression.ResolveAsync(serviceProvider);
 
                     var expressions = new HashSet<string>(accessors
                         .Select(a => a.PropertyInformation.EffectiveExpression));
@@ -92,8 +91,8 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 .Where(a => !a.PropertyInfo.PropertyType.IsPrimitiveType())
                 .Aggregate(new List<object>(), (acc, next) =>
                 {
-                    var modelAccessor = OfXModelCache.GetModelAccessor(next.Model.GetType());
-                    var propertyAccessor = modelAccessor.GetAccessor(next.PropertyInfo);
+                    var profileConfig = FluentConfigStore.ProfileConfigs.GetValueOrDefault(next.Model.GetType());
+                    var propertyAccessor = profileConfig.Accessors.GetValueOrDefault(next.PropertyInfo);
                     var propertyValue = propertyAccessor?.Get(next.Model);
                     if (propertyValue is null) return acc;
                     acc.Add(propertyValue);
@@ -105,8 +104,9 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         }
     }
 
-    public Task<ItemsResponse<DataResponse>> FetchDataAsync<TAttribute>(DataFetchQuery query,
-        IContext context = null) where TAttribute : IDistributedKey => FetchDataAsync(typeof(TAttribute), query, context);
+    public Task<ItemsResponse<DataResponse>> FetchDataAsync<TDistributedKey>(DataFetchQuery query,
+        IContext context = null) where TDistributedKey : IDistributedKey =>
+        FetchDataAsync(typeof(TDistributedKey), query, context);
 
     public async Task<ItemsResponse<DataResponse>> FetchDataAsync(Type runtimeType, DataFetchQuery query,
         IContext context = null)

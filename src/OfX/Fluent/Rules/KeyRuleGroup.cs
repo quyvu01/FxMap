@@ -1,9 +1,9 @@
 namespace OfX.Fluent.Rules;
 
-internal sealed class AttributeRuleGroup
+public sealed class KeyRuleGroup
 {
-    public Type AttributeType { get; set; }
-    public string AttributeKey { get; set; }
+    public Type DistributedKeyType { get; set; }
+    public string DistributedKey { get; set; }
     public string SelectorPropertyName { get; set; }
     public List<PropertyMappingRule> Rules { get; } = [];
 }

@@ -176,7 +176,7 @@ public static class TypeExtensions
         /// </summary>
         /// <typeparam name="T">The type of attribute</typeparam>
         /// <returns>The attribute instance if found, or null</returns>
-        public IEnumerable<T> GetAttribute<T>() where T : Attribute =>
+        public IEnumerable<T> GeTDistributedKey<T>() where T : Attribute =>
             provider.GetCustomAttributes(typeof(T), true)
                 .Cast<T>();
 
@@ -185,7 +185,7 @@ public static class TypeExtensions
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
-        public bool HasAttribute<T>() where T : Attribute => provider.GetAttribute<T>().Any();
+        public bool HasAttribute<T>() where T : Attribute => provider.GeTDistributedKey<T>().Any();
     }
 
     /// <param name="type"></param>

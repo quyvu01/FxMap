@@ -11,7 +11,7 @@ namespace OfX.Abstractions;
 /// <remarks>
 /// <para>
 /// This interface provides a fluent API for registering pipeline behaviors
-/// (such as <see cref="IReceivedPipelineBehavior{TAttribute}"/> or <see cref="ISendPipelineBehavior{TAttribute}"/>)
+/// (such as <see cref="IReceivedPipelineBehavior{TDistributedKey}"/> or <see cref="ISendPipelineBehavior{TDistributedKey}"/>)
 /// into the dependency injection container.
 /// </para>
 /// <para>

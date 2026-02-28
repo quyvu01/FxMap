@@ -16,7 +16,7 @@ public class ProvinceComplexResponseProfile : ProfileOf<ProvinceComplexResponse>
 {
     protected override void Configure()
     {
-        UseAnnotate<CountryOfAttribute>()
+        UseDistributedKey<CountryOfAttribute>()
             .Of(x => x.CountryId)
             .For(x => x.Provinces, "Provinces.{Id, (Name endswith '0' ? Name : 'N/A') as Name}");
     }

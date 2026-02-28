@@ -13,7 +13,7 @@ public class SimpleMemberResponseProfile : ProfileOf<SimpleMemberResponse>
 {
     protected override void Configure()
     {
-        UseAnnotate<UserOfAttribute>()
+        UseDistributedKey<UserOfAttribute>()
             .Of(x => x.UserId)
             .For(x => x.UserEmail, "UserEmail");
     }

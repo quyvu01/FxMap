@@ -13,7 +13,7 @@ public class MemberWitComplexExpressionResponseProfile : ProfileOf<MemberWitComp
 {
     protected override void Configure()
     {
-        UseAnnotate<UserOfAttribute>()
+        UseDistributedKey<UserOfAttribute>()
             .Of(x => x.UserId)
             .For(x => x.User, "{Id, UserEmail, ProvinceId}");
     }

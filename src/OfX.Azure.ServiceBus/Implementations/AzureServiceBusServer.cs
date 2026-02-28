@@ -18,14 +18,14 @@ using OfX.Telemetry;
 
 namespace OfX.Azure.ServiceBus.Implementations;
 
-internal class AzureServiceBusServer<TModel, TAttribute>(
+internal class AzureServiceBusServer<TModel, TDistributedKey>(
     AzureServiceBusClientWrapper clientWrapper,
     IServiceProvider serviceProvider)
-    : IAzureServiceBusServer<TModel, TAttribute>
-    where TAttribute : IDistributedKey where TModel : class
+    : IAzureServiceBusServer<TModel, TDistributedKey>
+    where TDistributedKey : IDistributedKey where TModel : class
 {
-    private readonly ILogger<AzureServiceBusServer<TModel, TAttribute>> _logger =
-        serviceProvider.GetService<ILogger<AzureServiceBusServer<TModel, TAttribute>>>();
+    private readonly ILogger<AzureServiceBusServer<TModel, TDistributedKey>> _logger =
+        serviceProvider.GetService<ILogger<AzureServiceBusServer<TModel, TDistributedKey>>>();
 
     private const string TransportName = "azureservicebus";
 
@@ -35,7 +35,7 @@ internal class AzureServiceBusServer<TModel, TAttribute>(
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        var requestQueue = typeof(TAttribute).GetAzureServiceBusRequestQueue();
+        var requestQueue = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
         var options = new ServiceBusSessionProcessorOptions
         {
             MaxConcurrentSessions = AzureServiceBusStatic.MaxConcurrentSessions,
@@ -67,7 +67,7 @@ internal class AzureServiceBusServer<TModel, TAttribute>(
     private Task ProcessErrorAsync(ProcessErrorEventArgs args)
     {
         _logger?.LogError(args.Exception, "Azure Service Bus error for <{Attribute}>: {ErrorSource}",
-            typeof(TAttribute).Name, args.ErrorSource);
+            typeof(TDistributedKey).Name, args.ErrorSource);
         return Task.CompletedTask;
     }
 
@@ -80,8 +80,8 @@ internal class AzureServiceBusServer<TModel, TAttribute>(
         if (request.ApplicationProperties?.TryGetValue("traceparent", out var traceparent) ?? false)
             ActivityContext.TryParse(Encoding.UTF8.GetString((byte[])traceparent), null, out parentContext);
 
-        var attributeName = typeof(TAttribute).Name;
-        var requestQueue = typeof(TAttribute).GetAzureServiceBusRequestQueue();
+        var attributeName = typeof(TDistributedKey).Name;
+        var requestQueue = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
         using var activity = OfXActivitySource.StartServerActivity(attributeName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
@@ -103,12 +103,12 @@ internal class AzureServiceBusServer<TModel, TAttribute>(
 
             using var serviceScope = serviceProvider.CreateScope();
             var pipeline = serviceScope.ServiceProvider
-                .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TAttribute>>();
+                .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TDistributedKey>>();
 
             var headers = request.ApplicationProperties?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
-            var requestOf = new OfXQueryRequest<TAttribute>(requestDeserialize.SelectorIds, requestDeserialize.Expressions);
-            var requestContext = new RequestContextImpl<TAttribute>(requestOf, headers, cancellationToken);
+            var requestOf = new OfXQueryRequest<TDistributedKey>(requestDeserialize.SelectorIds, requestDeserialize.Expressions);
+            var requestContext = new RequestContextImpl<TDistributedKey>(requestOf, headers, cancellationToken);
             var data = await pipeline.ExecuteAsync(requestContext);
             var response = Result.Success(data);
 
@@ -186,7 +186,7 @@ internal class AzureServiceBusServer<TModel, TAttribute>(
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to send response for <{Attribute}>", typeof(TAttribute).Name);
+            _logger?.LogError(ex, "Failed to send response for <{Attribute}>", typeof(TDistributedKey).Name);
         }
     }
 
@@ -199,7 +199,7 @@ internal class AzureServiceBusServer<TModel, TAttribute>(
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to complete message for <{Attribute}>", typeof(TAttribute).Name);
+            _logger?.LogError(ex, "Failed to complete message for <{Attribute}>", typeof(TDistributedKey).Name);
         }
     }
 

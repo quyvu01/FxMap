@@ -16,11 +16,11 @@ using OfX.Telemetry;
 
 namespace OfX.Azure.ServiceBus.Implementations;
 
-internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable where TAttribute : IDistributedKey
+internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposable where TDistributedKey : IDistributedKey
 {
     private readonly ServiceBusSender _serviceBusSender;
     private readonly ServiceBusSessionProcessor _replyProcessor;
-    private readonly ILogger<OpenAzureServiceBusClient<TAttribute>> _logger;
+    private readonly ILogger<OpenAzureServiceBusClient<TDistributedKey>> _logger;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<BinaryData>> _pendingReplies = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private readonly string _sessionId;
@@ -29,13 +29,13 @@ internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable w
     private const string TransportName = "azureservicebus";
 
     public OpenAzureServiceBusClient(AzureServiceBusClientWrapper clientWrapper,
-        ILogger<OpenAzureServiceBusClient<TAttribute>> logger = null)
+        ILogger<OpenAzureServiceBusClient<TDistributedKey>> logger = null)
     {
         _logger = logger;
         var client = clientWrapper.ServiceBusClient;
         _sessionId = Guid.NewGuid().ToString();
-        var requestQueueName = typeof(TAttribute).GetAzureServiceBusRequestQueue();
-        _replyQueueName = typeof(TAttribute).GetAzureServiceBusReplyQueue();
+        var requestQueueName = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
+        _replyQueueName = typeof(TDistributedKey).GetAzureServiceBusReplyQueue();
         _serviceBusSender = client.CreateSender(requestQueueName);
         _replyProcessor = client.CreateSessionProcessor(_replyQueueName, new ServiceBusSessionProcessorOptions
         {
@@ -69,10 +69,10 @@ internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable w
         }
     }
 
-    public async Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TAttribute> requestContext)
+    public async Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TDistributedKey> requestContext)
     {
         // Start client-side activity for distributed tracing
-        using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);
+        using var activity = OfXActivitySource.StartClientActivity<TDistributedKey>(TransportName);
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -81,7 +81,7 @@ internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable w
             await EnsureInitializedAsync(requestContext.CancellationToken);
 
             var correlationId = Guid.NewGuid().ToString();
-            var requestQueueName = typeof(TAttribute).GetAzureServiceBusRequestQueue();
+            var requestQueueName = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
 
             var messageSerialize = JsonSerializer.Serialize(requestContext.Query);
             var requestMessage = new ServiceBusMessage(messageSerialize)
@@ -109,7 +109,7 @@ internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable w
             }
 
             // Emit diagnostic event
-            OfXDiagnostics.RequestStart(typeof(TAttribute).Name, TransportName, requestContext.Query.SelectorIds,
+            OfXDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
                 requestContext.Query.Expressions);
 
             // Track active requests
@@ -142,10 +142,10 @@ internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable w
                     stopwatch.Stop();
                     var itemCount = response.Data?.Items?.Length ?? 0;
 
-                    OfXMetrics.RecordRequest(typeof(TAttribute).Name, TransportName,
+                    OfXMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName,
                         stopwatch.Elapsed.TotalMilliseconds, itemCount);
 
-                    OfXDiagnostics.RequestStop(typeof(TAttribute).Name, TransportName, itemCount, stopwatch.Elapsed);
+                    OfXDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
                     activity?.SetOfXTags(itemCount: itemCount);
                     activity?.SetStatus(ActivityStatusCode.Ok);
@@ -156,7 +156,7 @@ internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable w
                                                          !requestContext.CancellationToken.IsCancellationRequested)
                 {
                     throw new TimeoutException(
-                        $"Timeout waiting for Azure Service Bus response for {typeof(TAttribute).Name}");
+                        $"Timeout waiting for Azure Service Bus response for {typeof(TDistributedKey).Name}");
                 }
             }
             finally
@@ -170,10 +170,10 @@ internal sealed class OpenAzureServiceBusClient<TAttribute> : IAsyncDisposable w
             stopwatch.Stop();
 
             // Record error metrics
-            OfXMetrics.RecordError(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 ex.GetType().Name);
 
-            OfXDiagnostics.RequestError(typeof(TAttribute).Name, TransportName, ex, stopwatch.Elapsed);
+            OfXDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
 
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);

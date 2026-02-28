@@ -3,10 +3,10 @@ using OfX.Responses;
 
 namespace Service2.Pipelines;
 
-public sealed class TestSendPipeline<TAttribute> : ISendPipelineBehavior<TAttribute>
-    where TAttribute : IDistributedKey
+public sealed class TestSendPipeline<TDistributedKey> : ISendPipelineBehavior<TDistributedKey>
+    where TDistributedKey : IDistributedKey
 {
-    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TAttribute> requestContext,
+    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
         Func<Task<ItemsResponse<DataResponse>>> next)
     {
         var result = await next.Invoke();

@@ -34,20 +34,10 @@ public class FieldContext
     /// <summary>
     /// Gets or sets the runtime type of the OfX attribute.
     /// </summary>
-    public Type RuntimeAttributeType { get; set; }
+    public Type RuntimeDistributedKeyType { get; set; }
 
     /// <summary>
     /// Gets or sets the dependency order for this field.
     /// </summary>
     public int Order { get; set; }
-
-    /// <summary>
-    /// Gets or sets the expression parameters for placeholder resolution.
-    /// </summary>
-    public Dictionary<string, string> ExpressionParameters { get; set; }
-
-    /// <summary>
-    /// Gets or sets the group ID for batching related requests.
-    /// </summary>
-    public string GroupId { get; set; }
 }

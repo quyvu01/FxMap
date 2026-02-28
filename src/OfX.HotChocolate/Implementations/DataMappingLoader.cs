@@ -39,7 +39,7 @@ internal class DataMappingLoader(
         {
             // Implement how to map next value with previous value
             var mapResult = previousMapResult;
-            var tasks = requestGrouped.GroupBy(a => (a.AttributeType, a.GroupId))
+            var tasks = requestGrouped.GroupBy(a => a.DistributedKeyType)
                 .Select(async gr =>
                 {
                     var matchedExpressionData = mapResult.Where(a =>
@@ -63,13 +63,10 @@ internal class DataMappingLoader(
                     if (ids is not { Count: > 0 }) return [];
                     var expressions = gr.Select(k => k.Expression).Distinct().OrderBy(k => k);
 
-                    var expressionParameters = keys
-                        .FirstOrDefault(k => k.GroupId == gr.Key.GroupId)?.ExpressionParameters;
-
-                    var context = new RequestContext([], expressionParameters, cancellationToken);
+                    var context = new RequestContext([], cancellationToken);
 
                     var result = await distributedMapper
-                        .FetchDataAsync(gr.Key.AttributeType, new DataFetchQuery([..ids], [..expressions]), context);
+                        .FetchDataAsync(gr.Key, new DataFetchQuery([..ids], [..expressions]), context);
 
                     var res = result.Items.Join(gr, a => a.Id, k => k.SelectorId, (a, k) => (a, k))
                         .ToDictionary(x => x.k,
@@ -81,8 +78,9 @@ internal class DataMappingLoader(
             resultData.AddRange(result);
         }
 
-        return keys.ToDictionary(a => a,
+        var res = keys.ToDictionary(a => a,
             ex => resultData.Select(k => k.FirstOrDefault(x => x.Key.Equals(ex)).Value)
                 .FirstOrDefault(x => x != null));
+        return res;
     }
 }

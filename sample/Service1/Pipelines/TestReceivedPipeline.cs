@@ -3,9 +3,9 @@ using OfX.Responses;
 
 namespace Service1.Pipelines;
 
-public sealed class TestReceivedPipeline<TAttribute> : IReceivedPipelineBehavior<TAttribute> where TAttribute : IDistributedKey
+public sealed class TestReceivedPipeline<TDistributedKey> : IReceivedPipelineBehavior<TDistributedKey> where TDistributedKey : IDistributedKey
 {
-    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TAttribute> requestContext,
+    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
         Func<Task<ItemsResponse<DataResponse>>> next)
     {
         var result = await next.Invoke();

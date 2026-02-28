@@ -1,21 +1,26 @@
+using System.Reflection;
+using OfX.Accessors.PropertyAccessors;
 using OfX.Fluent.Rules;
+using OfX.PropertyMappingContexts;
 
 namespace OfX.Fluent;
 
-internal interface IFluentEntityConfig
+public interface IFluentEntityConfig
 {
     Type ModelType { get; }
     string IdPropertyName { get; }
     string DefaultPropertyName { get; }
     IReadOnlyCollection<ExposedNameStore> ExposedNameStores { get; }
-    Type AttributeType { get; }
-    string AttributeKey { get; }
-    void Build();
+    Type DistributedKeyType { get; }
+    string DistributedKey { get; }
 }
 
-internal interface IFluentProfileConfig
+public interface IFluentProfileConfig
 {
     Type ModelType { get; }
-    List<AttributeRuleGroup> RuleGroups { get; }
+    List<KeyRuleGroup> RuleGroups { get; }
+    public IReadOnlyDictionary<PropertyInfo, IPropertyAccessor> Accessors { get; }
+    IReadOnlyDictionary<PropertyInfo, PropertyContext[]> DependencyGraphs { get; }
+    PropertyInformation GetInformation(PropertyInfo propertyInfo);
     void Build();
 }

@@ -3,7 +3,7 @@ namespace OfX.Abstractions;
 /// <summary>
 /// The foundational interface for all OfX components that are bound to a specific <see cref="IDistributedKey"/>.
 /// </summary>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The type of <see cref="IDistributedKey"/> that defines the metadata, mapping rules,
 /// or behavior for the implementing component.
 /// </typeparam>
@@ -16,4 +16,4 @@ namespace OfX.Abstractions;
 /// will typically implement this interface to indicate its association with a specific attribute type.
 /// </para>
 /// </remarks>
-public interface IOfXBase<TAttribute> where TAttribute : IDistributedKey;
+public interface IOfXBase<TDistributedKey> where TDistributedKey : IDistributedKey;

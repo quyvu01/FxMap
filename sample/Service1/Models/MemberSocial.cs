@@ -32,6 +32,6 @@ public class MemberSocialConfig : AbstractOfXConfig<MemberSocial>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseAnnotate<MemberSocialOfAttribute>();
+        UseDistributedKey<MemberSocialOfAttribute>();
     }
 }

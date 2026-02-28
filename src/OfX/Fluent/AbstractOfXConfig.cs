@@ -7,20 +7,23 @@ namespace OfX.Fluent;
 
 public abstract class AbstractOfXConfig<TModel> : IFluentEntityConfig where TModel : class
 {
+    public AbstractOfXConfig()
+    {
+        Configure();
+    }
+
     Type IFluentEntityConfig.ModelType => typeof(TModel);
     string IFluentEntityConfig.IdPropertyName => IdPropertyName;
     string IFluentEntityConfig.DefaultPropertyName => DefaultPropertyName;
     IReadOnlyCollection<ExposedNameStore> IFluentEntityConfig.ExposedNameStores => [.._exposedNameStores];
-    Type IFluentEntityConfig.AttributeType => AttributeType;
-    string IFluentEntityConfig.AttributeKey => AttributeKey;
-    void IFluentEntityConfig.Build() => Configure();
-
+    Type IFluentEntityConfig.DistributedKeyType => DistributedKeyType;
+    string IFluentEntityConfig.DistributedKey => DistributedKey;
     private string IdPropertyName { get; set; }
     private readonly List<ExposedNameStore> _exposedNameStores = [];
     private readonly HashSet<string> _exposedPropertyNames = [];
     private string DefaultPropertyName { get; set; }
-    private Type AttributeType { get; set; }
-    private string AttributeKey { get; set; }
+    private Type DistributedKeyType { get; set; }
+    private string DistributedKey { get; set; }
 
     protected void Id<TProp>(Expression<Func<TModel, TProp>> selector)
         => IdPropertyName = GetPropertyName(selector);
@@ -35,10 +38,10 @@ public abstract class AbstractOfXConfig<TModel> : IFluentEntityConfig where TMod
         _exposedNameStores.Add(new ExposedNameStore(selector.GetPropertyInfo(), exposedName));
     }
 
-    protected void UseKey(string key) => AttributeKey = key;
+    protected void UseDistributedKey(string distributedKey) => DistributedKey = distributedKey;
 
-    protected void UseAnnotate<TAttribute>() where TAttribute : IDistributedKey
-        => AttributeType = typeof(TAttribute);
+    protected void UseDistributedKey<TDistributedKey>() where TDistributedKey : IDistributedKey
+        => DistributedKeyType = typeof(TDistributedKey);
 
     protected abstract void Configure();
 

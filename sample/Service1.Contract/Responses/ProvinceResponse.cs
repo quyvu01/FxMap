@@ -14,7 +14,7 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 {
     protected override void Configure()
     {
-        UseAnnotate<ProvinceOfAttribute>()
+        UseDistributedKey<ProvinceOfAttribute>()
             .Of(x => x.Id)
             .For(x => x.Country, "Country.{Id, Name}");
     }

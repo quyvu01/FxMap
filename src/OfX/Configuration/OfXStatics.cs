@@ -4,6 +4,7 @@ using OfX.Models;
 using OfX.Exceptions;
 using OfX.Extensions;
 using OfX.Fluent;
+using OfX.MetadataCache;
 using OfX.Supervision;
 
 namespace OfX.Configuration;
@@ -60,13 +61,13 @@ public static class OfXStatics
 
     public static readonly Lazy<IReadOnlyCollection<OfXModelData>> ModelConfigurations = new(() =>
     {
-        var knownAttributes = OfXAttributeTypes.Value;
+        var knownDistributedKeys = DistributedKeyTypes.Value;
         OfXModelData[] models =
         [
             ..FluentConfigStore.EntityConfigs.Values.Select(cfg =>
             {
-                var attributeType = cfg.AttributeType
-                                    ?? knownAttributes.FirstOrDefault(t => t.Name == cfg.AttributeKey);
+                var attributeType = cfg.DistributedKeyType
+                                    ?? knownDistributedKeys.FirstOrDefault(t => t.Name == cfg.DistributedKey);
                 return new OfXModelData(cfg.ModelType, attributeType,
                     new OfXConfig(cfg.IdPropertyName, cfg.DefaultPropertyName));
             })
@@ -82,7 +83,7 @@ public static class OfXStatics
         return models;
     });
 
-    internal static readonly Lazy<IReadOnlyCollection<Type>> OfXAttributeTypes = new(() =>
+    internal static readonly Lazy<IReadOnlyCollection<Type>> DistributedKeyTypes = new(() =>
     [
         ..AttributesRegister.SelectMany(a => a.ExportedTypes)
             .Where(a => typeof(IDistributedKey).IsAssignableFrom(a) && a.IsConcrete())

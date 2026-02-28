@@ -13,7 +13,7 @@ namespace OfX.Builders;
 /// Version 2 of QueryHandlerBuilder using the new Expression DSL system.
 /// </summary>
 /// <typeparam name="TModel">The entity model type being queried.</typeparam>
-/// <typeparam name="TAttribute">The OfX attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The OfX attribute type associated with this handler.</typeparam>
 /// <remarks>
 /// <para>
 /// This builder uses a two-step approach for better database compatibility:
@@ -32,15 +32,15 @@ namespace OfX.Builders;
 ///   <item>Better error handling per expression</item>
 /// </list>
 /// </remarks>
-public abstract class QueryHandlerBuilder<TModel, TAttribute>(IServiceProvider serviceProvider)
+public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvider serviceProvider)
     where TModel : class
-    where TAttribute : IDistributedKey
+    where TDistributedKey : IDistributedKey
 {
     private const string ParameterName = "x";
 
     protected readonly IOfXConfigAttribute OfXConfigAttribute = serviceProvider
         .GetRequiredService<GetOfXConfiguration>()
-        .Invoke(typeof(TModel), typeof(TAttribute));
+        .Invoke(typeof(TModel), typeof(TDistributedKey));
 
     // Static cache per generic type combination - this is correct behavior in C#
     // Each QueryHandlerBuilder<User, UserOfAttribute> gets its own static fields
@@ -54,7 +54,7 @@ public abstract class QueryHandlerBuilder<TModel, TAttribute>(IServiceProvider s
     /// Generates: x => ids.Contains(x.Id)
     /// Uses cached MethodInfo and ParameterExpression for better performance.
     /// </remarks>
-    protected Expression<Func<TModel, bool>> BuildFilter(OfXQueryRequest<TAttribute> query)
+    protected Expression<Func<TModel, bool>> BuildFilter(OfXQueryRequest<TDistributedKey> query)
     {
         var cache = FilterCache.Value;
         // Initialize cache on first use (lazy, thread-safe)
@@ -71,7 +71,7 @@ public abstract class QueryHandlerBuilder<TModel, TAttribute>(IServiceProvider s
     /// <param name="request">The request containing expression strings.</param>
     /// <returns>A projection expression and the list of expressions for transformation.</returns>
     protected (Expression<Func<TModel, object[]>> Projection, IReadOnlyList<string> Expressions) BuildProjection(
-        OfXQueryRequest<TAttribute> request)
+        OfXQueryRequest<TDistributedKey> request)
     {
         var expressionList = request.Expressions.ToList();
 

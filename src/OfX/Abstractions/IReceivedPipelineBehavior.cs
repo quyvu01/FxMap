@@ -4,9 +4,9 @@ namespace OfX.Abstractions;
 
 /// <summary>
 /// Defines a server-side pipeline behavior for processing received requests
-/// before they are handled by the <see cref="IQueryOfHandler{TModel, TAttribute}"/>.
+/// before they are handled by the <see cref="IQueryOfHandler{TModel, TDistributedKey}"/>.
 /// </summary>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The <see cref="IDistributedKey"/> type representing the model or entity being requested.
 /// </typeparam>
 /// <remarks>
@@ -19,10 +19,10 @@ namespace OfX.Abstractions;
 /// <item>Short-circuiting the pipeline by returning a response early</item>
 /// </list>
 /// After completing custom logic, you should call the <paramref name="next"/> delegate 
-/// to continue to the next pipeline behavior or to the final <see cref="IQueryOfHandler{TModel, TAttribute}"/>.
+/// to continue to the next pipeline behavior or to the final <see cref="IQueryOfHandler{TModel, TDistributedKey}"/>.
 /// </remarks>
-public interface IReceivedPipelineBehavior<TAttribute> : IOfXBase<TAttribute> 
-    where TAttribute : IDistributedKey
+public interface IReceivedPipelineBehavior<TDistributedKey> : IOfXBase<TDistributedKey> 
+    where TDistributedKey : IDistributedKey
 {
     /// <summary>
     /// Handles the incoming request and optionally invokes the next behavior in the pipeline.
@@ -38,7 +38,7 @@ public interface IReceivedPipelineBehavior<TAttribute> : IOfXBase<TAttribute>
     /// containing either the pipeline-generated result or the result from the underlying handler.
     /// </returns>
     Task<ItemsResponse<DataResponse>> HandleAsync(
-        RequestContext<TAttribute> requestContext,
+        RequestContext<TDistributedKey> requestContext,
         Func<Task<ItemsResponse<DataResponse>>> next
     );
 }

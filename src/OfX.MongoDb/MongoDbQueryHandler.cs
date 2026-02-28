@@ -19,7 +19,7 @@ namespace OfX.MongoDb;
 /// MongoDB implementation using the new Expression DSL system (V2).
 /// </summary>
 /// <typeparam name="TModel">The document type.</typeparam>
-/// <typeparam name="TAttribute">The OfX attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The OfX attribute type associated with this handler.</typeparam>
 /// <remarks>
 /// <para>
 /// This handler uses the new Expression DSL to build MongoDB BSON projections.
@@ -35,14 +35,14 @@ namespace OfX.MongoDb;
 ///   <item><description>Projection: <c>Orders.{Id, Name}</c></description></item>
 /// </list>
 /// </remarks>
-internal class MongoDbQueryHandler<TModel, TAttribute>(IServiceProvider serviceProvider)
-    : IQueryOfHandler<TModel, TAttribute>
+internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider serviceProvider)
+    : IQueryOfHandler<TModel, TDistributedKey>
     where TModel : class
-    where TAttribute : IDistributedKey
+    where TDistributedKey : IDistributedKey
 {
     private readonly IOfXConfigAttribute _ofXConfigAttribute = serviceProvider
         .GetRequiredService<GetOfXConfiguration>()
-        .Invoke(typeof(TModel), typeof(TAttribute));
+        .Invoke(typeof(TModel), typeof(TDistributedKey));
 
     private readonly IMongoCollectionInternal<TModel> _collectionInternal =
         serviceProvider.GetService<IMongoCollectionInternal<TModel>>();
@@ -53,10 +53,10 @@ internal class MongoDbQueryHandler<TModel, TAttribute>(IServiceProvider serviceP
     private static readonly Lazy<FilterCache> FilterCacheInstance = new(() => new FilterCache());
     private static readonly ConcurrentDictionary<int, BsonDocument> ProjectionCache = new();
 
-    public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TAttribute> context)
+    public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TDistributedKey> context)
     {
         // Start database activity for distributed tracing
-        using var activity = OfXActivitySource.StartDatabaseActivity<TAttribute>(DbSystem);
+        using var activity = OfXActivitySource.StartDatabaseActivity<TDistributedKey>(DbSystem);
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -81,7 +81,7 @@ internal class MongoDbQueryHandler<TModel, TAttribute>(IServiceProvider serviceP
             }
 
             // Emit diagnostic event
-            OfXDiagnostics.DatabaseQueryStart(typeof(TAttribute).Name, DbSystem, context.Query.Expressions);
+            OfXDiagnostics.DatabaseQueryStart(typeof(TDistributedKey).Name, DbSystem, context.Query.Expressions);
 
             // Execute query
             var rawResults = await _collectionInternal.Collection
@@ -96,10 +96,10 @@ internal class MongoDbQueryHandler<TModel, TAttribute>(IServiceProvider serviceP
             stopwatch.Stop();
             var itemCount = data.Length;
 
-            OfXMetrics.RecordDatabaseQuery(typeof(TAttribute).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordDatabaseQuery(typeof(TDistributedKey).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
                 itemCount);
 
-            OfXDiagnostics.DatabaseQueryStop(typeof(TAttribute).Name, DbSystem, itemCount, stopwatch.Elapsed);
+            OfXDiagnostics.DatabaseQueryStop(typeof(TDistributedKey).Name, DbSystem, itemCount, stopwatch.Elapsed);
 
             activity?.SetOfXTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
@@ -111,11 +111,11 @@ internal class MongoDbQueryHandler<TModel, TAttribute>(IServiceProvider serviceP
             stopwatch.Stop();
 
             // Record error metrics
-            OfXMetrics.RecordDatabaseError(typeof(TAttribute).Name, DbSystem,
+            OfXMetrics.RecordDatabaseError(typeof(TDistributedKey).Name, DbSystem,
                 stopwatch.Elapsed.TotalMilliseconds,
                 ex.GetType().Name);
 
-            OfXDiagnostics.DatabaseQueryError(typeof(TAttribute).Name, DbSystem, ex, stopwatch.Elapsed);
+            OfXDiagnostics.DatabaseQueryError(typeof(TDistributedKey).Name, DbSystem, ex, stopwatch.Elapsed);
 
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
@@ -127,7 +127,7 @@ internal class MongoDbQueryHandler<TModel, TAttribute>(IServiceProvider serviceP
     /// <summary>
     /// Builds a MongoDB filter expression.
     /// </summary>
-    private FilterDefinition<TModel> BuildFilter(OfXQueryRequest<TAttribute> query)
+    private FilterDefinition<TModel> BuildFilter(OfXQueryRequest<TDistributedKey> query)
     {
         var cache = FilterCacheInstance.Value;
         cache.EnsureInitialized(_ofXConfigAttribute.IdProperty, serviceProvider);

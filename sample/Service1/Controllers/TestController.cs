@@ -23,11 +23,15 @@ public sealed class TestController : ControllerBase
     {
         List<MemberResponse> members =
         [
-            new() { Id = "1", UserId = "user-001", MemberAdditionalId = "member-001", MemberAddressId = "addr-001", MemberSocialId = "1" },
-            new() { Id = "2", UserId = "user-002", MemberAdditionalId = "member-002", MemberAddressId = "addr-002", MemberSocialId = "2" },
-            new() { Id = "3", UserId = "user-004", MemberAdditionalId = "member-003", MemberAddressId = "addr-005", MemberSocialId = "3" },
-            new() { Id = "4", UserId = "user-013", MemberAdditionalId = "member-005", MemberAddressId = "addr-016", MemberSocialId = "5" },
-            new() { Id = "5", UserId = "user-019", MemberAdditionalId = "member-010", MemberAddressId = "addr-022", MemberSocialId = "7" }
+            new()
+            {
+                Id = "1", UserId = "user-001", MemberAdditionalId = "member-001", MemberAddressId = "addr-001",
+                MemberSocialId = "1"
+            },
+            // new() { Id = "2", UserId = "user-002", MemberAdditionalId = "member-002", MemberAddressId = "addr-002", MemberSocialId = "2" },
+            // new() { Id = "3", UserId = "user-004", MemberAdditionalId = "member-003", MemberAddressId = "addr-005", MemberSocialId = "3" },
+            // new() { Id = "4", UserId = "user-013", MemberAdditionalId = "member-005", MemberAddressId = "addr-016", MemberSocialId = "5" },
+            // new() { Id = "5", UserId = "user-019", MemberAdditionalId = "member-010", MemberAddressId = "addr-022", MemberSocialId = "7" }
         ];
         await distributedMapper.MapDataAsync(members);
         return Ok(members);
@@ -67,7 +71,7 @@ public sealed class TestController : ControllerBase
 
     [HttpGet]
     public async Task<IActionResult> GetSimpleMembers([FromServices] IDistributedMapper distributedMapper,
-        string userAlias, CancellationToken token = default)
+        CancellationToken token = default)
     {
         List<SimpleMemberResponse> members =
         [
@@ -75,13 +79,13 @@ public sealed class TestController : ControllerBase
             new() { UserId = "user-013" },
             new() { UserId = "user-019" }
         ];
-        await distributedMapper.MapDataAsync(members, new { userAlias }, token);
+        await distributedMapper.MapDataAsync(members, token);
         return Ok(members);
     }
 
     [HttpGet]
     public async Task<IActionResult> GetObjectsAsDictionary([FromServices] IDistributedMapper distributedMapper,
-        string userAlias, CancellationToken token = default)
+        CancellationToken token = default)
     {
         var response = new ComplexObjectAsDictionary
         {
@@ -92,7 +96,7 @@ public sealed class TestController : ControllerBase
             }
         };
 
-        await distributedMapper.MapDataAsync(response, new { userAlias }, token);
+        await distributedMapper.MapDataAsync(response, token);
         return Ok(response.Responses.Values);
     }
 
@@ -143,7 +147,8 @@ public sealed class TestController : ControllerBase
     public async Task<IActionResult> FetchUsers([FromServices] IDistributedMapper distributedMapper)
     {
         var result = await distributedMapper
-            .FetchDataAsync<UserOfAttribute>(new DataFetchQuery(["user-001", "user-013", "user-019"], [null, "Name", "Email"]));
+            .FetchDataAsync<UserOfAttribute>(new DataFetchQuery(["user-001", "user-013", "user-019"],
+                [null, "Name", "Email"]));
         return Ok(result);
     }
 

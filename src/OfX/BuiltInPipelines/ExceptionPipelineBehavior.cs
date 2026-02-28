@@ -9,20 +9,20 @@ namespace OfX.BuiltInPipelines;
 /// <summary>
 /// Internal send pipeline behavior that handles exception suppression based on configuration.
 /// </summary>
-/// <typeparam name="TAttribute">The OfX attribute type.</typeparam>
+/// <typeparam name="TDistributedKey">The OfX attribute type.</typeparam>
 /// <remarks>
 /// When <see cref="OfXStatics.ThrowIfExceptions"/> is false, this behavior catches exceptions
 /// and returns an empty response instead of propagating the error. This enables graceful
 /// degradation in production environments where missing data shouldn't crash the application.
 /// </remarks>
-internal sealed class ExceptionPipelineBehavior<TAttribute>(IServiceProvider serviceProvider)
-    : ISendPipelineBehavior<TAttribute>
-    where TAttribute : IDistributedKey
+internal sealed class ExceptionPipelineBehavior<TDistributedKey>(IServiceProvider serviceProvider)
+    : ISendPipelineBehavior<TDistributedKey>
+    where TDistributedKey : IDistributedKey
 {
-    private readonly ILogger<ExceptionPipelineBehavior<TAttribute>> _logger =
-        serviceProvider.GetService<ILogger<ExceptionPipelineBehavior<TAttribute>>>();
+    private readonly ILogger<ExceptionPipelineBehavior<TDistributedKey>> _logger =
+        serviceProvider.GetService<ILogger<ExceptionPipelineBehavior<TDistributedKey>>>();
 
-    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TAttribute> requestContext,
+    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
         Func<Task<ItemsResponse<DataResponse>>> next)
     {
         try
@@ -31,7 +31,7 @@ internal sealed class ExceptionPipelineBehavior<TAttribute>(IServiceProvider ser
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error in pipeline for {@Attribute}", typeof(TAttribute).Name);
+            _logger?.LogError(ex, "Error in pipeline for {@Attribute}", typeof(TDistributedKey).Name);
 
             // Only suppress non-critical exceptions
             if (ex is OutOfMemoryException or StackOverflowException or ThreadAbortException) throw;

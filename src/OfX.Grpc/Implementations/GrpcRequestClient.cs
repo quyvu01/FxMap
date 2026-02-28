@@ -21,17 +21,17 @@ public sealed class GrpcRequestClient(GetOfXResponseFunc ofXResponseFunc) : IReq
 {
     private const string TransportName = "grpc";
 
-    public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
+    public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
+        RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
     {
         // Start client-side activity for distributed tracing
-        using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);
+        using var activity = OfXActivitySource.StartClientActivity<TDistributedKey>(TransportName);
         var stopwatch = Stopwatch.StartNew();
 
         try
         {
             // Emit diagnostic event
-            OfXDiagnostics.RequestStart(typeof(TAttribute).Name, TransportName, requestContext.Query.SelectorIds,
+            OfXDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
                 requestContext.Query.Expressions);
 
             // Track active requests
@@ -46,7 +46,7 @@ public sealed class GrpcRequestClient(GetOfXResponseFunc ofXResponseFunc) : IReq
                 activity.SetOfXTags(requestContext.Query.Expressions, requestContext.Query.SelectorIds);
             }
 
-            var func = ofXResponseFunc.Invoke(typeof(TAttribute));
+            var func = ofXResponseFunc.Invoke(typeof(TDistributedKey));
             var result = await func.Invoke(
                 new OfXRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
                 new GrpcClientContext(requestContext.Headers, requestContext.CancellationToken));
@@ -55,10 +55,10 @@ public sealed class GrpcRequestClient(GetOfXResponseFunc ofXResponseFunc) : IReq
             stopwatch.Stop();
             var itemCount = result?.Items?.Length ?? 0;
 
-            OfXMetrics.RecordRequest(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 itemCount);
 
-            OfXDiagnostics.RequestStop(typeof(TAttribute).Name, TransportName, itemCount, stopwatch.Elapsed);
+            OfXDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
             activity?.SetOfXTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
@@ -70,10 +70,10 @@ public sealed class GrpcRequestClient(GetOfXResponseFunc ofXResponseFunc) : IReq
             stopwatch.Stop();
 
             // Record error metrics
-            OfXMetrics.RecordError(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 ex.GetType().Name);
 
-            OfXDiagnostics.RequestError(typeof(TAttribute).Name, TransportName, ex, stopwatch.Elapsed);
+            OfXDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
 
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);

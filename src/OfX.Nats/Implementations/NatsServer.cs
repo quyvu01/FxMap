@@ -14,14 +14,14 @@ using OfX.Telemetry;
 
 namespace OfX.Nats.Implementations;
 
-internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider serviceProvider)
-    : INatsServer<TModel, TAttribute>
-    where TAttribute : IDistributedKey where TModel : class
+internal sealed class NatsServer<TModel, TDistributedKey>(IServiceProvider serviceProvider)
+    : INatsServer<TModel, TDistributedKey>
+    where TDistributedKey : IDistributedKey where TModel : class
 {
     private const string TransportName = "nats";
 
-    private readonly ILogger<NatsServer<TModel, TAttribute>> _logger =
-        serviceProvider.GetService<ILogger<NatsServer<TModel, TAttribute>>>();
+    private readonly ILogger<NatsServer<TModel, TDistributedKey>> _logger =
+        serviceProvider.GetService<ILogger<NatsServer<TModel, TDistributedKey>>>();
 
     private readonly NatsClientWrapper _natsClientWrapped = serviceProvider
         .GetRequiredService<NatsClientWrapper>();
@@ -33,7 +33,7 @@ internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider servicePro
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         var natsScribeAsync = _natsClientWrapped.NatsClient
-            .SubscribeAsync<OfXRequest>(typeof(TAttribute).GetNatsSubject(), cancellationToken: cancellationToken);
+            .SubscribeAsync<OfXRequest>(typeof(TDistributedKey).GetNatsSubject(), cancellationToken: cancellationToken);
 
         await foreach (var message in natsScribeAsync)
         {
@@ -75,7 +75,7 @@ internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider servicePro
             ActivityContext.TryParse(traceparent.ToString(), null, out parentContext);
 
         // Start server-side activity
-        using var activity = OfXActivitySource.StartServerActivity(typeof(TAttribute).Name, parentContext);
+        using var activity = OfXActivitySource.StartServerActivity(typeof(TDistributedKey).Name, parentContext);
 
         var stopwatch = Stopwatch.StartNew();
 
@@ -87,22 +87,22 @@ internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider servicePro
             // Add messaging tags to activity
             activity?.SetMessagingTags(
                 system: TransportName,
-                destination: typeof(TAttribute).GetNatsSubject(),
+                destination: typeof(TDistributedKey).GetNatsSubject(),
                 operation: "process");
 
             // Emit diagnostic event
             OfXDiagnostics.MessageReceive(
                 TransportName,
-                typeof(TAttribute).GetNatsSubject(),
+                typeof(TDistributedKey).GetNatsSubject(),
                 message.Subject);
 
             using var serviceScope = serviceProvider.CreateScope();
             var pipeline = serviceScope.ServiceProvider
-                .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TAttribute>>();
+                .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TDistributedKey>>();
             var headers = message.Headers?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
-            var requestOf = new OfXQueryRequest<TAttribute>(message.Data.SelectorIds, message.Data.Expressions);
-            var requestContext = new RequestContextImpl<TAttribute>(requestOf, headers, cancellationToken);
+            var requestOf = new OfXQueryRequest<TDistributedKey>(message.Data.SelectorIds, message.Data.Expressions);
+            var requestContext = new RequestContextImpl<TDistributedKey>(requestOf, headers, cancellationToken);
 
             var data = await pipeline.ExecuteAsync(requestContext);
             var response = Result.Success(data);
@@ -113,7 +113,7 @@ internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider servicePro
             stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
 
-            OfXMetrics.RecordRequest(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 itemCount);
 
             activity?.SetOfXTags(message.Data.Expressions, message.Data.SelectorIds, itemCount);
@@ -124,12 +124,12 @@ internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider servicePro
         {
             stopwatch.Stop();
 
-            _logger?.LogWarning("Request timeout for <{Attribute}>", typeof(TAttribute).Name);
-            var response = Result.Failed(new TimeoutException($"Request timeout for {typeof(TAttribute).Name}"));
+            _logger?.LogWarning("Request timeout for <{Attribute}>", typeof(TDistributedKey).Name);
+            var response = Result.Failed(new TimeoutException($"Request timeout for {typeof(TDistributedKey).Name}"));
 
             // Record timeout as error
             OfXMetrics.RecordError(
-                typeof(TAttribute).Name,
+                typeof(TDistributedKey).Name,
                 TransportName,
                 stopwatch.Elapsed.TotalMilliseconds,
                 "TimeoutException");
@@ -142,18 +142,18 @@ internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider servicePro
         {
             stopwatch.Stop();
 
-            _logger?.LogError(e, "Error while responding <{Attribute}>", typeof(TAttribute).Name);
+            _logger?.LogError(e, "Error while responding <{Attribute}>", typeof(TDistributedKey).Name);
             var response = Result.Failed(e);
 
             // Record error
             OfXMetrics.RecordError(
-                typeof(TAttribute).Name,
+                typeof(TDistributedKey).Name,
                 TransportName,
                 stopwatch.Elapsed.TotalMilliseconds,
                 e.GetType().Name);
 
             OfXDiagnostics.RequestError(
-                typeof(TAttribute).Name,
+                typeof(TDistributedKey).Name,
                 TransportName,
                 e,
                 stopwatch.Elapsed);
@@ -176,7 +176,7 @@ internal sealed class NatsServer<TModel, TAttribute>(IServiceProvider servicePro
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to send error response for <{Attribute}>", typeof(TAttribute).Name);
+            _logger?.LogError(ex, "Failed to send error response for <{Attribute}>", typeof(TDistributedKey).Name);
         }
     }
 

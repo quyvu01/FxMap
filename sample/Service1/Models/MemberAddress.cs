@@ -18,6 +18,6 @@ public class MemberAddressConfig : AbstractOfXConfig<MemberAddress>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.ProvinceId);
-        UseAnnotate<MemberAddressOfAttribute>();
+        UseDistributedKey<MemberAddressOfAttribute>();
     }
 }

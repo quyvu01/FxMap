@@ -22,7 +22,7 @@ namespace OfX.Grpc.Implementations;
 /// This server exposes two gRPC endpoints:
 /// <list type="bullet">
 ///   <item><description><c>GetItems</c> - Fetches data for a specific attribute type and selector IDs</description></item>
-///   <item><description><c>GetAttributes</c> - Returns the list of attribute types this server can handle (for discovery)</description></item>
+///   <item><description><c>GeTDistributedKeys</c> - Returns the list of attribute types this server can handle (for discovery)</description></item>
 /// </list>
 /// </remarks>
 public sealed class GrpcServer(IServiceProvider serviceProvider) : OfXTransportService.OfXTransportServiceBase
@@ -131,7 +131,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : OfXTransportS
         {
             stopwatch.Stop();
 
-            _logger?.LogError(e, "Error while execute get items: {RequestAttributeAssemblyType}", attributeName);
+            _logger?.LogError(e, "Error while execute get items: {RequesTDistributedKeyAssemblyType}", attributeName);
 
             OfXMetrics.RecordError(attributeName, TransportName,
                 stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
@@ -145,7 +145,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : OfXTransportS
         }
     }
 
-    public override Task<AttributeTypeResponse> GetAttributes(GetAttributesQuery request, ServerCallContext context)
+    public override Task<AttributeTypeResponse> GeTDistributedKeys(GeTDistributedKeysQuery request, ServerCallContext context)
     {
         var ofXConfigureStorage = OfXStatics.ModelConfigurations;
         var response = new AttributeTypeResponse();

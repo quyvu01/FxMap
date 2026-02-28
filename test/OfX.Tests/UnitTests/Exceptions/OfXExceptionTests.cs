@@ -173,7 +173,7 @@ namespace OfX.Tests.UnitTests.Exceptions
             {
                 Id(x => x.Id);
                 DefaultProperty(x => x.Name);
-                UseAnnotate<DuplicateTestOfAttribute>();
+                UseDistributedKey<DuplicateTestOfAttribute>();
             }
         }
 
@@ -183,7 +183,7 @@ namespace OfX.Tests.UnitTests.Exceptions
             {
                 Id(x => x.Id);
                 DefaultProperty(x => x.Title);
-                UseAnnotate<DuplicateTestOfAttribute>();
+                UseDistributedKey<DuplicateTestOfAttribute>();
             }
         }
     }

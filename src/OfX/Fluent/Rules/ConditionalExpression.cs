@@ -1,16 +1,14 @@
 namespace OfX.Fluent.Rules;
 
-internal sealed class ConditionalExpression(
-    List<(Func<bool> SyncCondition, Func<Task<bool>> AsyncCondition, string Expression)> conditions,
+public sealed class ConditionalExpression(
+    List<(Func<IServiceProvider, Task<bool>> AsyncCondition, string Expression)> conditions,
     string defaultExpression)
 {
-    public async Task<string> ResolveAsync()
+    public async Task<string> ResolveAsync(IServiceProvider serviceProvider)
     {
-        foreach (var (sync, async, expr) in conditions)
-        {
-            if (sync is not null && sync()) return expr;
-            if (async is not null && await async()) return expr;
-        }
+        foreach (var (async, expr) in conditions)
+            if (async is not null && await async(serviceProvider))
+                return expr;
 
         return defaultExpression;
     }

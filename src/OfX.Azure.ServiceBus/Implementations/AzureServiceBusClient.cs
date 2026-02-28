@@ -7,10 +7,10 @@ namespace OfX.Azure.ServiceBus.Implementations;
 
 internal class AzureServiceBusClient(IServiceProvider serviceProvider) : IRequestClient
 {
-    public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
+    public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
+        RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
     {
-        var client = serviceProvider.GetRequiredService<OpenAzureServiceBusClient<TAttribute>>();
+        var client = serviceProvider.GetRequiredService<OpenAzureServiceBusClient<TDistributedKey>>();
         var result = await client.RequestAsync(requestContext);
         return result;
     }

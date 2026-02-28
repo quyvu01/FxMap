@@ -9,16 +9,16 @@ namespace OfX.Handlers;
 /// <summary>
 /// Internal handler that routes client requests through the configured <see cref="IRequestClient"/> transport.
 /// </summary>
-/// <typeparam name="TAttribute">The OfX attribute type for this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The OfX attribute type for this handler.</typeparam>
 /// <param name="serviceProvider">The service provider for resolving the transport client.</param>
-internal sealed class ClientRequestHandler<TAttribute>(IServiceProvider serviceProvider)
-    : IClientRequestHandler<TAttribute> where TAttribute : IDistributedKey
+internal sealed class ClientRequestHandler<TDistributedKey>(IServiceProvider serviceProvider)
+    : IClientRequestHandler<TDistributedKey> where TDistributedKey : IDistributedKey
 {
     /// <inheritdoc />
-    public async Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TAttribute> requestContext)
+    public async Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TDistributedKey> requestContext)
     {
         var client = serviceProvider.GetService<IRequestClient>();
-        if (client is null) throw new OfXException.NoHandlerForAttribute(typeof(TAttribute));
+        if (client is null) throw new OfXException.NoHandlerForAttribute(typeof(TDistributedKey));
         var result = await client.RequestAsync(requestContext);
         return result;
     }

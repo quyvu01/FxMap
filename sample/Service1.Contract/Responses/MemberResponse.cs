@@ -28,37 +28,39 @@ public class MemberResponseProfile : ProfileOf<MemberResponse>
 {
     protected override void Configure()
     {
-        UseAnnotate<MemberAddressOfAttribute>()
+        UseDistributedKey<MemberAddressOfAttribute>()
             .Of(x => x.MemberAddressId)
             .For(x => x.MemberProvinceId);
-
-        UseAnnotate<ProvinceOfAttribute>()
+        
+        UseDistributedKey<ProvinceOfAttribute>()
             .Of(x => x.MemberProvinceId)
             .For(x => x.MemberProvinceName);
-
-        UseAnnotate<MemberAdditionalOfAttribute>()
+        
+        UseDistributedKey<MemberAdditionalOfAttribute>()
             .Of(x => x.MemberAdditionalId)
             .For(x => x.MemberAdditionalName);
-
-        UseAnnotate<MemberSocialOfAttribute>()
+        
+        UseDistributedKey<MemberSocialOfAttribute>()
             .Of(x => x.MemberSocialId)
             .For(x => x.MemberSocialName);
 
-        UseAnnotate<UserOfAttribute>()
+        UseDistributedKey<UserOfAttribute>()
             .Of(x => x.UserId)
-            .For(x => x.UserName)
-            .For(x => x.UserEmail, "${UserAlias|UserEmail}")
-            .For(x => x.ProvinceId, "ProvinceId");
+            .For(x => x.UserName,
+                c => c.If(_ => false, "UserEmail")
+                    .Else("Name"))
+            .For(x => x.UserEmail, "UserEmail")
+        .For(x => x.ProvinceId, "ProvinceId");
 
-        UseAnnotate<ProvinceOfAttribute>()
+        UseDistributedKey<ProvinceOfAttribute>()
             .Of(x => x.ProvinceId)
             .For(x => x.ProvinceName)
             .For(x => x.CountryName, "Country.Name")
             .For(x => x.CountryId, "CountryId");
-
-        UseAnnotate<CountryOfAttribute>()
+        
+        UseDistributedKey<CountryOfAttribute>()
             .Of(x => x.CountryId)
             .For(x => x.Provinces, "Provinces[asc Name]")
-            .For(x => x.Province, "Provinces[${index|0} ${order|asc} Name]");
+            .For(x => x.Province, "Provinces[0 asc Name]");
     }
 }

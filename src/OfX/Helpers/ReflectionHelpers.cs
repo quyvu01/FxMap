@@ -1,10 +1,11 @@
 using System.Collections;
 using OfX.Models;
-using OfX.MetadataCache;
 using OfX.Extensions;
 using OfX.Responses;
 using OfX.Serializable;
 using OfX.Configuration;
+using OfX.Fluent;
+using OfX.MetadataCache;
 
 namespace OfX.Helpers;
 
@@ -42,10 +43,11 @@ internal static class ReflectionHelpers
         if (!visited.Add(obj)) yield break;
 
         var objType = obj.GetType();
-        var objectCached = OfXModelCache.GetModelAccessor(objType);
-        foreach (var (propertyInfo, accessor) in objectCached.Accessors)
+        var profileConfig = FluentConfigStore.ProfileConfigs.GetValueOrDefault(objType);
+        if (profileConfig is null) yield break;
+        foreach (var (propertyInfo, accessor) in profileConfig.Accessors)
         {
-            var propertyInformation = objectCached.GetInformation(propertyInfo);
+            var propertyInformation = profileConfig.GetInformation(propertyInfo);
             if (propertyInformation.RequiredAccessor is not null)
             {
                 yield return new PropertyDescriptor(propertyInfo, obj, propertyInformation);
@@ -65,23 +67,22 @@ internal static class ReflectionHelpers
             .GroupBy(mdp => (AttributeType: mdp.PropertyInformation?.RuntimeAttributeType,
                 Order: mdp.PropertyInformation?.Order ?? 0))
             .Join(attributeTypes, gr => gr.Key.AttributeType, at => at,
-                (d, x) =>
-                    new AttributeTypeInfo(x, d
-                        .Select(a => new PropertyMappingData(a.Model, a.PropertyInformation)), d.Key.Order));
+                (d, x) => new AttributeTypeInfo(x, d
+                    .Select(a => new PropertyMappingData(a.Model, a.PropertyInformation)), d.Key.Order));
 
     internal static void MapResponseData(IEnumerable<PropertyDescriptor> mappableProperties,
-        IEnumerable<(Type OfXAttributeType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
+        IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
     {
         var dataWithExpression = dataFetched
             .Select(a => a.ItemsResponse.Items
                 .Select(x => (x.Id, x.OfXValues))
-                .Select(k => (a.OfXAttributeType, Data: k)))
+                .Select(k => (a.DistributedKeyType, Data: k)))
             .SelectMany(x => x);
         mappableProperties.Join(dataWithExpression, ap => (ap.PropertyInformation?.RuntimeAttributeType, ap
                 .PropertyInformation?
                 .RequiredAccessor?
                 .Get(ap.Model)?.ToString()),
-            dt => (dt.OfXAttributeType, dt.Data.Id), (ap, dt) =>
+            dt => (dt.DistributedKeyType, dt.Data.Id), (ap, dt) =>
             {
                 var value = dt.Data
                     .OfXValues
@@ -90,8 +91,8 @@ internal static class ReflectionHelpers
                 try
                 {
                     var valueSet = OfXJsonSerializer.DeserializeObject(value, propertyInfo.PropertyType);
-                    var modelAccessor = OfXModelCache.GetModelAccessor(ap.Model.GetType());
-                    var propertyAccessor = modelAccessor.GetAccessor(ap.PropertyInfo);
+                    var profileConfig = FluentConfigStore.ProfileConfigs.GetValueOrDefault(ap.Model.GetType());
+                    var propertyAccessor = profileConfig?.Accessors?.GetValueOrDefault(ap.PropertyInfo);
                     propertyAccessor?.Set(ap.Model, valueSet);
                 }
                 catch (Exception)

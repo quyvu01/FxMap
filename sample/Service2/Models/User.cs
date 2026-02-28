@@ -18,7 +18,7 @@ public class UserConfig : AbstractOfXConfig<User>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseAnnotate<UserOfAttribute>();
+        UseDistributedKey<UserOfAttribute>();
         ExposedName(x => x.Email, "UserEmail");
     }
 }

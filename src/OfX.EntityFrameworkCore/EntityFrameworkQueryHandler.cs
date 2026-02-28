@@ -14,7 +14,7 @@ namespace OfX.EntityFrameworkCore;
 /// Entity Framework Core implementation using the new Expression DSL system (V2).
 /// </summary>
 /// <typeparam name="TModel">The entity model type.</typeparam>
-/// <typeparam name="TAttribute">The OfX attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The OfX attribute type associated with this handler.</typeparam>
 /// <remarks>
 /// <para>
 /// This handler uses a two-step approach:
@@ -33,18 +33,18 @@ namespace OfX.EntityFrameworkCore;
 ///   <item>Better EF Core compatibility</item>
 /// </list>
 /// </remarks>
-internal class EntityFrameworkQueryHandler<TModel, TAttribute>(IServiceProvider serviceProvider)
-    : QueryHandlerBuilder<TModel, TAttribute>(serviceProvider), IQueryOfHandler<TModel, TAttribute>
+internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProvider serviceProvider)
+    : QueryHandlerBuilder<TModel, TDistributedKey>(serviceProvider), IQueryOfHandler<TModel, TDistributedKey>
     where TModel : class
-    where TAttribute : IDistributedKey
+    where TDistributedKey : IDistributedKey
 {
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private const string DbSystem = "efcore";
 
-    public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TAttribute> context)
+    public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TDistributedKey> context)
     {
         // Start database activity for distributed tracing
-        using var activity = OfXActivitySource.StartDatabaseActivity<TAttribute>(DbSystem);
+        using var activity = OfXActivitySource.StartDatabaseActivity<TDistributedKey>(DbSystem);
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -68,7 +68,7 @@ internal class EntityFrameworkQueryHandler<TModel, TAttribute>(IServiceProvider 
             }
 
             // Emit diagnostic event
-            OfXDiagnostics.DatabaseQueryStart(typeof(TAttribute).Name, DbSystem, context.Query.Expressions);
+            OfXDiagnostics.DatabaseQueryStart(typeof(TDistributedKey).Name, DbSystem, context.Query.Expressions);
 
             // Step 1: Execute database query with object[] projection
             var rawResults = await dbContextResolver.Set
@@ -84,10 +84,10 @@ internal class EntityFrameworkQueryHandler<TModel, TAttribute>(IServiceProvider 
             stopwatch.Stop();
             var itemCount = data.Length;
 
-            OfXMetrics.RecordDatabaseQuery(typeof(TAttribute).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordDatabaseQuery(typeof(TDistributedKey).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
                 itemCount);
 
-            OfXDiagnostics.DatabaseQueryStop(typeof(TAttribute).Name, DbSystem, itemCount, stopwatch.Elapsed);
+            OfXDiagnostics.DatabaseQueryStop(typeof(TDistributedKey).Name, DbSystem, itemCount, stopwatch.Elapsed);
 
             activity?.SetOfXTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
@@ -99,10 +99,10 @@ internal class EntityFrameworkQueryHandler<TModel, TAttribute>(IServiceProvider 
             stopwatch.Stop();
 
             // Record error metrics
-            OfXMetrics.RecordDatabaseError(typeof(TAttribute).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordDatabaseError(typeof(TDistributedKey).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
                 ex.GetType().Name);
 
-            OfXDiagnostics.DatabaseQueryError(typeof(TAttribute).Name, DbSystem, ex, stopwatch.Elapsed);
+            OfXDiagnostics.DatabaseQueryError(typeof(TDistributedKey).Name, DbSystem, ex, stopwatch.Elapsed);
 
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);

@@ -19,15 +19,15 @@ using OfX.Telemetry;
 
 namespace OfX.Kafka.Implementations;
 
-internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute>, IDisposable
-    where TAttribute : IDistributedKey
+internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDistributedKey>, IDisposable
+    where TDistributedKey : IDistributedKey
     where TModel : class
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IConsumer<string, string> _consumer;
     private readonly IProducer<string, string> _producer;
     private readonly string _requestTopic;
-    private readonly ILogger<KafkaServer<TModel, TAttribute>> _logger;
+    private readonly ILogger<KafkaServer<TModel, TDistributedKey>> _logger;
     private const string TransportName = "kafka";
 
     // Backpressure: limit concurrent processing (configurable via OfXConfigurator.SetMaxConcurrentProcessing)
@@ -65,8 +65,8 @@ internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute
             .SetKeySerializer(Serializers.Utf8)
             .SetValueSerializer(Serializers.Utf8)
             .Build();
-        _requestTopic = typeof(TAttribute).RequestTopic();
-        _logger = serviceProvider.GetService<ILogger<KafkaServer<TModel, TAttribute>>>();
+        _requestTopic = typeof(TDistributedKey).RequestTopic();
+        _logger = serviceProvider.GetService<ILogger<KafkaServer<TModel, TDistributedKey>>>();
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -108,11 +108,11 @@ internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute
             }
             catch (ConsumeException ex)
             {
-                _logger?.LogError(ex, "Error consuming Kafka message for <{Attribute}>", typeof(TAttribute).Name);
+                _logger?.LogError(ex, "Error consuming Kafka message for <{Attribute}>", typeof(TDistributedKey).Name);
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error processing Kafka message for <{Attribute}>", typeof(TAttribute).Name);
+                _logger?.LogError(ex, "Error processing Kafka message for <{Attribute}>", typeof(TDistributedKey).Name);
             }
         }
     }
@@ -147,7 +147,7 @@ internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute
             }
         }
 
-        var attributeName = typeof(TAttribute).Name;
+        var attributeName = typeof(TDistributedKey).Name;
         using var activity = OfXActivitySource.StartServerActivity(attributeName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
@@ -170,14 +170,14 @@ internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute
             OfXDiagnostics.MessageReceive(TransportName, _requestTopic, consumeResult.Message.Key);
 
             var pipeline = serviceScope.ServiceProvider
-                .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TAttribute>>();
+                .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TDistributedKey>>();
 
             var message = messageUnWrapped.Message;
-            var query = new OfXQueryRequest<TAttribute>(message.SelectorIds, message.Expressions);
+            var query = new OfXQueryRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
             var headers = consumeResult.Message.Headers?
                 .ToDictionary(a => a.Key, h => Encoding.UTF8.GetString(h.GetValueBytes())) ?? [];
 
-            var requestContext = new RequestContextImpl<TAttribute>(query, headers, cancellationToken);
+            var requestContext = new RequestContextImpl<TDistributedKey>(query, headers, cancellationToken);
             var data = await pipeline.ExecuteAsync(requestContext);
 
             var response = Result.Success(data);
@@ -260,7 +260,7 @@ internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to send response for <{Attribute}>", typeof(TAttribute).Name);
+            _logger?.LogError(ex, "Failed to send response for <{Attribute}>", typeof(TDistributedKey).Name);
         }
     }
 
@@ -272,7 +272,7 @@ internal class KafkaServer<TModel, TAttribute> : IKafkaServer<TModel, TAttribute
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to commit offset for <{Attribute}>", typeof(TAttribute).Name);
+            _logger?.LogError(ex, "Failed to commit offset for <{Attribute}>", typeof(TDistributedKey).Name);
         }
     }
 

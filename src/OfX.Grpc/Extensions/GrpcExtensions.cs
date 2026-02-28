@@ -116,7 +116,7 @@ public static class GrpcExtensions
         IEnumerable<string> serverHosts, IContext context)
     {
         var tasks = serverHosts
-            .Select(a => (Host: a, OfXAttributesTask: GetAttributesByHost(a, context))).ToList();
+            .Select(a => (Host: a, OfXAttributesTask: GeTDistributedKeysByHost(a, context))).ToList();
         await Task.WhenAll(tasks.Select(a => a.OfXAttributesTask));
         var result = new Dictionary<HostProbe, Type[]>();
         tasks.ForEach(a =>
@@ -145,17 +145,17 @@ public static class GrpcExtensions
         return await client.GetItemsAsync(grpcQuery, metadata, cancellationToken: cancellationTokenSource.Token);
     }
 
-    private static async Task<AttributesProbe> GetAttributesByHost(string serverHost, IContext context)
+    private static async Task<AttributesProbe> GeTDistributedKeysByHost(string serverHost, IContext context)
     {
         try
         {
             var channel = GetOrCreateChannel(serverHost);
             var client = new OfXTransportService.OfXTransportServiceClient(channel);
-            var query = new GetAttributesQuery();
+            var query = new GeTDistributedKeysQuery();
             using var cancellationTokenSource = CancellationTokenSource
                 .CreateLinkedTokenSource(context?.CancellationToken ?? CancellationToken.None);
             cancellationTokenSource.CancelAfter(DefaultRequestTimeout);
-            var response = await client.GetAttributesAsync(query, cancellationToken: cancellationTokenSource.Token);
+            var response = await client.GeTDistributedKeysAsync(query, cancellationToken: cancellationTokenSource.Token);
             return new AttributesProbe(true, [..response.AttributeTypes.Select(Type.GetType)]);
         }
         catch (Exception)

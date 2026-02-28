@@ -71,18 +71,18 @@ public interface IRequestServer
 /// Generic server interface for handling requests for a specific model and attribute combination.
 /// </summary>
 /// <typeparam name="TModel">The model type this server handles.</typeparam>
-/// <typeparam name="TAttribute">The <see cref="IDistributedKey"/> type this server responds to.</typeparam>
+/// <typeparam name="TDistributedKey">The <see cref="IDistributedKey"/> type this server responds to.</typeparam>
 /// <remarks>
 /// <para>
 /// Each transport implementation creates a server instance per model/attribute combination.
 /// The server is responsible for:
 /// </para>
 /// <list type="bullet">
-/// <item>Subscribing to the appropriate queue/topic for <typeparamref name="TAttribute"/>.</item>
-/// <item>Resolving <c>ReceivedPipelinesOrchestrator&lt;TModel, TAttribute&gt;</c> from DI.</item>
+/// <item>Subscribing to the appropriate queue/topic for <typeparamref name="TDistributedKey"/>.</item>
+/// <item>Resolving <c>ReceivedPipelinesOrchestrator&lt;TModel, TDistributedKey&gt;</c> from DI.</item>
 /// <item>Processing requests and sending responses.</item>
 /// </list>
 /// </remarks>
-public interface IRequestServer<TModel, TAttribute> : IRequestServer
+public interface IRequestServer<TModel, TDistributedKey> : IRequestServer
     where TModel : class
-    where TAttribute : IDistributedKey;
+    where TDistributedKey : IDistributedKey;

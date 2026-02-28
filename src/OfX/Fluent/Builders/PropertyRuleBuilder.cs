@@ -1,28 +1,29 @@
 using System.Linq.Expressions;
+using System.Reflection;
+using OfX.Extensions;
 using OfX.Fluent.Rules;
 
 namespace OfX.Fluent.Builders;
 
 public sealed class PropertyRuleBuilder<TModel>
 {
-    private readonly AttributeRuleGroup _group;
+    private readonly KeyRuleGroup _group;
 
-    internal PropertyRuleBuilder(AttributeRuleGroup group) => _group = group;
+    internal PropertyRuleBuilder(KeyRuleGroup group) => _group = group;
 
-    public PropertyRuleBuilder<TModel> For<TProp>(
-        Expression<Func<TModel, TProp>> targetProperty,
+    public PropertyRuleBuilder<TModel> For<TProp>(Expression<Func<TModel, TProp>> targetProperty,
         string expression = null)
     {
         _group.Rules.Add(new PropertyMappingRule
         {
             TargetPropertyName = GetPropertyName(targetProperty),
+            TargetPropertyInfo = targetProperty.GetPropertyInfo(),
             Expression = expression
         });
         return this;
     }
 
-    public PropertyRuleBuilder<TModel> For<TProp>(
-        Expression<Func<TModel, TProp>> targetProperty,
+    public PropertyRuleBuilder<TModel> For<TProp>(Expression<Func<TModel, TProp>> targetProperty,
         Action<ConditionalExpressionBuilder> conditionalBuilder)
     {
         var builder = new ConditionalExpressionBuilder();
@@ -30,6 +31,7 @@ public sealed class PropertyRuleBuilder<TModel>
         _group.Rules.Add(new PropertyMappingRule
         {
             TargetPropertyName = GetPropertyName(targetProperty),
+            TargetPropertyInfo = targetProperty.GetPropertyInfo(),
             ConditionalExpression = builder.Build()
         });
         return this;

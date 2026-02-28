@@ -15,6 +15,6 @@ public class MemberAdditionalDataConfig : AbstractOfXConfig<MemberAdditionalData
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseAnnotate<MemberAdditionalOfAttribute>();
+        UseDistributedKey<MemberAdditionalOfAttribute>();
     }
 }

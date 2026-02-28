@@ -16,11 +16,11 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
 {
     private const string TransportName = "nats";
 
-    public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
+    public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
+        RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
     {
         // Start client-side activity for distributed tracing
-        using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);
+        using var activity = OfXActivitySource.StartClientActivity<TDistributedKey>(TransportName);
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -40,7 +40,7 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
                 // Add OfX-specific tags
                 activity.SetMessagingTags(
                     system: TransportName,
-                    destination: typeof(TAttribute).GetNatsSubject(),
+                    destination: typeof(TDistributedKey).GetNatsSubject(),
                     operation: "publish");
 
                 activity.SetOfXTags(requestContext.Query.Expressions,
@@ -49,7 +49,7 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
 
             // Emit diagnostic event
             OfXDiagnostics.RequestStart(
-                typeof(TAttribute).Name,
+                typeof(TDistributedKey).Name,
                 TransportName,
                 requestContext.Query.SelectorIds,
                 requestContext.Query.Expressions);
@@ -58,8 +58,8 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
             OfXMetrics.UpdateActiveRequests(1);
 
             var reply = await natsClientWrapper.NatsClient
-                .RequestAsync<OfXQueryRequest<TAttribute>, Result>(
-                    typeof(TAttribute).GetNatsSubject(),
+                .RequestAsync<OfXQueryRequest<TDistributedKey>, Result>(
+                    typeof(TDistributedKey).GetNatsSubject(),
                     requestContext.Query, natsHeaders,
                     replyOpts: new NatsSubOpts { Timeout = OfXStatics.DefaultRequestTimeout },
                     cancellationToken: requestContext.CancellationToken);
@@ -77,10 +77,10 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
             stopwatch.Stop();
             var itemCount = response.Data?.Items?.Length ?? 0;
 
-            OfXMetrics.RecordRequest(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 itemCount);
 
-            OfXDiagnostics.RequestStop(typeof(TAttribute).Name, TransportName, itemCount, stopwatch.Elapsed);
+            OfXDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
             // Add item count to activity
             activity?.SetOfXTags(itemCount: itemCount);
@@ -92,10 +92,10 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
             stopwatch.Stop();
 
             // Record error metrics
-            OfXMetrics.RecordError(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 ex.GetType().Name);
 
-            OfXDiagnostics.RequestError(typeof(TAttribute).Name, TransportName, ex, stopwatch.Elapsed);
+            OfXDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
 
             // Record exception on activity
             activity?.RecordException(ex);

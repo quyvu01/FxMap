@@ -7,7 +7,7 @@ namespace OfX.BuiltInPipelines;
 /// <summary>
 /// Internal send pipeline behavior that implements retry logic with configurable backoff.
 /// </summary>
-/// <typeparam name="TAttribute">The OfX attribute type.</typeparam>
+/// <typeparam name="TDistributedKey">The OfX attribute type.</typeparam>
 /// <remarks>
 /// This behavior uses the <see cref="OfXStatics.RetryPolicy"/> configuration to retry failed requests.
 /// Features include:
@@ -17,10 +17,10 @@ namespace OfX.BuiltInPipelines;
 ///   <item><description>Optional callback for retry notifications</description></item>
 /// </list>
 /// </remarks>
-internal sealed class RetryPipelineBehavior<TAttribute> : ISendPipelineBehavior<TAttribute>
-    where TAttribute : IDistributedKey
+internal sealed class RetryPipelineBehavior<TDistributedKey> : ISendPipelineBehavior<TDistributedKey>
+    where TDistributedKey : IDistributedKey
 {
-    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TAttribute> requestContext,
+    public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
         Func<Task<ItemsResponse<DataResponse>>> next)
     {
         var retryPolicy = OfXStatics.RetryPolicy;

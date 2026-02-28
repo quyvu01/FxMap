@@ -1,12 +1,13 @@
 using HotChocolate.Execution;
 using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using OfX.MetadataCache;
 using OfX.Extensions;
+using OfX.Fluent;
 using OfX.Helpers;
 using OfX.HotChocolate.Extensions;
 using OfX.HotChocolate.Implementations;
 using OfX.HotChocolate.Resolvers;
+using OfX.MetadataCache;
 
 namespace OfX.HotChocolate.Registration;
 
@@ -53,8 +54,8 @@ public sealed class OfXHotChocolateRegister
             var objectType = dataType.GetGenericArguments().FirstOrDefault();
             if (objectType is null) return;
             if (!objectType.IsClass || objectType.IsAbstract || GeneralHelpers.IsPrimitiveType(objectType)) return;
-            var modelAccessor = OfXModelCache.GetModelAccessor(objectType);
-            if (modelAccessor.DependencyGraphs is not { Count: > 0 }) return;
+            var profileConfig = FluentConfigStore.ProfileConfigs.GetValueOrDefault(objectType);
+            if (profileConfig?.DependencyGraphs is not { Count: > 0 }) return;
             builder
                 .AddType(typeof(OfXObjectTypeExtension<>).MakeGenericType(objectType))
                 .AddResolver(typeof(DataResolvers<>).MakeGenericType(objectType));

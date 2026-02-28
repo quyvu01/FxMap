@@ -25,14 +25,14 @@ public sealed class CustomExpressionPipeline(IServiceCollection serviceCollectio
     /// Registers a custom expression pipeline behavior of the specified type.
     /// </summary>
     /// <typeparam name="TCustomExpressionPipelineBehavior">
-    /// The type implementing <see cref="ICustomExpressionBehavior{TAttribute}"/>.
+    /// The type implementing <see cref="ICustomExpressionBehavior{TDistributedKey}"/>.
     /// </typeparam>
     /// <param name="serviceLifetime">
     /// The lifetime of the registered service. Defaults to <see cref="ServiceLifetime.Scoped"/>.
     /// </param>
     /// <returns>The current instance for fluent chaining.</returns>
     /// <exception cref="OfXException.TypeIsNotCustomExpressionPipelineBehavior">
-    /// Thrown when the specified type does not implement <see cref="ICustomExpressionBehavior{TAttribute}"/>.
+    /// Thrown when the specified type does not implement <see cref="ICustomExpressionBehavior{TDistributedKey}"/>.
     /// </exception>
     public CustomExpressionPipeline OfType<TCustomExpressionPipelineBehavior>(
         ServiceLifetime serviceLifetime = ServiceLifetime.Scoped)

@@ -26,13 +26,13 @@ public interface IContext
 /// <summary>
 /// Represents the context for a received request, including headers and cancellation support.
 /// </summary>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The type of <see cref="IDistributedKey"/> that describes the request.
 /// </typeparam>
-public interface RequestContext<TAttribute> : IOfXBase<TAttribute>, IContext where TAttribute : IDistributedKey
+public interface RequestContext<TDistributedKey> : IOfXBase<TDistributedKey>, IContext where TDistributedKey : IDistributedKey
 {
     /// <summary>
-    /// The request payload and metadata for the given <typeparamref name="TAttribute"/>.
+    /// The request payload and metadata for the given <typeparamref name="TDistributedKey"/>.
     /// </summary>
-    OfXQueryRequest<TAttribute> Query { get; }
+    OfXQueryRequest<TDistributedKey> Query { get; }
 }

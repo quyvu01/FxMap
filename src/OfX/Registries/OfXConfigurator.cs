@@ -8,6 +8,7 @@ using OfX.Extensions;
 using OfX.Fluent;
 using OfX.Helpers;
 using OfX.Configuration;
+using OfX.MetadataCache;
 using OfX.Supervision;
 
 namespace OfX.Registries;
@@ -111,11 +112,10 @@ public class OfXConfigurator(IServiceCollection serviceCollection)
             if (type.IsAssignableTo(typeof(IFluentEntityConfig)))
             {
                 var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
-                config.Build();
                 FluentConfigStore.EntityConfigs[config.ModelType] = new EntityConfigMetadata(
                     config.ModelType,
-                    config.AttributeType,
-                    config.AttributeKey,
+                    config.DistributedKeyType,
+                    config.DistributedKey,
                     config.IdPropertyName,
                     config.DefaultPropertyName,
                     config.ExposedNameStores);
@@ -124,9 +124,7 @@ public class OfXConfigurator(IServiceCollection serviceCollection)
             {
                 var profile = (IFluentProfileConfig)Activator.CreateInstance(type)!;
                 profile.Build();
-                if (!FluentConfigStore.ProfileConfigs.ContainsKey(profile.ModelType))
-                    FluentConfigStore.ProfileConfigs[profile.ModelType] = [];
-                FluentConfigStore.ProfileConfigs[profile.ModelType].AddRange(profile.RuleGroups);
+                FluentConfigStore.ProfileConfigs[profile.ModelType] = profile;
             }
         }
     }

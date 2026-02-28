@@ -64,11 +64,11 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             $"{OfXKafkaConstants.ResponseTopicPrefix}-{AppDomain.CurrentDomain.FriendlyName.ToLower()}-{Guid.NewGuid():N}";
     }
 
-    public async Task<ItemsResponse<DataResponse>> RequestAsync<TAttribute>(
-        RequestContext<TAttribute> requestContext) where TAttribute : IDistributedKey
+    public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
+        RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
     {
         // Start client-side activity for distributed tracing
-        using var activity = OfXActivitySource.StartClientActivity<TAttribute>(TransportName);
+        using var activity = OfXActivitySource.StartClientActivity<TDistributedKey>(TransportName);
         var stopwatch = Stopwatch.StartNew();
 
         try
@@ -77,7 +77,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             await EnsureInitializedAsync(requestContext.CancellationToken);
 
             var correlationId = Guid.NewGuid().ToString();
-            var topic = typeof(TAttribute).RequestTopic();
+            var topic = typeof(TDistributedKey).RequestTopic();
 
             // Propagate W3C trace context
             var message = new KafkaMessageWrapped<OfXRequest>
@@ -101,7 +101,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             }
 
             // Emit diagnostic event
-            OfXDiagnostics.RequestStart(typeof(TAttribute).Name, TransportName, requestContext.Query.SelectorIds,
+            OfXDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
                 requestContext.Query.Expressions);
 
             // Track active requests
@@ -139,10 +139,10 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
                     stopwatch.Stop();
                     var itemCount = response.Data?.Items?.Length ?? 0;
 
-                    OfXMetrics.RecordRequest(typeof(TAttribute).Name, TransportName,
+                    OfXMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName,
                         stopwatch.Elapsed.TotalMilliseconds, itemCount);
 
-                    OfXDiagnostics.RequestStop(typeof(TAttribute).Name, TransportName, itemCount, stopwatch.Elapsed);
+                    OfXDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
                     activity?.SetOfXTags(itemCount: itemCount);
                     activity?.SetStatus(ActivityStatusCode.Ok);
@@ -153,7 +153,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
                                                          !requestContext.CancellationToken.IsCancellationRequested)
                 {
                     throw new TimeoutException(
-                        $"Timeout waiting for Kafka response for {typeof(TAttribute).Name}");
+                        $"Timeout waiting for Kafka response for {typeof(TDistributedKey).Name}");
                 }
             }
             finally
@@ -166,10 +166,10 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             stopwatch.Stop();
 
             // Record error metrics
-            OfXMetrics.RecordError(typeof(TAttribute).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            OfXMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 ex.GetType().Name);
 
-            OfXDiagnostics.RequestError(typeof(TAttribute).Name, TransportName, ex, stopwatch.Elapsed);
+            OfXDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
 
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);

@@ -3,5 +3,5 @@ using OfX.Abstractions.Transporting;
 
 namespace OfX.Nats.Abstractions;
 
-internal interface INatsServer<TModel, TAttribute> : IRequestServer<TModel, TAttribute>
-    where TAttribute : IDistributedKey where TModel : class;
+internal interface INatsServer<TModel, TDistributedKey> : IRequestServer<TModel, TDistributedKey>
+    where TDistributedKey : IDistributedKey where TModel : class;

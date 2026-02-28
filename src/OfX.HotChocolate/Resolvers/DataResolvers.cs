@@ -1,7 +1,9 @@
 using System.Text.Json;
 using HotChocolate.Resolvers;
+using Microsoft.Extensions.Logging;
 using OfX.MetadataCache;
 using OfX.Extensions;
+using OfX.Fluent;
 using OfX.HotChocolate.Registration;
 using OfX.HotChocolate.Constants;
 using OfX.HotChocolate.GraphQlContext;
@@ -29,6 +31,7 @@ public sealed class DataResolvers<TResponse> where TResponse : class
         [Parent] TResponse response, IResolverContext resolverContext)
     {
         var dataMappingLoader = resolverContext.Resolver<DataMappingLoader>();
+
         var methodPath = resolverContext.Path.ToList().FirstOrDefault()?.ToString();
         var fieldContextHeader = GraphQlConstants.GetContextFieldContextHeader(methodPath);
 
@@ -36,6 +39,8 @@ public sealed class DataResolvers<TResponse> where TResponse : class
                 .TryGetValue(fieldContextHeader, out var ctx) ||
             ctx is not FieldContext currentContext || currentContext.TargetPropertyInfo is null)
             throw new InvalidOperationException($"{nameof(FieldContext)} must be added with key: {fieldContextHeader}");
+
+        var obj = FluentConfigStore.ProfileConfigs.GetValueOrDefault(typeof(TResponse));
 
         List<Task<string>> allTasks =
             [FieldResultAsync(currentContext), ..GetDependencyTasks(currentContext, FieldResultAsync)];
@@ -56,16 +61,18 @@ public sealed class DataResolvers<TResponse> where TResponse : class
 
         async Task<string> FieldResultAsync(FieldContext fieldContext)
         {
-            var selectorId = OfXModelCache.GetModelAccessor(typeof(TResponse))
-                .GetAccessor(fieldContext.RequiredPropertyInfo)
+            var selectorId = obj?
+                .Accessors.GetValueOrDefault(fieldContext.RequiredPropertyInfo)
                 .Get(response)?.ToString();
             // Fetch the dependency fields
             var fieldBearing = new FieldBearing(response, fieldContext.Expression, fieldContext.Order,
-                fieldContext.RuntimeAttributeType, fieldContext.TargetPropertyInfo, fieldContext.RequiredPropertyInfo)
+                fieldContext.RuntimeDistributedKeyType, fieldContext.TargetPropertyInfo,
+                fieldContext.RequiredPropertyInfo)
             {
-                SelectorId = selectorId, ExpressionParameters = fieldContext.ExpressionParameters,
-                GroupId = fieldContext.GroupId
+                SelectorId = selectorId,
+                Expression = fieldContext.Expression
             };
+
             var fieldResult = await dataMappingLoader
                 .LoadAsync(fieldBearing, resolverContext.RequestAborted);
             return fieldResult;
@@ -75,9 +82,9 @@ public sealed class DataResolvers<TResponse> where TResponse : class
     private static Task<string>[] GetDependencyTasks(FieldContext currentContext,
         Func<FieldContext, Task<string>> fieldResultTask)
     {
-        if (!OfXModelCache.ContainsModel(typeof(TResponse))) return [];
-        var dependenciesGraph = OfXModelCache
-            .GetModelAccessor(typeof(TResponse)).DependencyGraphs;
+        var obj = FluentConfigStore.ProfileConfigs.GetValueOrDefault(typeof(TResponse));
+        if (obj is null) return [];
+        var dependenciesGraph = obj.DependencyGraphs;
         if (!dependenciesGraph.TryGetValue(currentContext.TargetPropertyInfo, out var infos)) return [];
         return
         [
@@ -87,10 +94,8 @@ public sealed class DataResolvers<TResponse> where TResponse : class
                 {
                     TargetPropertyInfo = p.TargetPropertyInfo, Expression = p.Expression,
                     SelectorPropertyName = p.SelectorPropertyName, RequiredPropertyInfo = p.RequiredPropertyInfo,
-                    RuntimeAttributeType = p.RuntimeAttributeType,
-                    Order = dependenciesGraph.GetPropertyOrder(p.TargetPropertyInfo),
-                    ExpressionParameters = currentContext.ExpressionParameters,
-                    GroupId = currentContext.GroupId
+                    RuntimeDistributedKeyType = p.RuntimeDistributedKeyType,
+                    Order = dependenciesGraph.GetPropertyOrder(p.TargetPropertyInfo)
                 };
                 return fieldResultTask.Invoke(fieldContext);
             })

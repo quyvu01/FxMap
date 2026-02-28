@@ -17,6 +17,6 @@ public class CountryConfig : AbstractOfXConfig<Country>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseAnnotate<CountryOfAttribute>();
+        UseDistributedKey<CountryOfAttribute>();
     }
 }

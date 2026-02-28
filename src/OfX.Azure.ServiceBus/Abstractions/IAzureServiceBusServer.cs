@@ -3,5 +3,5 @@ using OfX.Abstractions.Transporting;
 
 namespace OfX.Azure.ServiceBus.Abstractions;
 
-internal interface IAzureServiceBusServer<TModel, TAttribute> : IRequestServer<TModel, TAttribute>
-    where TAttribute : IDistributedKey where TModel : class;
+internal interface IAzureServiceBusServer<TModel, TDistributedKey> : IRequestServer<TModel, TDistributedKey>
+    where TDistributedKey : IDistributedKey where TModel : class;

@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Reflection;
 using OfX.Exceptions;
 using OfX.Fluent;
+using OfX.MetadataCache;
 
 namespace OfX.Accessors.TypeAccessors;
 

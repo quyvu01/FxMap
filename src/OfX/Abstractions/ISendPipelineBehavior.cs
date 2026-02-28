@@ -4,14 +4,14 @@ namespace OfX.Abstractions;
 
 /// <summary>
 /// Defines a client-side pipeline behavior for sending requests, analogous to 
-/// <see cref="IReceivedPipelineBehavior{TAttribute}"/> on the server side.
+/// <see cref="IReceivedPipelineBehavior{TDistributedKey}"/> on the server side.
 /// </summary>
-/// <typeparam name="TAttribute">
+/// <typeparam name="TDistributedKey">
 /// The <see cref="IDistributedKey"/> type associated with the outgoing request.
 /// </typeparam>
 /// <remarks>
 /// <para>
-/// The <see cref="ISendPipelineBehavior{TAttribute}"/> interface allows you to insert custom logic
+/// The <see cref="ISendPipelineBehavior{TDistributedKey}"/> interface allows you to insert custom logic
 /// into the client-side request pipeline before and/or after the actual request is sent.
 /// </para>
 /// <para>
@@ -21,12 +21,12 @@ namespace OfX.Abstractions;
 /// <item>Adding or modifying request headers.</item>
 /// <item>Performing client-side validation before the request is sent.</item>
 /// <item>Implementing retries, logging, or metrics collection.</item>
-/// <item>Transforming the outgoing <see cref="RequestContext{TAttribute}"/>.</item>
+/// <item>Transforming the outgoing <see cref="RequestContext{TDistributedKey}"/>.</item>
 /// </list>
 /// Multiple send pipeline behaviors can be registered and will be executed in order.
 /// </remarks>
-public interface ISendPipelineBehavior<TAttribute> : IOfXBase<TAttribute>
-    where TAttribute : IDistributedKey
+public interface ISendPipelineBehavior<TDistributedKey> : IOfXBase<TDistributedKey>
+    where TDistributedKey : IDistributedKey
 {
     /// <summary>
     /// Handles the request context as part of the send pipeline and invokes the next behavior or the final request handler.
@@ -44,7 +44,7 @@ public interface ISendPipelineBehavior<TAttribute> : IOfXBase<TAttribute>
     /// the result of the pipeline execution and final response from the server.
     /// </returns>
     Task<ItemsResponse<DataResponse>> HandleAsync(
-        RequestContext<TAttribute> requestContext,
+        RequestContext<TDistributedKey> requestContext,
         Func<Task<ItemsResponse<DataResponse>>> next
     );
 }
