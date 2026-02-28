@@ -1,0 +1,37 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+        <LangVersion>default</LangVersion>
+        <Version>9.0.0</Version>
+        <Authors>Quy Vu</Authors>
+        <PackageId>FxMap.EntityFrameworkCore</PackageId>
+        <Description>FxMap extension. Use EntityFramework as Data Querying</Description>
+        <PackageTags>FxMap;mappable;open-source;entity-framework;ORM</PackageTags>
+        <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <PackageIcon>FxMap.png</PackageIcon>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="[8.0.0, )" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\..\FxMap.png">
+            <Pack>True</Pack>
+            <PackagePath/>
+            <Link>FxMap.png</Link>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\FxMap\FxMap.csproj"/>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+</Project>

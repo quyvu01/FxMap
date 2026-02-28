@@ -1,12 +1,12 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
-using OfX.EntityFrameworkCore.Extensions;
-using OfX.Extensions;
-using OfX.HotChocolate.Extensions;
-using OfX.MongoDb.Extensions;
-using OfX.Nats.Extensions;
-using OfX.Supervision;
+using FxMap.EntityFrameworkCore.Extensions;
+using FxMap.Extensions;
+using FxMap.HotChocolate.Extensions;
+using FxMap.MongoDb.Extensions;
+using FxMap.Nats.Extensions;
+using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
@@ -34,12 +34,12 @@ builder.Services.AddOpenTelemetry()
             ["host.name"] = Environment.MachineName
         }))
     .WithTracing(tracing => tracing
-        .AddSource("OfX") // Subscribe to OfX traces
+        .AddSource("FxMap") // Subscribe to FxMap traces
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options => options.Endpoint = new Uri("http://localhost:4317")))
     .WithMetrics(metrics => metrics
-        .AddMeter("OfX") // Subscribe to OfX metrics
+        .AddMeter("FxMap") // Subscribe to FxMap metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation());
 
@@ -55,7 +55,7 @@ var registerBuilder = builder.Services.AddGraphQLServer()
     .AddQueryType<Query>()
     .AddType<MembersType>();
 
-builder.Services.AddOfX(cfg =>
+builder.Services.AddFxMap(cfg =>
     {
         cfg.AddAttributesContainNamespaces(typeof(IKernelAssemblyMarker).Assembly);
         cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
@@ -79,7 +79,7 @@ builder.Services.AddOfX(cfg =>
         // });
         cfg.ThrowIfException();
     })
-    .AddOfXEFCore(cfg => cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context)))
+    .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context)))
     .AddMongoDb(cfg => cfg.AddCollection(memberSocialCollection))
     .AddHotChocolate(cfg => cfg.AddRequestExecutorBuilder(registerBuilder));
 
@@ -87,7 +87,7 @@ builder.Services.AddOfX(cfg =>
 
 builder.Services.AddDbContextPool<Service1Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestService1", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestService1", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
@@ -96,7 +96,7 @@ builder.Services.AddDbContextPool<Service1Context>(options =>
 
 builder.Services.AddDbContextPool<OtherService1Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestOtherService1", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestOtherService1", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);

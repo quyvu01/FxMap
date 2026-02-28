@@ -24,7 +24,7 @@ Service1 (Additional data)
 
 **File**: `sample/Service3/Data/Service3DataSeeder.cs`
 
-**Database**: PostgreSQL (`OfXTestService3`)
+**Database**: PostgreSQL (`FxMapTestService3`)
 
 ### Data Structure
 
@@ -80,7 +80,7 @@ public class Province
 
 **File**: `sample/Service2/Data/Service2DataSeeder.cs`
 
-**Database**: PostgreSQL (`OfXTestService2`)
+**Database**: PostgreSQL (`FxMapTestService2`)
 
 ### Data Structure
 
@@ -128,8 +128,8 @@ public class User
 **File**: `sample/Service1/Data/Service1DataSeeder.cs`
 
 **Databases**:
-- PostgreSQL: `OfXTestService1` (MemberAdditionalData)
-- PostgreSQL: `OfXTestOtherService1` (MemberAddress)
+- PostgreSQL: `FxMapTestService1` (MemberAdditionalData)
+- PostgreSQL: `FxMapTestOtherService1` (MemberAddress)
 - MongoDB: `Service1MongoDb` (MemberSocial)
 
 ### 1. MemberAddress (OtherService1Context)
@@ -336,10 +336,10 @@ SELECT COUNT(*) FROM "Provinces";  -- Should be 24
 -- Service2
 SELECT COUNT(*) FROM "Users";  -- Should be 54
 
--- Service1 (OfXTestOtherService1)
+-- Service1 (FxMapTestOtherService1)
 SELECT COUNT(*) FROM "MemberAddress";  -- Should be 35
 
--- Service1 (OfXTestService1)
+-- Service1 (FxMapTestService1)
 SELECT COUNT(*) FROM "MemberAdditionalData";  -- Should be 20
 ```
 
@@ -358,4 +358,4 @@ db.MemberSocials.count()  // Should be 10
 3. **No Circular References**: Data flow is one-way: Service3 → Service2/Service1
 4. **MongoDB Separation**: MemberSocial is isolated in MongoDB with no FK constraints
 5. **Realistic Data**: Uses real city names, streets, and professional titles
-6. **Cross-Service Testing**: You can test OfX distributed mapping across services by fetching User → Province → Country data
+6. **Cross-Service Testing**: You can test FxMap distributed mapping across services by fetching User → Province → Country data

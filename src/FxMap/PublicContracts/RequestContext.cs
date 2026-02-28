@@ -1,0 +1,24 @@
+using FxMap.Abstractions;
+
+namespace FxMap.PublicContracts;
+
+/// <summary>
+/// Provides a concrete implementation of request context for external consumers of the FxMap framework.
+/// </summary>
+/// <remarks>
+/// Use this class to create a context when invoking <see cref="IDistributedMapper.MapDataAsync"/>
+/// with custom headers, parameters, or cancellation support.
+/// </remarks>
+/// <param name="headers">Custom headers to send with the request.</param>
+/// <param name="cancellationToken">Token to cancel the operation.</param>
+public sealed class RequestContext(
+    Dictionary<string, string> headers,
+    CancellationToken cancellationToken)
+    : IContext
+{
+    /// <inheritdoc />
+    public Dictionary<string, string> Headers { get; } = headers;
+
+    /// <inheritdoc />
+    public CancellationToken CancellationToken { get; } = cancellationToken;
+}

@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>default</LangVersion>
+        <Version>9.0.0</Version>
+        <Authors>Quy Vu</Authors>
+        <PackageId>FxMap.Azure.ServiceBus</PackageId>
+        <Description>Azure ServiceBus extension. Use Azure ServiceBus as Data transporting</Description>
+        <PackageTags>FxMap;mappable;open-source;AzureServiceBus</PackageTags>
+        <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <PackageIcon>FxMap.png</PackageIcon>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Azure.Messaging.ServiceBus" Version="[7.20.1, )"/>
+        <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="[8.0.0, )"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\FxMap\FxMap.csproj"/>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\..\FxMap.png">
+            <Pack>True</Pack>
+            <PackagePath/>
+            <Link>FxMap.png</Link>
+        </None>
+    </ItemGroup>
+
+</Project>

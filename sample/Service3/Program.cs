@@ -1,9 +1,9 @@
 using System.Reflection;
 using Microsoft.EntityFrameworkCore;
-using OfX.EntityFrameworkCore.Extensions;
-using OfX.Extensions;
-using OfX.Nats.Extensions;
-using OfX.Supervision;
+using FxMap.EntityFrameworkCore.Extensions;
+using FxMap.Extensions;
+using FxMap.Nats.Extensions;
+using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
@@ -27,16 +27,16 @@ builder.Services.AddOpenTelemetry()
             ["host.name"] = Environment.MachineName
         }))
     .WithTracing(tracing => tracing
-        .AddSource("OfX") // Subscribe to OfX traces
+        .AddSource("FxMap") // Subscribe to FxMap traces
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options => options.Endpoint = new Uri("http://localhost:4317")))
     .WithMetrics(metrics => metrics
-        .AddMeter("OfX") // Subscribe to OfX metrics
+        .AddMeter("FxMap") // Subscribe to FxMap metrics
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation());
 
-builder.Services.AddOfX(cfg =>
+builder.Services.AddFxMap(cfg =>
     {
         cfg.AddAttributesContainNamespaces(typeof(IKernelAssemblyMarker).Assembly);
         cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
@@ -61,14 +61,14 @@ builder.Services.AddOfX(cfg =>
         // });
         cfg.ThrowIfException();
     })
-    .AddOfXEFCore(cfg => cfg.AddDbContexts(typeof(Service3Context)));
+    .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service3Context)));
 builder.Services.AddGrpc();
 
 #region Setting Database and Seeding data
 
 builder.Services.AddDbContextPool<Service3Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestService3", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestService3", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
@@ -82,5 +82,5 @@ var app = builder.Build();
 using var scope = app.Services.CreateScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<Service3Context>();
 await Service3Api.Data.Service3DataSeeder.SeedAsync(dbContext);
-// app.MapOfXGrpcService();
+// app.MapFxMapGrpcService();
 app.Run();

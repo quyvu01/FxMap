@@ -1,8 +1,8 @@
 # Sprint 1: 
 Core Infrastructure (2-3 days)
-Add OfXActivitySource class
-Add OfXMetrics class
-Add OfXDiagnostics class
+Add FxMapActivitySource class
+Add FxMapMetrics class
+Add FxMapDiagnostics class
 Add NuGet: System.Diagnostics.DiagnosticSource (already in .NET)
 
 # Sprint 2: Transport Integration (3-4 days)

@@ -1,4 +1,4 @@
-using OfX.Fluent;
+using FxMap.Fluent;
 using Shared.Attributes;
 
 namespace Service1.Contract.Responses;

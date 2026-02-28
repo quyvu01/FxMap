@@ -11,7 +11,7 @@ services:
   # Multi-arch image supporting both amd64 and arm64
   jaeger:
     image: jaegertracing/all-in-one:1.53
-    container_name: ofx-jaeger
+    container_name: fxmap-jaeger
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     ports:
@@ -20,13 +20,13 @@ services:
       - "4318:4318"    # OTLP HTTP receiver
       - "14268:14268"  # Jaeger collector HTTP
     networks:
-      - ofx-network
+      - fxmap-network
 
   # Prometheus (Metrics Backend)
   # Multi-arch image supporting both amd64 and arm64
   prometheus:
     image: prom/prometheus:v2.48.1
-    container_name: ofx-prometheus
+    container_name: fxmap-prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -38,13 +38,13 @@ services:
       - '--web.console.libraries=/usr/share/prometheus/console_libraries'
       - '--web.console.templates=/usr/share/prometheus/consoles'
     networks:
-      - ofx-network
+      - fxmap-network
 
   # Grafana (Visualization & Dashboards)
   # Multi-arch image supporting both amd64 and arm64
   grafana:
     image: grafana/grafana:10.2.3
-    container_name: ofx-grafana
+    container_name: fxmap-grafana
     ports:
       - "3000:3000"
     environment:
@@ -55,13 +55,13 @@ services:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     networks:
-      - ofx-network
+      - fxmap-network
     depends_on:
       - prometheus
       - jaeger
 
 networks:
-  ofx-network:
+  fxmap-network:
     driver: bridge
 
 volumes:

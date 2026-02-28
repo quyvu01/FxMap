@@ -7,16 +7,16 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <ProjectReference Include="..\..\src\OfX.Aws.Sqs\OfX.Aws.Sqs.csproj" />
-        <ProjectReference Include="..\..\src\OfX.Azure.ServiceBus\OfX.Azure.ServiceBus.csproj"/>
-        <ProjectReference Include="..\..\src\OfX.EntityFrameworkCore\OfX.EntityFrameworkCore.csproj"/>
-        <ProjectReference Include="..\..\src\OfX.Grpc\OfX.Grpc.csproj"/>
-        <ProjectReference Include="..\..\src\OfX.HotChocolate\OfX.HotChocolate.csproj"/>
-        <ProjectReference Include="..\..\src\OfX.Kafka\OfX.Kafka.csproj"/>
-        <ProjectReference Include="..\..\src\OfX.MongoDb\OfX.MongoDb.csproj"/>
-        <ProjectReference Include="..\..\src\OfX.Nats\OfX.Nats.csproj"/>
-        <ProjectReference Include="..\..\src\OfX.RabbitMq\OfX.RabbitMq.csproj"/>
-        <ProjectReference Include="..\..\src\OfX\OfX.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.Aws.Sqs\FxMap.Aws.Sqs.csproj" />
+        <ProjectReference Include="..\..\src\FxMap.Azure.ServiceBus\FxMap.Azure.ServiceBus.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.EntityFrameworkCore\FxMap.EntityFrameworkCore.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.Grpc\FxMap.Grpc.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.HotChocolate\FxMap.HotChocolate.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.Kafka\FxMap.Kafka.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.MongoDb\FxMap.MongoDb.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.Nats\FxMap.Nats.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap.RabbitMq\FxMap.RabbitMq.csproj"/>
+        <ProjectReference Include="..\..\src\FxMap\FxMap.csproj"/>
     </ItemGroup>
 
     <ItemGroup>

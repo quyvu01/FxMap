@@ -1,4 +1,4 @@
-using OfX.Fluent;
+using FxMap.Fluent;
 using Shared.Attributes;
 
 namespace Service3Api.Models;
@@ -10,7 +10,7 @@ public class Country
     public List<Province> Provinces { get; set; }
 }
 
-public class CountryConfig : AbstractOfXConfig<Country>
+public class CountryConfig : AbstractFxMapConfig<Country>
 {
     protected override void Configure()
     {

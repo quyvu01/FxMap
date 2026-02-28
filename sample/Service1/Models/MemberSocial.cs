@@ -1,5 +1,5 @@
 using MongoDB.Bson.Serialization.Attributes;
-using OfX.Fluent;
+using FxMap.Fluent;
 using Shared.Attributes;
 
 namespace Service1.Models;
@@ -26,7 +26,7 @@ public sealed class ExternalOfMetadata
     public string JustForTest { get; set; }
 }
 
-public class MemberSocialConfig : AbstractOfXConfig<MemberSocial>
+public class MemberSocialConfig : AbstractFxMapConfig<MemberSocial>
 {
     protected override void Configure()
     {

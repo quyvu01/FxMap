@@ -1,6 +1,6 @@
-# OfX Observability Stack Setup Guide
+# FxMap Observability Stack Setup Guide
 
-This guide walks you through setting up the complete observability stack for OfX framework using Docker Compose.
+This guide walks you through setting up the complete observability stack for FxMap framework using Docker Compose.
 
 ## What's Included
 
@@ -94,19 +94,19 @@ curl http://localhost:8222/varz | jq
 **Example queries**:
 ```promql
 # Request rate per service
-rate(ofx_request_count_total[1m])
+rate(fxmap_request_count_total[1m])
 
 # P95 request duration
-histogram_quantile(0.95, rate(ofx_request_duration_milliseconds_bucket[1m]))
+histogram_quantile(0.95, rate(fxmap_request_duration_milliseconds_bucket[1m]))
 
 # Active requests
-ofx_request_active
+fxmap_request_active
 
 # Error rate
-rate(ofx_request_errors_total[1m])
+rate(fxmap_request_errors_total[1m])
 
 # Items returned per second
-rate(ofx_items_returned_total[1m])
+rate(fxmap_items_returned_total[1m])
 ```
 
 **Storage**: Persistent via Docker volume `prometheus_data`
@@ -122,7 +122,7 @@ rate(ofx_items_returned_total[1m])
 **Pre-configured**:
 - ✅ Prometheus datasource (default)
 - ✅ Jaeger datasource
-- ✅ "OfX Framework Overview" dashboard
+- ✅ "FxMap Framework Overview" dashboard
 
 **Dashboard panels**:
 1. Request Rate - Requests per second by attribute and transport
@@ -142,10 +142,10 @@ rate(ofx_items_returned_total[1m])
 **Connection**: `Host=localhost;Port=5432;Username=postgres;Password=Abcd@2021`
 
 **Pre-created databases**:
-- `OfXTestService1` - Service1 main context
-- `OfXTestOtherService1` - Service1 secondary context
-- `OfXTestService2` - Service2 context
-- `OfXTestService3` - Service3 context
+- `FxMapTestService1` - Service1 main context
+- `FxMapTestOtherService1` - Service1 secondary context
+- `FxMapTestService2` - Service2 context
+- `FxMapTestService3` - Service3 context
 
 **Initialization**: Databases are created automatically via `postgres-init/init-databases.sh`
 
@@ -160,7 +160,7 @@ docker-compose exec postgres psql -U postgres
 \l
 
 # Connect to specific database
-\c OfXTestService1
+\c FxMapTestService1
 
 # List tables
 \dt
@@ -215,7 +215,7 @@ Auto-configures Grafana datasources:
 
 Enables dashboard auto-provisioning from JSON files
 
-### grafana/provisioning/dashboards/json/ofx-overview.json
+### grafana/provisioning/dashboards/json/fxmap-overview.json
 
 Pre-built dashboard showing:
 - Request rate (line chart)
@@ -253,14 +253,14 @@ Expected: Shows all scrape targets and their status
 
 ### 5. Access Grafana
 Open http://localhost:3000 (admin/admin)
-Navigate to: Dashboards → OfX → OfX Framework Overview
+Navigate to: Dashboards → FxMap → FxMap Framework Overview
 Expected: Dashboard loads (no data yet until services run)
 
 ### 6. Test PostgreSQL connection
 ```bash
 docker-compose exec postgres psql -U postgres -c "\l"
 ```
-Expected: List showing OfXTestService1, OfXTestService2, OfXTestService3, OfXTestOtherService1
+Expected: List showing FxMapTestService1, FxMapTestService2, FxMapTestService3, FxMapTestOtherService1
 
 ### 7. Test MongoDB connection
 ```bash
@@ -303,7 +303,7 @@ After infrastructure is up:
 
 6. **View metrics in Grafana**:
    - Open http://localhost:3000
-   - Navigate to "OfX Framework Overview" dashboard
+   - Navigate to "FxMap Framework Overview" dashboard
    - Observe real-time metrics updating
 
 ## Troubleshooting

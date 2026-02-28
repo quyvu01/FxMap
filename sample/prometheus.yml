@@ -2,7 +2,7 @@ global:
   scrape_interval: 15s
   evaluation_interval: 15s
   external_labels:
-    cluster: 'ofx-demo'
+    cluster: 'fxmap-demo'
     environment: 'development'
 
 scrape_configs:

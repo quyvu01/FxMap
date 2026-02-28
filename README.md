@@ -1,37 +1,37 @@
-# OfX
+# FxMap
 
 ```csharp
 public string XId { get; set; }
 [XOf(nameof(XId))] public string X { get; set; }
 ```
 
-OfX is an open-source library focused on Attribute-based data mapping. It streamlines data handling across services,
+FxMap is an open-source library focused on Attribute-based data mapping. It streamlines data handling across services,
 reduces boilerplate code, and improves maintainability.
 
-**[Full Documentation](https://ofxmapper.net)** | **[Getting Started](https://ofxmapper.net/docs/getting-started)** |**[Expression Language](https://ofxmapper.net/docs/expressions)**
+**[Full Documentation](https://fxmapmapper.net)** | **[Getting Started](https://fxmapmapper.net/docs/getting-started)** |**[Expression Language](https://fxmapmapper.net/docs/expressions)**
 
 > [!WARNING]
-> All OfX* packages need to have the same version.
+> All FxMap* packages need to have the same version.
 
 ## Quick Start
 
 ```bash
-dotnet add package OfX
+dotnet add package FxMap
 ```
 
 ```csharp
-// 1. Configure OfX
-builder.Services.AddOfX(cfg =>
+// 1. Configure FxMap
+builder.Services.AddFxMap(cfg =>
 {
     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Namespace!);
     cfg.AddModelConfigurationsFromNamespaceContaining<SomeModelAssemblyMarker>();
 });
 
-// 2. Define a custom OfXAttribute
-public sealed class UserOfAttribute(string propertyName) : OfXAttribute(propertyName);
+// 2. Define a custom FxMapAttribute
+public sealed class UserOfAttribute(string propertyName) : FxMapAttribute(propertyName);
 
 // 3. Configure the model
-[OfXConfigFor<UserOfAttribute>(nameof(Id), nameof(Name))]
+[FxMapConfigFor<UserOfAttribute>(nameof(Id), nameof(Name))]
 public sealed class User
 {
     public string Id { get; set; }
@@ -89,40 +89,40 @@ public List<OrderSummary> OrdersByStatus { get; set; }
 ```
 
 For complete expression syntax including filters, indexers, functions, aggregations, boolean functions, coalesce,
-ternary operators, and more, visit **[Expression Documentation](https://ofxmapper.net/docs/expressions)**.
+ternary operators, and more, visit **[Expression Documentation](https://fxmapmapper.net/docs/expressions)**.
 
 ## Packages
 
 | Package                                            | Description                      | .NET     |
 |----------------------------------------------------|----------------------------------|----------|
 | **Core**                                           |
-| [OfX][OfX.nuget]                                   | Core library                     | 8.0, 9.0 |
+| [FxMap][FxMap.nuget]                                   | Core library                     | 8.0, 9.0 |
 | **Data Providers**                                 |
-| [OfX-EFCore][OfX-EFCore.nuget]                     | Entity Framework Core provider   | 8.0, 9.0 |
-| [OfX-MongoDb][OfX-MongoDb.nuget]                   | MongoDB provider                 | 8.0, 9.0 |
+| [FxMap-EFCore][FxMap-EFCore.nuget]                     | Entity Framework Core provider   | 8.0, 9.0 |
+| [FxMap-MongoDb][FxMap-MongoDb.nuget]                   | MongoDB provider                 | 8.0, 9.0 |
 | **Integrations**                                   |
-| [OfX-HotChocolate][OfX-HotChocolate.nuget]         | HotChocolate GraphQL integration | 8.0, 9.0 |
+| [FxMap-HotChocolate][FxMap-HotChocolate.nuget]         | HotChocolate GraphQL integration | 8.0, 9.0 |
 | **Transports**                                     |
-| [OfX-gRPC][OfX-gRPC.nuget]                         | gRPC transport                   | 8.0, 9.0 |
-| [OfX-Nats][OfX-Nats.nuget]                         | NATS transport                   | 8.0, 9.0 |
-| [OfX-RabbitMq][OfX-RabbitMq.nuget]                 | RabbitMQ transport               | 8.0, 9.0 |
-| [OfX-Kafka][OfX-Kafka.nuget]                       | Kafka transport                  | 8.0, 9.0 |
-| [OfX-Azure.ServiceBus][OfX-Azure.ServiceBus.nuget] | Azure Service Bus transport      | 8.0, 9.0 |
+| [FxMap-gRPC][FxMap-gRPC.nuget]                         | gRPC transport                   | 8.0, 9.0 |
+| [FxMap-Nats][FxMap-Nats.nuget]                         | NATS transport                   | 8.0, 9.0 |
+| [FxMap-RabbitMq][FxMap-RabbitMq.nuget]                 | RabbitMQ transport               | 8.0, 9.0 |
+| [FxMap-Kafka][FxMap-Kafka.nuget]                       | Kafka transport                  | 8.0, 9.0 |
+| [FxMap-Azure.ServiceBus][FxMap-Azure.ServiceBus.nuget] | Azure Service Bus transport      | 8.0, 9.0 |
 
 ## Documentation
 
-Visit **[ofxmapper.net](https://ofxmapper.net)** for:
+Visit **[fxmapmapper.net](https://fxmapmapper.net)** for:
 
-- [Getting Started Guide](https://ofxmapper.net/docs/getting-started)
-- [Configuration Options](https://ofxmapper.net/docs/configuration)
-- [Expression Language Reference](https://ofxmapper.net/docs/expressions)
-- [Data Provider Setup](https://ofxmapper.net/docs/providers)
-- [Transport Configuration](https://ofxmapper.net/docs/transports)
-- [API Reference](https://ofxmapper.net/docs/api)
+- [Getting Started Guide](https://fxmapmapper.net/docs/getting-started)
+- [Configuration Options](https://fxmapmapper.net/docs/configuration)
+- [Expression Language Reference](https://fxmapmapper.net/docs/expressions)
+- [Data Provider Setup](https://fxmapmapper.net/docs/providers)
+- [Transport Configuration](https://fxmapmapper.net/docs/transports)
+- [API Reference](https://fxmapmapper.net/docs/api)
 
 ## Contributing
 
-Contributions are welcome! Please visit our [GitHub repository](https://github.com/quyvu01/OfX) to:
+Contributions are welcome! Please visit our [GitHub repository](https://github.com/quyvu01/FxMap) to:
 
 - Report issues
 - Submit pull requests
@@ -134,20 +134,20 @@ This project is licensed under the Apache-2.0 license.
 
 ---
 
-[OfX.nuget]: https://www.nuget.org/packages/OfX/
+[FxMap.nuget]: https://www.nuget.org/packages/FxMap/
 
-[OfX-EFCore.nuget]: https://www.nuget.org/packages/OfX-EFCore/
+[FxMap-EFCore.nuget]: https://www.nuget.org/packages/FxMap-EFCore/
 
-[OfX-MongoDb.nuget]: https://www.nuget.org/packages/OfX-MongoDb/
+[FxMap-MongoDb.nuget]: https://www.nuget.org/packages/FxMap-MongoDb/
 
-[OfX-HotChocolate.nuget]: https://www.nuget.org/packages/OfX-HotChocolate/
+[FxMap-HotChocolate.nuget]: https://www.nuget.org/packages/FxMap-HotChocolate/
 
-[OfX-gRPC.nuget]: https://www.nuget.org/packages/OfX-gRPC/
+[FxMap-gRPC.nuget]: https://www.nuget.org/packages/FxMap-gRPC/
 
-[OfX-Nats.nuget]: https://www.nuget.org/packages/OfX-Nats/
+[FxMap-Nats.nuget]: https://www.nuget.org/packages/FxMap-Nats/
 
-[OfX-RabbitMq.nuget]: https://www.nuget.org/packages/OfX-RabbitMq/
+[FxMap-RabbitMq.nuget]: https://www.nuget.org/packages/FxMap-RabbitMq/
 
-[OfX-Kafka.nuget]: https://www.nuget.org/packages/OfX-Kafka/
+[FxMap-Kafka.nuget]: https://www.nuget.org/packages/FxMap-Kafka/
 
-[OfX-Azure.ServiceBus.nuget]: https://www.nuget.org/packages/OfX-Azure.ServiceBus/
+[FxMap-Azure.ServiceBus.nuget]: https://www.nuget.org/packages/FxMap-Azure.ServiceBus/

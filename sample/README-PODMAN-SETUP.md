@@ -1,4 +1,4 @@
-# OfX Telemetry Demo - Podman Setup (MacBook ARM)
+# FxMap Telemetry Demo - Podman Setup (MacBook ARM)
 
 This guide is specifically for users running:
 - **MacBook with Apple Silicon** (M1/M2/M3 - ARM64 architecture)
@@ -81,10 +81,10 @@ podman exec -it <your-postgres-container> psql -U postgres -c "\l"
 
 # Create required databases if they don't exist
 podman exec -it <your-postgres-container> psql -U postgres <<EOF
-CREATE DATABASE "OfXTestService1";
-CREATE DATABASE "OfXTestOtherService1";
-CREATE DATABASE "OfXTestService2";
-CREATE DATABASE "OfXTestService3";
+CREATE DATABASE "FxMapTestService1";
+CREATE DATABASE "FxMapTestOtherService1";
+CREATE DATABASE "FxMapTestService2";
+CREATE DATABASE "FxMapTestService3";
 EOF
 ```
 
@@ -127,12 +127,12 @@ docker-compose -f docker-compose-observability.yml up -d
 ### Option 4: Direct podman commands
 ```bash
 # Create network
-podman network create ofx-network
+podman network create fxmap-network
 
 # Start Jaeger
 podman run -d \
-  --name ofx-jaeger \
-  --network ofx-network \
+  --name fxmap-jaeger \
+  --network fxmap-network \
   -e COLLECTOR_OTLP_ENABLED=true \
   -p 16686:16686 \
   -p 4317:4317 \
@@ -142,8 +142,8 @@ podman run -d \
 
 # Start Prometheus
 podman run -d \
-  --name ofx-prometheus \
-  --network ofx-network \
+  --name fxmap-prometheus \
+  --network fxmap-network \
   -p 9090:9090 \
   -v $(pwd)/prometheus.yml:/etc/prometheus/prometheus.yml:ro \
   -v prometheus-data:/prometheus \
@@ -153,8 +153,8 @@ podman run -d \
 
 # Start Grafana
 podman run -d \
-  --name ofx-grafana \
-  --network ofx-network \
+  --name fxmap-grafana \
+  --network fxmap-network \
   -p 3000:3000 \
   -e GF_SECURITY_ADMIN_USER=admin \
   -e GF_SECURITY_ADMIN_PASSWORD=admin \
@@ -167,7 +167,7 @@ podman run -d \
 
 Once the observability stack is running:
 
-### 1. Start OfX Services
+### 1. Start FxMap Services
 
 **Terminal 1 - Service1 (GraphQL API)**
 ```bash
@@ -226,12 +226,12 @@ query {
    - Complete request flow across services
    - Parent-child span relationships
    - Timing breakdown
-   - Tags: `ofx.attribute`, `ofx.transport`, `messaging.system`
+   - Tags: `fxmap.attribute`, `fxmap.transport`, `messaging.system`
 
 ### 4. View Metrics in Grafana
 
 1. Open http://localhost:3000 (login: admin/admin)
-2. Navigate to: **Dashboards → OfX → OfX Framework Overview**
+2. Navigate to: **Dashboards → FxMap → FxMap Framework Overview**
 3. Observe panels:
    - Request rate (requests/sec)
    - Request duration (P50, P95 latency)
@@ -245,19 +245,19 @@ Open http://localhost:9090 and try these queries:
 
 ```promql
 # Total request count
-ofx_request_count_total
+fxmap_request_count_total
 
 # Request rate per second
-rate(ofx_request_count_total[1m])
+rate(fxmap_request_count_total[1m])
 
 # P95 request duration
-histogram_quantile(0.95, rate(ofx_request_duration_milliseconds_bucket[1m]))
+histogram_quantile(0.95, rate(fxmap_request_duration_milliseconds_bucket[1m]))
 
 # Active requests
-ofx_request_active
+fxmap_request_active
 
 # Error rate
-rate(ofx_request_errors_total[1m])
+rate(fxmap_request_errors_total[1m])
 ```
 
 ## Troubleshooting
@@ -317,7 +317,7 @@ podman pull --platform linux/arm64 jaegertracing/all-in-one:1.53
 
 Check if Rosetta emulation is being used:
 ```bash
-podman inspect ofx-jaeger | grep Architecture
+podman inspect fxmap-jaeger | grep Architecture
 # Should show: "Architecture": "arm64"
 ```
 
@@ -330,7 +330,7 @@ Verify NATS is accessible:
 curl http://localhost:8222/varz
 ```
 
-Check OfX service logs for connection errors.
+Check FxMap service logs for connection errors.
 
 **PostgreSQL connection timeout**
 
@@ -341,7 +341,7 @@ psql -h localhost -U postgres -c "SELECT version();"
 
 Ensure databases exist:
 ```bash
-psql -h localhost -U postgres -c "\l" | grep OfXTest
+psql -h localhost -U postgres -c "\l" | grep FxMapTest
 ```
 
 **No traces in Jaeger**
@@ -349,7 +349,7 @@ psql -h localhost -U postgres -c "\l" | grep OfXTest
 1. Check services have OTLP exporter configured
 2. Verify Jaeger is receiving data:
    ```bash
-   podman logs ofx-jaeger | grep -i otlp
+   podman logs fxmap-jaeger | grep -i otlp
    ```
 3. Check for errors in service console output
 
@@ -367,9 +367,9 @@ psql -h localhost -U postgres -c "\l" | grep OfXTest
 podman-compose -f docker-compose-observability.yml logs -f
 
 # Specific service
-podman logs -f ofx-jaeger
-podman logs -f ofx-prometheus
-podman logs -f ofx-grafana
+podman logs -f fxmap-jaeger
+podman logs -f fxmap-prometheus
+podman logs -f fxmap-grafana
 ```
 
 ### Check status
@@ -377,7 +377,7 @@ podman logs -f ofx-grafana
 podman-compose -f docker-compose-observability.yml ps
 
 # Or individual containers
-podman ps | grep ofx
+podman ps | grep fxmap
 ```
 
 ### Restart services
@@ -386,7 +386,7 @@ podman ps | grep ofx
 podman-compose -f docker-compose-observability.yml restart
 
 # Specific service
-podman restart ofx-jaeger
+podman restart fxmap-jaeger
 ```
 
 ### Stop services
@@ -407,10 +407,10 @@ podman-compose -f docker-compose-observability.yml down
 podman-compose -f docker-compose-observability.yml down -v
 
 # Or manually
-podman stop ofx-jaeger ofx-prometheus ofx-grafana
-podman rm ofx-jaeger ofx-prometheus ofx-grafana
+podman stop fxmap-jaeger fxmap-prometheus fxmap-grafana
+podman rm fxmap-jaeger fxmap-prometheus fxmap-grafana
 podman volume rm prometheus-data grafana-data
-podman network rm ofx-network
+podman network rm fxmap-network
 ```
 
 ## Resource Usage on Apple Silicon
@@ -434,7 +434,7 @@ podman stats
 
 1. ✅ **Explore the demo**: Follow [README-TELEMETRY-DEMO.md](./README-TELEMETRY-DEMO.md)
 2. 📖 **Understand the implementation**: Read [../docs/telemetry.md](../docs/telemetry.md)
-3. 🎨 **Customize Grafana dashboards**: Modify [grafana/provisioning/dashboards/json/ofx-overview.json](./grafana/provisioning/dashboards/json/ofx-overview.json)
+3. 🎨 **Customize Grafana dashboards**: Modify [grafana/provisioning/dashboards/json/fxmap-overview.json](./grafana/provisioning/dashboards/json/fxmap-overview.json)
 4. 🚨 **Set up alerting**: Configure Prometheus alert rules
 5. 🔄 **Integrate with CI/CD**: Add telemetry checks to your pipeline
 

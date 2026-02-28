@@ -1,6 +1,6 @@
-# OfX Telemetry Demo with NATS
+# FxMap Telemetry Demo with NATS
 
-This demo showcases OfX distributed tracing and metrics capabilities using NATS as the transport layer.
+This demo showcases FxMap distributed tracing and metrics capabilities using NATS as the transport layer.
 
 ## Prerequisites
 
@@ -41,21 +41,21 @@ This demo showcases OfX distributed tracing and metrics capabilities using NATS 
 - **W3C TraceContext Propagation**: Traces propagate across NATS messages via `traceparent` and `tracestate` headers
 - **Activity Hierarchy**: Client → NATS → Server activity chain
 - **Span Attributes**: 
-  - OfX-specific: `ofx.attribute`, `ofx.transport`, `ofx.expression`, `ofx.selector_count`, `ofx.item_count`
+  - FxMap-specific: `fxmap.attribute`, `fxmap.transport`, `fxmap.expression`, `fxmap.selector_count`, `fxmap.item_count`
   - Messaging: `messaging.system`, `messaging.destination`, `messaging.operation`
   - Database: `db.system`, `db.name` (when querying data)
 
 ### 2. Metrics (OpenTelemetry)
-- **Counters**: `ofx.request.count`, `ofx.request.errors`, `ofx.items.returned`
-- **Histograms**: `ofx.request.duration`, `ofx.items.per_request`
-- **Gauges**: `ofx.request.active` (current in-flight requests)
-- **Labels**: `ofx.attribute`, `ofx.transport`, `ofx.status`, `ofx.error_type`
+- **Counters**: `fxmap.request.count`, `fxmap.request.errors`, `fxmap.items.returned`
+- **Histograms**: `fxmap.request.duration`, `fxmap.items.per_request`
+- **Gauges**: `fxmap.request.active` (current in-flight requests)
+- **Labels**: `fxmap.attribute`, `fxmap.transport`, `fxmap.status`, `fxmap.error_type`
 
 ### 3. Diagnostic Events
-- `ofx.request.start` - Request initiated
-- `ofx.request.stop` - Request completed successfully
-- `ofx.request.error` - Request failed
-- `ofx.message.receive` - Message received by server
+- `fxmap.request.start` - Request initiated
+- `fxmap.request.stop` - Request completed successfully
+- `fxmap.request.error` - Request failed
+- `fxmap.message.receive` - Message received by server
 
 ## Running the Demo
 
@@ -103,7 +103,7 @@ dotnet run
    - Select service "Service1"
    - Click "Find Traces" to see distributed traces
 3. Open Grafana at http://localhost:3000 (login: admin/admin)
-   - Navigate to "OfX Framework Overview" dashboard
+   - Navigate to "FxMap Framework Overview" dashboard
    - View real-time metrics
 
 **To stop infrastructure:**
@@ -182,39 +182,39 @@ Activity.TraceId:            00-abc123-def456-01
 Activity.SpanId:             789ghi
 Activity.TraceFlags:         Recorded
 Activity.ParentSpanId:       jkl012
-Activity.ActivitySourceName: OfX
-Activity.DisplayName:        ofx.request
+Activity.ActivitySourceName: FxMap
+Activity.DisplayName:        fxmap.request
 Activity.Kind:               Client
 Activity.StartTime:          2026-01-24T10:30:00.1234567Z
 Activity.Duration:           00:00:00.1234567
 Activity.Tags:
-    ofx.attribute: MemberAttribute
-    ofx.transport: nats
-    ofx.version: 8.2.5
-    ofx.expression: {Id, Name, Addresses}
-    ofx.selector_count: 3
-    ofx.item_count: 3
+    fxmap.attribute: MemberAttribute
+    fxmap.transport: nats
+    fxmap.version: 8.2.5
+    fxmap.expression: {Id, Name, Addresses}
+    fxmap.selector_count: 3
+    fxmap.item_count: 3
     messaging.system: nats
-    messaging.destination: OfX.Members
+    messaging.destination: FxMap.Members
     messaging.operation: publish
 Status: Ok
 ```
 
 **Metrics Example:**
 ```
-Export ofx.request.count, Meter: OfX/8.2.5
+Export fxmap.request.count, Meter: FxMap/8.2.5
 (2026-01-24T10:30:00.1234567Z, 2026-01-24T10:30:10.1234567Z] 
-ofx.attribute: MemberAttribute
-ofx.transport: nats
-ofx.status: success
+fxmap.attribute: MemberAttribute
+fxmap.transport: nats
+fxmap.status: success
 LongSum
 Value: 5
 
-Export ofx.request.duration, Meter: OfX/8.2.5
+Export fxmap.request.duration, Meter: FxMap/8.2.5
 (2026-01-24T10:30:00.1234567Z, 2026-01-24T10:30:10.1234567Z]
-ofx.attribute: MemberAttribute
-ofx.transport: nats
-ofx.status: success
+fxmap.attribute: MemberAttribute
+fxmap.transport: nats
+fxmap.status: success
 Histogram
 Sum: 523.45
 Count: 5
@@ -256,7 +256,7 @@ Trace ID: 00-abc123def456ghi789-jkl012mno345-01
 Service1 (Client Activity)
   SpanId: 111111
   ParentSpanId: (none)
-  Tags: ofx.attribute=MemberAttribute, messaging.operation=publish
+  Tags: fxmap.attribute=MemberAttribute, messaging.operation=publish
     │
     ├─► NATS Message Headers:
     │   traceparent: 00-abc123def456ghi789-111111-01
@@ -265,7 +265,7 @@ Service1 (Client Activity)
     └─► Service2 (Server Activity)
           SpanId: 222222
           ParentSpanId: 111111
-          Tags: ofx.attribute=MemberAttribute, messaging.operation=process
+          Tags: fxmap.attribute=MemberAttribute, messaging.operation=process
             │
             └─► Database Query (Internal Activity)
                   SpanId: 333333
@@ -312,13 +312,13 @@ If using **docker-compose**, Prometheus and Grafana are already configured with 
 **Prometheus** (http://localhost:9090):
 - Scrapes metrics from services automatically
 - Query examples:
-  - `rate(ofx_request_count_total[1m])` - Request rate per second
-  - `histogram_quantile(0.95, rate(ofx_request_duration_milliseconds_bucket[1m]))` - P95 latency
-  - `ofx_request_active` - Active in-flight requests
+  - `rate(fxmap_request_count_total[1m])` - Request rate per second
+  - `histogram_quantile(0.95, rate(fxmap_request_duration_milliseconds_bucket[1m]))` - P95 latency
+  - `fxmap_request_active` - Active in-flight requests
 
 **Grafana** (http://localhost:3000, admin/admin):
 - Pre-configured datasources (Prometheus, Jaeger)
-- Pre-built dashboard: "OfX Framework Overview"
+- Pre-built dashboard: "FxMap Framework Overview"
   - Request rate by attribute and transport
   - Request duration (P50, P95)
   - Active requests gauge
@@ -335,7 +335,7 @@ If using **docker-compose**, Prometheus and Grafana are already configured with 
 2. Configure in Program.cs:
    ```csharp
    .WithMetrics(metrics => metrics
-       .AddMeter("OfX")
+       .AddMeter("FxMap")
        .AddPrometheusExporter())
 
    app.MapPrometheusScrapingEndpoint();  // Exposes /metrics
@@ -343,20 +343,20 @@ If using **docker-compose**, Prometheus and Grafana are already configured with 
 
 3. Start Prometheus with sample/prometheus.yml configuration
 4. Start Grafana and add Prometheus datasource
-5. Import dashboard from sample/grafana/provisioning/dashboards/json/ofx-overview.json
+5. Import dashboard from sample/grafana/provisioning/dashboards/json/fxmap-overview.json
 
 ## Key Takeaways
 
 - ✅ **Zero-allocation when disabled**: If no OpenTelemetry listener is configured, activities return null immediately
 - ✅ **W3C Standard**: Uses industry-standard trace context propagation
-- ✅ **MassTransit-style naming**: Consistent `ofx.*` prefix for all metrics and tags
+- ✅ **MassTransit-style naming**: Consistent `fxmap.*` prefix for all metrics and tags
 - ✅ **Low overhead**: Metrics are lazy-initialized, activities are lightweight
 - ✅ **Production-ready**: Supports sampling, batching, and various exporters (OTLP, Jaeger, Prometheus, etc.)
 
 ## Troubleshooting
 
 ### No traces appearing
-- Ensure `.AddSource("OfX")` is present in tracing configuration
+- Ensure `.AddSource("FxMap")` is present in tracing configuration
 - Check that NATS server is running and accessible
 
 ### High overhead
@@ -371,5 +371,5 @@ If using **docker-compose**, Prometheus and Grafana are already configured with 
 
 - Review [telemetry.md](../docs/telemetry.md) for comprehensive documentation
 - Integrate with your preferred observability backend (Jaeger, Zipkin, Grafana, Application Insights)
-- Add custom instrumentation using `OfXActivitySource.StartInternalActivity()`
+- Add custom instrumentation using `FxMapActivitySource.StartInternalActivity()`
 - Configure production-grade OpenTelemetry Collector for batching and sampling

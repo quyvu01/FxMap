@@ -1,6 +1,6 @@
-# OfX Framework - Sample Applications
+# FxMap Framework - Sample Applications
 
-This directory contains sample applications demonstrating the OfX framework's capabilities, with a focus on distributed tracing and observability.
+This directory contains sample applications demonstrating the FxMap framework's capabilities, with a focus on distributed tracing and observability.
 
 ## Sample Services
 
@@ -62,12 +62,12 @@ For detailed information about the observability stack:
 
 ### Observability Features
 
-The samples demonstrate OfX's built-in telemetry capabilities:
+The samples demonstrate FxMap's built-in telemetry capabilities:
 
 **Distributed Tracing (OpenTelemetry)**
 - W3C TraceContext propagation across NATS messages
 - Client → Server activity hierarchy
-- Span attributes: `ofx.attribute`, `ofx.transport`, `messaging.system`, etc.
+- Span attributes: `fxmap.attribute`, `fxmap.transport`, `messaging.system`, etc.
 - View traces in Jaeger UI
 
 **Metrics (OpenTelemetry)**
@@ -77,8 +77,8 @@ The samples demonstrate OfX's built-in telemetry capabilities:
 - View metrics in Prometheus/Grafana
 
 **Diagnostic Events**
-- `ofx.request.start`, `ofx.request.stop`, `ofx.request.error`
-- `ofx.message.receive`
+- `fxmap.request.start`, `fxmap.request.stop`, `fxmap.request.error`
+- `fxmap.message.receive`
 - Console output for debugging
 
 ### Architecture
@@ -128,10 +128,10 @@ The samples demonstrate OfX's built-in telemetry capabilities:
 - **`grafana/provisioning/`** - Grafana auto-configuration
   - `datasources/datasources.yml` - Prometheus and Jaeger datasources
   - `dashboards/dashboards.yml` - Dashboard provisioning
-  - `dashboards/json/ofx-overview.json` - Pre-built OfX metrics dashboard
+  - `dashboards/json/fxmap-overview.json` - Pre-built FxMap metrics dashboard
 
 - **`postgres-init/init-databases.sh`** - PostgreSQL database initialization
-  - Creates: OfXTestService1, OfXTestOtherService1, OfXTestService2, OfXTestService3
+  - Creates: FxMapTestService1, FxMapTestOtherService1, FxMapTestService2, FxMapTestService3
 
 ### Scripts
 
@@ -186,7 +186,7 @@ The samples demonstrate OfX's built-in telemetry capabilities:
 
 ## Key Concepts Demonstrated
 
-### OfX Framework Features
+### FxMap Framework Features
 
 ✅ **Attribute-based Messaging**
 - `[MemberAttribute]` on models
@@ -204,7 +204,7 @@ The samples demonstrate OfX's built-in telemetry capabilities:
 
 ✅ **HotChocolate GraphQL** (Service1)
 - Query type integration
-- OfX resolver pattern
+- FxMap resolver pattern
 
 ✅ **Supervision & Circuit Breaker**
 - OneForOne strategy
@@ -220,8 +220,8 @@ The samples demonstrate OfX's built-in telemetry capabilities:
 ### OpenTelemetry Integration
 
 ✅ **Activity/Span Creation**
-- Client-side: `OfXActivitySource.StartClientActivity<TAttribute>()`
-- Server-side: `OfXActivitySource.StartServerActivity()`
+- Client-side: `FxMapActivitySource.StartClientActivity<TAttribute>()`
+- Server-side: `FxMapActivitySource.StartServerActivity()`
 
 ✅ **Trace Context Propagation**
 - W3C TraceContext standard
@@ -229,14 +229,14 @@ The samples demonstrate OfX's built-in telemetry capabilities:
 - Parent-child span relationships
 
 ✅ **Metrics**
-- Meter: `OfX`
+- Meter: `FxMap`
 - Counter, Histogram, ObservableGauge
-- Labels: `ofx.attribute`, `ofx.transport`, `ofx.status`
+- Labels: `fxmap.attribute`, `fxmap.transport`, `fxmap.status`
 
 ✅ **Semantic Conventions**
 - Messaging tags: `messaging.system`, `messaging.destination`
 - Database tags: `db.system`, `db.name`
-- OfX tags: `ofx.attribute`, `ofx.expression`, `ofx.item_count`
+- FxMap tags: `fxmap.attribute`, `fxmap.expression`, `fxmap.item_count`
 
 ## Service Details
 
@@ -295,13 +295,13 @@ psql -h localhost -U postgres -c "\l"
 **MongoDB not connecting**
 ```bash
 # Test connection (if using Docker)
-docker exec -it ofx-mongodb mongosh --eval "db.adminCommand('ping')"
+docker exec -it fxmap-mongodb mongosh --eval "db.adminCommand('ping')"
 ```
 
 ### Telemetry Not Appearing
 
-1. Ensure `.AddSource("OfX")` in tracing config
-2. Ensure `.AddMeter("OfX")` in metrics config
+1. Ensure `.AddSource("FxMap")` in tracing config
+2. Ensure `.AddMeter("FxMap")` in metrics config
 3. Check OTLP exporter endpoint: `http://localhost:4317`
 4. View service console output for Activity and Metric logs
 

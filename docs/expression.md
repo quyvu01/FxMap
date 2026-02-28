@@ -1,6 +1,6 @@
-# OfX Expression Language
+# FxMap Expression Language
 
-OfX Expression Language is a powerful expression language that allows flexible data querying and transformation. This document describes all supported syntax and features.
+FxMap Expression Language is a powerful expression language that allows flexible data querying and transformation. This document describes all supported syntax and features.
 
 ---
 

@@ -1,6 +1,6 @@
-# This workflow will build and publish all OfX ecosystem packages when the version changes.
+# This workflow will build and publish all FxMap ecosystem packages when the version changes.
 
-name: Build OfX and Publish
+name: Build FxMap and Publish
 env:
   OFX_VERSION: 9.0.0
 
@@ -12,7 +12,7 @@ on:
 
 jobs:
   build:
-    name: 'build ofx project'
+    name: 'build fxmap project'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -55,16 +55,16 @@ jobs:
         run: dotnet restore
 
       - name: Run Unit Tests
-        run: dotnet test test/OfX.Tests/OfX.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfX.Tests.UnitTests" --logger "console;verbosity=normal"
+        run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.UnitTests" --logger "console;verbosity=normal"
 
       - name: Run Contract Tests
-        run: dotnet test test/OfX.Tests/OfX.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfX.Tests.ContractTests" --logger "console;verbosity=normal"
+        run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.ContractTests" --logger "console;verbosity=normal"
 
       - name: Run Integration Tests (EF Core)
-        run: dotnet test test/OfX.Tests/OfX.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfX.Tests.IntegrationTests.EfCore" --logger "console;verbosity=normal"
+        run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.IntegrationTests.EfCore" --logger "console;verbosity=normal"
 
       - name: Run Analyzer Tests
-        run: dotnet test test/OfX.Analyzers.Tests/OfX.Analyzers.Tests.csproj -c Release --framework ${{ matrix.framework }} --logger "console;verbosity=normal"
+        run: dotnet test test/FxMap.Analyzers.Tests/FxMap.Analyzers.Tests.csproj -c Release --framework ${{ matrix.framework }} --logger "console;verbosity=normal"
   
   calc-version:
     name: Calculate Version
@@ -121,7 +121,7 @@ jobs:
       - name: Publish NuGets
         working-directory: artifacts
         run: |
-          for file in OfX*.nupkg; do
+          for file in FxMap*.nupkg; do
             echo "Pushing $file"
             dotnet nuget push "$file" -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate --no-symbols
           done

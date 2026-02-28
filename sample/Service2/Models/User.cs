@@ -1,4 +1,4 @@
-using OfX.Fluent;
+using FxMap.Fluent;
 using Shared.Attributes;
 
 namespace Service2.Models;
@@ -12,7 +12,7 @@ public sealed class User
     public DateTime CreatedTime { get; set; }
 }
 
-public class UserConfig : AbstractOfXConfig<User>
+public class UserConfig : AbstractFxMapConfig<User>
 {
     protected override void Configure()
     {

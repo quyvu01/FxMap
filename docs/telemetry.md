@@ -1,10 +1,10 @@
-# OfX Telemetry & Observability
+# FxMap Telemetry & Observability
 
-OfX framework provides comprehensive observability support through OpenTelemetry-compatible distributed tracing, metrics, and diagnostic events.
+FxMap framework provides comprehensive observability support through OpenTelemetry-compatible distributed tracing, metrics, and diagnostic events.
 
 ## Overview
 
-OfX telemetry consists of three main components:
+FxMap telemetry consists of three main components:
 
 1. **Distributed Tracing** - Track requests across services
 2. **Metrics** - Monitor performance and health
@@ -31,7 +31,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
-        .AddSource("OfX")  // Subscribe to OfX traces
+        .AddSource("FxMap")  // Subscribe to FxMap traces
         .AddAspNetCoreInstrumentation()
         .AddHttpClientInstrumentation()
         .AddOtlpExporter(options =>
@@ -39,7 +39,7 @@ builder.Services.AddOpenTelemetry()
             options.Endpoint = new Uri("http://jaeger:4317");
         }))
     .WithMetrics(metrics => metrics
-        .AddMeter("OfX")  // Subscribe to OfX metrics
+        .AddMeter("FxMap")  // Subscribe to FxMap metrics
         .AddAspNetCoreInstrumentation()
         .AddPrometheusExporter());
 
@@ -65,16 +65,16 @@ docker run -d --name jaeger \
 
 ### Activity Hierarchy
 
-OfX creates hierarchical activities for request processing:
+FxMap creates hierarchical activities for request processing:
 
 ```
 Trace: order-processing
-├─ [OfX.Request] Client: OrderAttribute (200ms)
+├─ [FxMap.Request] Client: OrderAttribute (200ms)
 │  ├─ [kafka.send] Kafka Producer (5ms)
-│  ├─ [OfX.Process] Server: OrderAttribute (180ms)
-│  │  ├─ [OfX.EFCore.Query] Database Query (120ms)
+│  ├─ [FxMap.Process] Server: OrderAttribute (180ms)
+│  │  ├─ [FxMap.EFCore.Query] Database Query (120ms)
 │  │  │  └─ [db.command] SELECT * FROM Orders (118ms)
-│  │  └─ [OfX.Request] Nested: UserAttribute (50ms)
+│  │  └─ [FxMap.Request] Nested: UserAttribute (50ms)
 │  │     └─ [grpc.call] gRPC GetUser (45ms)
 │  └─ [kafka.receive] Kafka Consumer (10ms)
 └─ Total: 200ms
@@ -85,24 +85,24 @@ Trace: order-processing
 #### Client-side Activities
 
 ```csharp
-Activity: OfX.Request
+Activity: FxMap.Request
 Tags:
-  - ofx.attribute: "OrderAttribute"
-  - ofx.transport: "kafka" | "grpc" | "rabbitmq" | "nats" | "azureservicebus"
-  - ofx.version: "8.3.0"
-  - ofx.expression: "{Id, Name, Items}"
-  - ofx.selector_count: 5
-  - ofx.selector_ids: "id1,id2,id3,id4,id5"
-  - ofx.item_count: 42
+  - fxmap.attribute: "OrderAttribute"
+  - fxmap.transport: "kafka" | "grpc" | "rabbitmq" | "nats" | "azureservicebus"
+  - fxmap.version: "8.3.0"
+  - fxmap.expression: "{Id, Name, Items}"
+  - fxmap.selector_count: 5
+  - fxmap.selector_ids: "id1,id2,id3,id4,id5"
+  - fxmap.item_count: 42
 ```
 
 #### Server-side Activities
 
 ```csharp
-Activity: OfX.Process
+Activity: FxMap.Process
 Tags:
-  - ofx.attribute: "OrderAttribute"
-  - ofx.version: "8.3.0"
+  - fxmap.attribute: "OrderAttribute"
+  - fxmap.version: "8.3.0"
   - messaging.system: "kafka"
   - messaging.destination: "orders.topic"
   - messaging.consumer_id: "consumer-1"
@@ -111,7 +111,7 @@ Tags:
 #### Database Activities
 
 ```csharp
-Activity: OfX.Database.Query
+Activity: FxMap.Database.Query
 Tags:
   - db.system: "postgresql" | "mongodb"
   - db.name: "ecommerce"
@@ -120,14 +120,14 @@ Tags:
 
 ### Trace Context Propagation
 
-OfX automatically propagates trace context using W3C TraceContext standard:
+FxMap automatically propagates trace context using W3C TraceContext standard:
 
 ```
 Request Headers:
   traceparent: 00-0af7651916cd43dd8448eb211c80319c-b7ad6b7169203331-01
   tracestate: congo=t61rcWkgMzE
 
-OfX automatically:
+FxMap automatically:
 1. Extracts parent context from incoming messages
 2. Creates child activity
 3. Propagates context to outgoing messages
@@ -159,27 +159,27 @@ activity?.SetTag("tenant.id", tenantId);
 
 | Metric | Description | Dimensions |
 |--------|-------------|------------|
-| `ofx.request.count` | Total requests | attribute, transport, status |
-| `ofx.request.errors` | Total errors | attribute, transport, error_type |
-| `ofx.items.returned` | Total items returned | attribute, transport |
-| `ofx.messages.sent` | Messages sent | transport, destination |
-| `ofx.messages.received` | Messages received | transport, source |
+| `fxmap.request.count` | Total requests | attribute, transport, status |
+| `fxmap.request.errors` | Total errors | attribute, transport, error_type |
+| `fxmap.items.returned` | Total items returned | attribute, transport |
+| `fxmap.messages.sent` | Messages sent | transport, destination |
+| `fxmap.messages.received` | Messages received | transport, source |
 
 #### Histograms
 
 | Metric | Unit | Description | Dimensions |
 |--------|------|-------------|------------|
-| `ofx.request.duration` | ms | Request duration | attribute, transport, status |
-| `ofx.items.per_request` | count | Items per request | attribute, transport |
-| `ofx.message.size` | bytes | Message size | transport, direction |
-| `ofx.database.query.duration` | ms | Query duration | db_system, operation |
-| `ofx.expression.parsing.duration` | ms | Parsing duration | complexity |
+| `fxmap.request.duration` | ms | Request duration | attribute, transport, status |
+| `fxmap.items.per_request` | count | Items per request | attribute, transport |
+| `fxmap.message.size` | bytes | Message size | transport, direction |
+| `fxmap.database.query.duration` | ms | Query duration | db_system, operation |
+| `fxmap.expression.parsing.duration` | ms | Parsing duration | complexity |
 
 #### Gauges
 
 | Metric | Description |
 |--------|-------------|
-| `ofx.requests.active` | Current active requests |
+| `fxmap.requests.active` | Current active requests |
 
 ### Prometheus Metrics Endpoint
 
@@ -190,20 +190,20 @@ app.MapPrometheusScrapingEndpoint();  // /metrics
 Example output:
 
 ```
-# HELP ofx_request_count Total number of OfX requests
-# TYPE ofx_request_count counter
-ofx_request_count{attribute="OrderAttribute",transport="kafka",status="success"} 1234
+# HELP fxmap_request_count Total number of FxMap requests
+# TYPE fxmap_request_count counter
+fxmap_request_count{attribute="OrderAttribute",transport="kafka",status="success"} 1234
 
-# HELP ofx_request_duration Duration of OfX requests
-# TYPE ofx_request_duration histogram
-ofx_request_duration_bucket{attribute="OrderAttribute",transport="kafka",le="10"} 100
-ofx_request_duration_bucket{attribute="OrderAttribute",transport="kafka",le="50"} 450
-ofx_request_duration_bucket{attribute="OrderAttribute",transport="kafka",le="100"} 800
+# HELP fxmap_request_duration Duration of FxMap requests
+# TYPE fxmap_request_duration histogram
+fxmap_request_duration_bucket{attribute="OrderAttribute",transport="kafka",le="10"} 100
+fxmap_request_duration_bucket{attribute="OrderAttribute",transport="kafka",le="50"} 450
+fxmap_request_duration_bucket{attribute="OrderAttribute",transport="kafka",le="100"} 800
 ```
 
 ### Grafana Dashboard
 
-Import dashboard template from `docs/grafana/ofx-dashboard.json`:
+Import dashboard template from `docs/grafana/fxmap-dashboard.json`:
 
 - Request rate & latency
 - Error rate
@@ -221,11 +221,11 @@ For custom telemetry consumers that don't use OpenTelemetry:
 
 ```csharp
 using System.Diagnostics;
-using OfX.Telemetry;
+using FxMap.Telemetry;
 
 DiagnosticListener.AllListeners.Subscribe(listener =>
 {
-    if (listener.Name == "OfX")
+    if (listener.Name == "FxMap")
     {
         listener.Subscribe(evt =>
         {
@@ -240,26 +240,26 @@ DiagnosticListener.AllListeners.Subscribe(listener =>
 
 | Event | Payload |
 |-------|---------|
-| `OfX.Request.Start` | Attribute, Transport, SelectorIds, Expression, Timestamp |
-| `OfX.Request.Stop` | Attribute, Transport, ItemCount, Duration, Timestamp |
-| `OfX.Request.Error` | Attribute, Transport, Exception, ErrorType, Duration |
-| `OfX.Message.Send` | Transport, Destination, MessageId, SizeBytes |
-| `OfX.Message.Receive` | Transport, Source, MessageId, SizeBytes |
-| `OfX.Database.Query.Start` | DbSystem, Operation, Database |
-| `OfX.Database.Query.Stop` | DbSystem, Operation, RowCount, Duration |
-| `OfX.Expression.Parse` | Expression, Duration, Success |
-| `OfX.Cache.Lookup` | CacheType, Key, Hit |
+| `FxMap.Request.Start` | Attribute, Transport, SelectorIds, Expression, Timestamp |
+| `FxMap.Request.Stop` | Attribute, Transport, ItemCount, Duration, Timestamp |
+| `FxMap.Request.Error` | Attribute, Transport, Exception, ErrorType, Duration |
+| `FxMap.Message.Send` | Transport, Destination, MessageId, SizeBytes |
+| `FxMap.Message.Receive` | Transport, Source, MessageId, SizeBytes |
+| `FxMap.Database.Query.Start` | DbSystem, Operation, Database |
+| `FxMap.Database.Query.Stop` | DbSystem, Operation, RowCount, Duration |
+| `FxMap.Expression.Parse` | Expression, Duration, Success |
+| `FxMap.Cache.Lookup` | CacheType, Key, Hit |
 
 ### Custom Event Consumer
 
 ```csharp
 listener.Subscribe(evt =>
 {
-    if (evt.Key == OfXDiagnostics.RequestStartEvent)
+    if (evt.Key == FxMapDiagnostics.RequestStartEvent)
     {
         var data = (dynamic)evt.Value!;
         _logger.LogInformation(
-            "OfX Request Started: {Attribute} via {Transport}",
+            "FxMap Request Started: {Attribute} via {Transport}",
             data.Attribute,
             data.Transport);
     }
@@ -272,11 +272,11 @@ listener.Subscribe(evt =>
 
 ### Zero-Allocation When Disabled
 
-OfX telemetry has **zero overhead** when not observed:
+FxMap telemetry has **zero overhead** when not observed:
 
 ```csharp
 // If no OpenTelemetry listener configured:
-var activity = OfXActivitySource.StartClientActivity<OrderAttribute>("kafka");
+var activity = FxMapActivitySource.StartClientActivity<OrderAttribute>("kafka");
 // Returns null immediately (no allocation)
 
 if (activity != null)
@@ -294,7 +294,7 @@ Reduce overhead by sampling:
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
         .SetSampler(new TraceIdRatioBasedSampler(0.1))  // Sample 10%
-        .AddSource("OfX"));
+        .AddSource("FxMap"));
 ```
 
 ### Head-based vs Tail-based Sampling
@@ -316,7 +316,7 @@ builder.Services.AddOpenTelemetry()
 ```
 ┌──────────────┐
 │ Application  │
-│  (OfX SDK)   │
+│  (FxMap SDK)   │
 └──────┬───────┘
        │ OTLP (gRPC)
        ▼
@@ -340,7 +340,7 @@ builder.Services.AddOpenTelemetry()
 ```csharp
 builder.Services.AddOpenTelemetry()
     .WithTracing(tracing => tracing
-        .AddSource("OfX")
+        .AddSource("FxMap")
         .SetResourceBuilder(ResourceBuilder.CreateDefault()
             .AddService("my-service", serviceVersion: "1.0.0")
             .AddTelemetrySdk())
@@ -351,7 +351,7 @@ builder.Services.AddOpenTelemetry()
             options.Protocol = OtlpExportProtocol.Grpc;
         }))
     .WithMetrics(metrics => metrics
-        .AddMeter("OfX")
+        .AddMeter("FxMap")
         .AddOtlpExporter(options =>
         {
             options.Endpoint = new Uri("http://otel-collector:4317");
@@ -366,7 +366,7 @@ builder.Services.AddOpenTelemetry()
 
 1. Check OpenTelemetry listener is configured:
    ```csharp
-   .AddSource("OfX")  // Must be present!
+   .AddSource("FxMap")  // Must be present!
    ```
 
 2. Verify exporter endpoint:

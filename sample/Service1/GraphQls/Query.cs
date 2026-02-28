@@ -1,5 +1,5 @@
 using HotChocolate.Types;
-using OfX.HotChocolate.Attributes;
+using FxMap.HotChocolate.Attributes;
 using Service1.Contract.Responses;
 
 namespace Service1.GraphQls;

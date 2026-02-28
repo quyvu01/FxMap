@@ -1,4 +1,4 @@
-using OfX.Fluent;
+using FxMap.Fluent;
 using Shared.Attributes;
 
 namespace Service1.Models;
@@ -12,7 +12,7 @@ public sealed class MemberAddress
     public string ZipCode { get; set; }
 }
 
-public class MemberAddressConfig : AbstractOfXConfig<MemberAddress>
+public class MemberAddressConfig : AbstractFxMapConfig<MemberAddress>
 {
     protected override void Configure()
     {

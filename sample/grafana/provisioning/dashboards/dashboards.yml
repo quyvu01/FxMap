@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'OfX Dashboards'
+  - name: 'FxMap Dashboards'
     orgId: 1
-    folder: 'OfX'
+    folder: 'FxMap'
     type: file
     disableDeletion: false
     updateIntervalSeconds: 10

@@ -1,0 +1,86 @@
+using System.Text.Json;
+using FxMap.Abstractions;
+using FxMap.Extensions;
+using FxMap.HotChocolate.Registries;
+using FxMap.PublicContracts;
+using FxMap.Queries;
+
+namespace FxMap.HotChocolate.Implementations;
+
+/// <summary>
+/// HotChocolate DataLoader that batches and caches FxMap data fetching operations.
+/// </summary>
+/// <param name="batchScheduler">The batch scheduler for DataLoader.</param>
+/// <param name="options">DataLoader options.</param>
+/// <param name="distributedMapper">The FxMap distributed mapper for fetching data.</param>
+/// <remarks>
+/// This DataLoader:
+/// <list type="bullet">
+///   <item><description>Groups requests by attribute type and order for efficient batching</description></item>
+///   <item><description>Handles dependency resolution between fields</description></item>
+///   <item><description>Caches results per request to avoid duplicate fetches</description></item>
+/// </list>
+/// </remarks>
+internal class DataMappingLoader(
+    IBatchScheduler batchScheduler,
+    DataLoaderOptions options,
+    IDistributedMapper distributedMapper)
+    : BatchDataLoader<FieldBearing, string>(batchScheduler, options)
+{
+    protected override async Task<IReadOnlyDictionary<FieldBearing, string>> LoadBatchAsync(
+        IReadOnlyList<FieldBearing> keys, CancellationToken cancellationToken)
+    {
+        var resultData = new List<Dictionary<FieldBearing, string>>();
+        var previousMapResult = new Dictionary<FieldBearing, string>();
+        var keysGrouped = keys.GroupBy(k => k.Order)
+            .OrderBy(a => a.Key);
+
+        foreach (var requestGrouped in keysGrouped)
+        {
+            // Implement how to map next value with previous value
+            var mapResult = previousMapResult;
+            var tasks = requestGrouped.GroupBy(a => a.DistributedKeyType)
+                .Select(async gr =>
+                {
+                    var matchedExpressionData = mapResult.Where(a =>
+                        gr.Any(x => x.NextComparable == a.Key.PreviousComparable)).ToList();
+
+                    // Re-set Id for `FieldBearing`
+                    gr.Join(matchedExpressionData, g => g.NextComparable,
+                        j => j.Key.PreviousComparable, (g, j) =>
+                        {
+                            var value = j.Value;
+                            g.SelectorId = value switch
+                            {
+                                null => null,
+                                _ => JsonSerializer.Deserialize(value, j.Key.TargetPropertyInfo.PropertyType)
+                                    ?.ToString()
+                            };
+                            return g;
+                        }).Evaluate();
+
+                    List<string> ids = [..gr.Select(k => k.SelectorId).Where(a => a is not null).Distinct()];
+                    if (ids is not { Count: > 0 }) return [];
+                    var expressions = gr.Select(k => k.Expression).Distinct().OrderBy(k => k);
+
+                    var context = new RequestContext([], cancellationToken);
+
+                    var result = await distributedMapper
+                        .FetchDataAsync(gr.Key, new DataFetchQuery([..ids], [..expressions]), context);
+
+                    var res = result.Items.Join(gr, a => a.Id, k => k.SelectorId, (a, k) => (a, k))
+                        .ToDictionary(x => x.k,
+                            x => { return x.a.Values.FirstOrDefault(a => a.Expression == x.k.Expression)?.Value; });
+                    return res;
+                });
+            var result = await Task.WhenAll(tasks);
+            previousMapResult = result.SelectMany(a => a).ToDictionary(kv => kv.Key, kv => kv.Value);
+            resultData.AddRange(result);
+        }
+
+        var res = keys.ToDictionary(a => a,
+            ex => resultData.Select(k => k.FirstOrDefault(x => x.Key.Equals(ex)).Value)
+                .FirstOrDefault(x => x != null));
+        return res;
+    }
+}

@@ -8,7 +8,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\Shared\Shared.csproj" />
-      <ProjectReference Include="..\..\src\OfX.Analyzers\OfX.Analyzers.csproj"
+      <ProjectReference Include="..\..\src\FxMap.Analyzers\FxMap.Analyzers.csproj"
                         OutputItemType="Analyzer"
                         ReferenceOutputAssembly="false" />
     </ItemGroup>

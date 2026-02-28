@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <LangVersion>default</LangVersion>
+        <Version>9.0.0</Version>
+        <Authors>Quy Vu</Authors>
+        <PackageId>FxMap.MongoDb</PackageId>
+        <Description>FxMap extension. Use MongoDb as Data Querying</Description>
+        <PackageTags>FxMap;mappable;open-source;mongoDb;ORM</PackageTags>
+        <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <PackageIcon>FxMap.png</PackageIcon>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+    </PropertyGroup>
+    <ItemGroup>
+        <None Include="..\..\FxMap.png">
+            <Pack>True</Pack>
+            <PackagePath/>
+            <Link>FxMap.png</Link>
+        </None>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\FxMap\FxMap.csproj"/>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MongoDB.Driver" Version="[3.2.1, )"/>
+    </ItemGroup>
+</Project>

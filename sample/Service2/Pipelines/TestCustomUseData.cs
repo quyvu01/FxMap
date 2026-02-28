@@ -1,4 +1,4 @@
-using OfX.Abstractions;
+using FxMap.Abstractions;
 using Shared.Attributes;
 
 namespace Service2.Pipelines;

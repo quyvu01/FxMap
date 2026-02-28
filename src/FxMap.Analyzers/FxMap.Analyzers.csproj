@@ -1,0 +1,107 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <TargetFrameworks>net10.0;net9.0;net8.0</TargetFrameworks>
+        <LangVersion>default</LangVersion>
+        <Version>9.0.0</Version>
+        <Authors>Quy Vu</Authors>
+        <PackageId>FxMap.Analyzers</PackageId>
+        <Description>The Expression Analyzers for FxMap</Description>
+        <PackageTags>FxMap;mappable;open-source;expression-analyzers</PackageTags>
+        <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <PackageIcon>FxMap.png</PackageIcon>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+
+        <!-- Analyzer-specific settings -->
+        <IsRoslynComponent>true</IsRoslynComponent>
+        <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+        <IsPackable>true</IsPackable>
+        <DevelopmentDependency>true</DevelopmentDependency>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <!-- Roslyn analyzer packages -->
+        <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.8.0" PrivateAssets="all"/>
+        <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.3.4" PrivateAssets="all"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\..\FxMap.png">
+            <Pack>True</Pack>
+            <PackagePath/>
+            <Link>FxMap.png</Link>
+        </None>
+        <None Include="README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Compile Include="..\FxMap\Expressions\Nodes\AggregationNode.cs">
+        <Link>Nodes\AggregationNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\BinaryConditionNode.cs">
+        <Link>Nodes\BinaryConditionNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\BooleanFunctionNode.cs">
+        <Link>Nodes\BooleanFunctionNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\CoalesceNode.cs">
+        <Link>Nodes\CoalesceNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\ExpressionNode.cs">
+        <Link>Nodes\ExpressionNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\FilterNode.cs">
+        <Link>Nodes\FilterNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\FunctionNode.cs">
+        <Link>Nodes\FunctionNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\GroupByNode.cs">
+        <Link>Nodes\GroupByNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\GroupElementsNode.cs">
+        <Link>Nodes\GroupElementsNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\IndexerNode.cs">
+        <Link>Nodes\IndexerNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\LiteralNode.cs">
+        <Link>Nodes\LiteralNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\LogicalConditionNode.cs">
+        <Link>Nodes\LogicalConditionNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\NavigationNode.cs">
+        <Link>Nodes\NavigationNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\ProjectionNode.cs">
+        <Link>Nodes\ProjectionNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\PropertyNode.cs">
+        <Link>Nodes\PropertyNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\RootProjectionNode.cs">
+        <Link>Nodes\RootProjectionNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\TernaryNode.cs">
+        <Link>Nodes\TernaryNode.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Parsing\ExpressionParser.cs">
+        <Link>Parsing\ExpressionParser.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Tokens\Token.cs">
+        <Link>Tokens\Token.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Tokens\Tokenizer.cs">
+        <Link>Tokens\Tokenizer.cs</Link>
+      </Compile>
+      <Compile Include="..\FxMap\Expressions\Tokens\TokenType.cs">
+        <Link>Tokens\TokenType.cs</Link>
+      </Compile>
+    </ItemGroup>
+
+</Project>

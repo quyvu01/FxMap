@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+
+option csharp_namespace = "FxMap.Grpc";
+
+package FxMapTransport;
+
+service FxMapTransportService {
+  rpc GetItems (GetFxMapGrpcQuery) returns (FxMapItemsGrpcResponse);
+  rpc GeTDistributedKeys (GeTDistributedKeysQuery) returns (AttributeTypeResponse);
+}
+
+message GetFxMapGrpcQuery {
+  repeated string selector_ids = 1;
+  google.protobuf.StringValue expression = 2;
+  google.protobuf.StringValue attribute_assembly_type = 3;
+}
+
+message FxMapItemsGrpcResponse {
+  repeated ItemGrpc items = 1;
+}
+
+message GeTDistributedKeysQuery {
+
+}
+
+message AttributeTypeResponse {
+  repeated string attribute_types = 1;
+}
+
+message ItemGrpc {
+  string id = 1;
+  repeated FxMapValueItemGrpc fxmap_values = 2;
+}
+message FxMapValueItemGrpc {
+  google.protobuf.StringValue expression = 1;
+  google.protobuf.StringValue value = 2;
+}

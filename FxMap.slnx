@@ -1,0 +1,42 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/FxMap.Analyzers/">
+    <Project Path="src/FxMap.Analyzers/FxMap.Analyzers.csproj" />
+    <Project Path="test/FxMap.Analyzers.Tests/FxMap.Analyzers.Tests.csproj" />
+  </Folder>
+  <Folder Name="/FxMap.Core/">
+    <Project Path="src/FxMap/FxMap.csproj" />
+  </Folder>
+  <Folder Name="/FxMap.DataProviders/">
+    <Project Path="src/FxMap.EntityFrameworkCore/FxMap.EntityFrameworkCore.csproj" />
+    <Project Path="src/FxMap.MongoDb/FxMap.MongoDb.csproj" />
+  </Folder>
+  <Folder Name="/FxMap.Demo/">
+    <Project Path="sample/Service1/Service1.csproj" />
+    <Project Path="sample/Service2/Service2.csproj" />
+    <Project Path="sample/Service3/Service3.csproj" />
+  </Folder>
+  <Folder Name="/FxMap.Demo/Contracts/">
+    <Project Path="sample/Service1.Contract/Service1.Contract.csproj" />
+    <Project Path="sample/Shared/Shared.csproj" />
+  </Folder>
+  <Folder Name="/FxMap.Integrations/">
+    <Project Path="src/FxMap.HotChocolate/FxMap.HotChocolate.csproj" />
+  </Folder>
+  <Folder Name="/FxMap.Tests/">
+    <Project Path="test/FxMap.Benchmark/FxMap.Benchmark.csproj" />
+    <Project Path="test/FxMap.Tests/FxMap.Tests.csproj" />
+  </Folder>
+  <Folder Name="/FxMap.Transports/">
+    <Project Path="src/FxMap.Aws.Sqs/FxMap.Aws.Sqs.csproj" />
+    <Project Path="src/FxMap.Azure.ServiceBus/FxMap.Azure.ServiceBus.csproj" />
+    <Project Path="src/FxMap.Grpc/FxMap.Grpc.csproj" />
+    <Project Path="src/FxMap.Kafka/FxMap.Kafka.csproj" />
+    <Project Path="src/FxMap.Nats/FxMap.Nats.csproj" />
+    <Project Path="src/FxMap.RabbitMq/FxMap.RabbitMq.csproj" />
+  </Folder>
+</Solution>

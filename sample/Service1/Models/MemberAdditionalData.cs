@@ -1,4 +1,4 @@
-using OfX.Fluent;
+using FxMap.Fluent;
 using Shared.Attributes;
 
 namespace Service1.Models;
@@ -9,7 +9,7 @@ public class MemberAdditionalData
     public string Name { get; set; }
 }
 
-public class MemberAdditionalDataConfig : AbstractOfXConfig<MemberAdditionalData>
+public class MemberAdditionalDataConfig : AbstractFxMapConfig<MemberAdditionalData>
 {
     protected override void Configure()
     {

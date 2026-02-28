@@ -1,4 +1,4 @@
-using OfX.Abstractions;
+using FxMap.Abstractions;
 
 namespace Shared.Attributes;
 
