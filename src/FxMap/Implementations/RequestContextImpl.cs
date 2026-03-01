@@ -5,7 +5,7 @@ namespace FxMap.Implementations;
 /// <summary>
 /// Concrete implementation of <see cref="RequestContext{TDistributedKey}"/> that carries request data through pipelines.
 /// </summary>
-/// <typeparam name="TDistributedKey">The FxMap attribute type for this request.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type for this request.</typeparam>
 /// <param name="query">The query containing selector IDs and expressions.</param>
 /// <param name="headers">Optional headers for passing context information (e.g., authentication, tracing).</param>
 /// <param name="token">Cancellation token for request cancellation.</param>

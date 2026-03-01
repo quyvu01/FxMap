@@ -56,7 +56,7 @@ public static class FxMapDiagnostics
     /// <summary>
     /// Fires when an FxMap request starts.
     /// </summary>
-    /// <param name="attribute">The FxMap attribute name.</param>
+    /// <param name="attribute">The FxMap distributed key name.</param>
     /// <param name="transport">The transport mechanism.</param>
     /// <param name="selectorIds">The selector IDs being queried.</param>
     /// <param name="expressions">The FxMap expressions.</param>
@@ -82,7 +82,7 @@ public static class FxMapDiagnostics
     /// <summary>
     /// Fires when an FxMap request completes successfully.
     /// </summary>
-    /// <param name="attribute">The FxMap attribute name.</param>
+    /// <param name="attribute">The FxMap distributed key name.</param>
     /// <param name="transport">The transport mechanism.</param>
     /// <param name="itemCount">The number of items returned.</param>
     /// <param name="duration">The request duration.</param>
@@ -109,7 +109,7 @@ public static class FxMapDiagnostics
     /// <summary>
     /// Fires when an FxMap request fails.
     /// </summary>
-    /// <param name="attribute">The FxMap attribute name.</param>
+    /// <param name="attribute">The FxMap distributed key name.</param>
     /// <param name="transport">The transport mechanism.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="duration">The request duration before failure.</param>
@@ -200,7 +200,7 @@ public static class FxMapDiagnostics
     /// <summary>
     /// Fires when a database query starts.
     /// </summary>
-    /// <param name="attribute">The FxMap attribute name.</param>
+    /// <param name="attribute">The FxMap distributed key name.</param>
     /// <param name="dbSystem">The database system (e.g., "efcore", "mongodb").</param>
     /// <param name="expressions">The FxMap expressions being queried.</param>
     public static void DatabaseQueryStart(
@@ -223,7 +223,7 @@ public static class FxMapDiagnostics
     /// <summary>
     /// Fires when a database query completes successfully.
     /// </summary>
-    /// <param name="attribute">The FxMap attribute name.</param>
+    /// <param name="attribute">The FxMap distributed key name.</param>
     /// <param name="dbSystem">The database system.</param>
     /// <param name="itemCount">The number of items returned.</param>
     /// <param name="duration">The query duration.</param>
@@ -250,7 +250,7 @@ public static class FxMapDiagnostics
     /// <summary>
     /// Fires when a database query fails.
     /// </summary>
-    /// <param name="attribute">The FxMap attribute name.</param>
+    /// <param name="attribute">The FxMap distributed key name.</param>
     /// <param name="dbSystem">The database system.</param>
     /// <param name="exception">The exception that occurred.</param>
     /// <param name="duration">The query duration before failure.</param>

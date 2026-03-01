@@ -9,7 +9,7 @@ namespace FxMap.Handlers;
 /// <summary>
 /// Internal handler that routes client requests through the configured <see cref="IRequestClient"/> transport.
 /// </summary>
-/// <typeparam name="TDistributedKey">The FxMap attribute type for this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type for this handler.</typeparam>
 /// <param name="serviceProvider">The service provider for resolving the transport client.</param>
 internal sealed class ClientRequestHandler<TDistributedKey>(IServiceProvider serviceProvider)
     : IClientRequestHandler<TDistributedKey> where TDistributedKey : IDistributedKey

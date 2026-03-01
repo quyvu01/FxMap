@@ -68,13 +68,13 @@ public interface IRequestServer
 }
 
 /// <summary>
-/// Generic server interface for handling requests for a specific model and attribute combination.
+/// Generic server interface for handling requests for a specific model and distributed key combination.
 /// </summary>
 /// <typeparam name="TModel">The model type this server handles.</typeparam>
 /// <typeparam name="TDistributedKey">The <see cref="IDistributedKey"/> type this server responds to.</typeparam>
 /// <remarks>
 /// <para>
-/// Each transport implementation creates a server instance per model/attribute combination.
+/// Each transport implementation creates a server instance per model/distributed key combination.
 /// The server is responsible for:
 /// </para>
 /// <list type="bullet">

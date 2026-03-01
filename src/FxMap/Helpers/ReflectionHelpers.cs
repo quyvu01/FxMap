@@ -9,13 +9,13 @@ using FxMap.MetadataCache;
 namespace FxMap.Helpers;
 
 /// <summary>
-/// Provides reflection-based helper methods for discovering and mapping FxMap-decorated properties.
+/// Provides reflection-based helper methods for discovering and mapping FxMap-configured properties.
 /// </summary>
 /// <remarks>
 /// This class handles the core reflection logic for:
 /// <list type="bullet">
-///   <item><description>Discovering properties with FxMap attributes on objects</description></item>
-///   <item><description>Grouping properties by attribute type and execution order</description></item>
+///   <item><description>Discovering properties mapped via <c>ProfileOf&lt;T&gt;</c> on objects</description></item>
+///   <item><description>Grouping properties by distributed key type and execution order</description></item>
 ///   <item><description>Mapping response data back to object properties</description></item>
 /// </list>
 /// </remarks>

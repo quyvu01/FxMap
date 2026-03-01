@@ -4,13 +4,13 @@ using FxMap.Responses;
 namespace FxMap.Abstractions;
 
 /// <summary>
-/// Defines the abstraction for mapping and fetching data in the FxMap.
+/// Defines the abstraction for mapping and fetching data in FxMap.
 /// </summary>
 /// <remarks>
 /// This service acts as the entry point for mapping objects and retrieving data using
-/// <c>FxMapAttribute</c>-based models.  
-/// Use <see cref="MapDataAsync(object, CancellationToken)"/> to map arbitrary objects,  
-/// or <see cref="FetchDataAsync{TDistributedKey}(DataFetchQuery, IContext)"/> / 
+/// FxMap distributed key-based models configured via <c>ProfileOf&lt;T&gt;</c>.
+/// Use <see cref="MapDataAsync(object, CancellationToken)"/> to map arbitrary objects,
+/// or <see cref="FetchDataAsync{TDistributedKey}(DataFetchQuery, IContext)"/> /
 /// <see cref="FetchDataAsync(Type, DataFetchQuery, IContext)"/> to retrieve strongly-typed data.
 /// </remarks>
 public interface IDistributedMapper
@@ -52,7 +52,7 @@ public interface IDistributedMapper
     /// Fetches data for a model determined at runtime, using the specified <see cref="Type"/>.
     /// </summary>
     /// <param name="runtimeType">
-    /// The runtime type of the <see cref="IDistributedKey"/> (e.g., <c>typeof(UserOfAttribute)</c>).
+    /// The runtime type of the <see cref="IDistributedKey"/> (e.g., <c>typeof(IUserKey)</c>).
     /// </param>
     /// <param name="query">
     /// The input data, such as selector IDs and expressions used to filter or project the result.

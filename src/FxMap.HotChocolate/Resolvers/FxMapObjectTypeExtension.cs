@@ -6,13 +6,13 @@ using FxMap.MetadataCache;
 namespace FxMap.HotChocolate.Resolvers;
 
 /// <summary>
-/// HotChocolate type extension that configures FxMap-decorated fields for automatic resolution.
+/// HotChocolate type extension that configures FxMap-mapped fields for automatic resolution.
 /// </summary>
 /// <typeparam name="T">The GraphQL object type being extended.</typeparam>
 /// <remarks>
 /// This extension automatically:
 /// <list type="bullet">
-///   <item><description>Discovers properties with FxMap attributes</description></item>
+///   <item><description>Discovers properties configured via FxMap profiles</description></item>
 ///   <item><description>Adds middleware to extract expression parameters</description></item>
 ///   <item><description>Configures resolvers to use the <see cref="DataResolvers{TResponse}"/></description></item>
 /// </list>

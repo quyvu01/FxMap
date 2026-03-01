@@ -10,7 +10,7 @@ using FxMap.MetadataCache;
 namespace FxMap.HotChocolate.Resolvers;
 
 /// <summary>
-/// GraphQL resolver class that handles data fetching for FxMap-decorated properties.
+/// GraphQL resolver class that handles data fetching for FxMap-mapped properties.
 /// </summary>
 /// <typeparam name="TResponse">The GraphQL object type being resolved.</typeparam>
 /// <remarks>
@@ -20,7 +20,7 @@ namespace FxMap.HotChocolate.Resolvers;
 public sealed class DataResolvers<TResponse> where TResponse : class
 {
     /// <summary>
-    /// Resolves FxMap-decorated field data asynchronously.
+    /// Resolves FxMap-mapped field data asynchronously.
     /// </summary>
     /// <param name="response">The parent object being resolved.</param>
     /// <param name="resolverContext">The HotChocolate resolver context.</param>

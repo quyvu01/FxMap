@@ -3,7 +3,7 @@ using FxMap.Abstractions;
 namespace FxMap.Delegates;
 
 /// <summary>
-/// Delegate for retrieving the FxMap configuration for a specific model and attribute type combination.
+/// Delegate for retrieving the FxMap configuration for a specific model and distributed key type combination.
 /// </summary>
 /// <param name="modelType">The CLR type of the model entity.</param>
 /// <param name="distributedKeyType">The type of the <see cref="IDistributedKey"/>.</param>

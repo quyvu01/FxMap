@@ -30,7 +30,7 @@ public sealed class PropertyContext
     public PropertyInfo RequiredPropertyInfo { get; set; }
 
     /// <summary>
-    /// Gets or sets the runtime type of the FxMap attribute decorating the target property.
+    /// Gets or sets the runtime type of the FxMap distributed key associated with the target property.
     /// </summary>
     public Type RuntimeDistributedKeyType { get; set; }
 

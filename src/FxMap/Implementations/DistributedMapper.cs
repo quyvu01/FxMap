@@ -18,7 +18,7 @@ namespace FxMap.Implementations;
 /// <remarks>
 /// The DistributedMapper is the heart of the FxMap framework. It:
 /// <list type="bullet">
-///   <item><description>Scans objects for properties decorated with FxMap attributes</description></item>
+///   <item><description>Scans objects for properties configured via <c>ProfileOf&lt;T&gt;</c></description></item>
 ///   <item><description>Groups properties by their dependency order for efficient batching</description></item>
 ///   <item><description>Sends requests through the configured transport to fetch remote data</description></item>
 ///   <item><description>Maps the returned data back to the original object properties</description></item>

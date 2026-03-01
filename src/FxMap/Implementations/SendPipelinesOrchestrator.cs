@@ -27,7 +27,7 @@ internal abstract class SendPipelinesOrchestrator
 /// <summary>
 /// Client-side pipeline orchestrator that executes send pipeline behaviors before transport.
 /// </summary>
-/// <typeparam name="TDistributedKey">The FxMap attribute type for which pipelines are being executed.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type for which pipelines are being executed.</typeparam>
 /// <param name="serviceProvider">The service provider for resolving handlers and pipeline behaviors.</param>
 /// <remarks>
 /// This orchestrator:

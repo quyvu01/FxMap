@@ -1,25 +1,32 @@
 namespace FxMap.Abstractions;
 
 /// <summary>
-/// The base attribute class for all FxMap mapping attributes.
+/// The base interface for all FxMap distributed keys.
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the foundation of the FxMap mapping system. All specific entity attributes
-/// (e.g., <c>UserOfAttribute</c>, <c>OrderOfAttribute</c>) should inherit from this class.
+/// This is the foundation of the FxMap mapping system. All specific distributed key types
+/// (e.g., <c>IUserKey</c>, <c>IOrderKey</c>) should implement this interface.
 /// </para>
 /// <para>
-/// When applied to a property, it indicates that the property's value should be fetched
-/// from a remote service or data provider based on the selector property value.
+/// Distributed keys identify which remote service or data provider should be queried
+/// for a given property mapping. Property mappings are configured via <c>ProfileOf&lt;T&gt;</c>
+/// using the FluentAPI rather than attribute decoration.
 /// </para>
 /// <example>
 /// <code>
-/// public class OrderResponse
-/// {
-///     public string UserId { get; set; }
+/// // Define a distributed key
+/// public interface IUserKey : IDistributedKey;
 ///
-///     [UserOf(nameof(UserId), Expression = "Name")]
-///     public string UserName { get; set; }
+/// // Configure mapping in a ProfileOf&lt;T&gt;
+/// public class OrderResponseProfile : ProfileOf&lt;OrderResponse&gt;
+/// {
+///     protected override void Configure()
+///     {
+///         UseDistributedKey&lt;IUserKey&gt;()
+///             .Selector(x => x.UserId)
+///             .Map(x => x.UserName, "Name");
+///     }
 /// }
 /// </code>
 /// </example>

@@ -19,7 +19,7 @@ namespace FxMap.MongoDb;
 /// MongoDB implementation using the new Expression DSL system (V2).
 /// </summary>
 /// <typeparam name="TModel">The document type.</typeparam>
-/// <typeparam name="TDistributedKey">The FxMap attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type associated with this handler.</typeparam>
 /// <remarks>
 /// <para>
 /// This handler uses the new Expression DSL to build MongoDB BSON projections.

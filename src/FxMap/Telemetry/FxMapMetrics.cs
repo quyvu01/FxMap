@@ -181,7 +181,7 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a successful request with common tags.
     /// </summary>
-    /// <param name="attributeName">The FxMap attribute name.</param>
+    /// <param name="attributeName">The FxMap distributed key name.</param>
     /// <param name="transport">The transport mechanism.</param>
     /// <param name="durationMs">The request duration in milliseconds.</param>
     /// <param name="itemCount">The number of items returned.</param>
@@ -203,7 +203,7 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a failed request with common tags.
     /// </summary>
-    /// <param name="attributeName">The FxMap attribute name.</param>
+    /// <param name="attributeName">The FxMap distributed key name.</param>
     /// <param name="transport">The transport mechanism.</param>
     /// <param name="durationMs">The request duration in milliseconds.</param>
     /// <param name="errorType">The type of error that occurred.</param>
@@ -229,7 +229,7 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a successful database query.
     /// </summary>
-    /// <param name="attributeName">The FxMap attribute name.</param>
+    /// <param name="attributeName">The FxMap distributed key name.</param>
     /// <param name="dbSystem">The database system (e.g., "efcore", "mongodb").</param>
     /// <param name="durationMs">The query duration in milliseconds.</param>
     /// <param name="itemCount">The number of items returned.</param>
@@ -249,7 +249,7 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a failed database query.
     /// </summary>
-    /// <param name="attributeName">The FxMap attribute name.</param>
+    /// <param name="attributeName">The FxMap distributed key name.</param>
     /// <param name="dbSystem">The database system (e.g., "efcore", "mongodb").</param>
     /// <param name="durationMs">The query duration in milliseconds.</param>
     /// <param name="errorType">The type of error that occurred.</param>

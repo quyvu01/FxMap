@@ -31,7 +31,7 @@ public abstract class ReceivedPipelinesOrchestrator
 /// Server-side pipeline orchestrator that executes received pipeline behaviors and query handlers.
 /// </summary>
 /// <typeparam name="TModel">The entity model type being queried.</typeparam>
-/// <typeparam name="TDistributedKey">The FxMap attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type associated with this handler.</typeparam>
 /// <param name="behaviors">The collection of received pipeline behaviors to execute.</param>
 /// <param name="handlers">The query handlers that fetch data from the data source.</param>
 /// <param name="customExpressionHandlers">Handlers for custom expression evaluation.</param>

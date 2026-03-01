@@ -13,7 +13,7 @@ namespace FxMap.HotChocolate.Registries;
 /// Configuration class for registering HotChocolate GraphQL integration with the FxMap framework.
 /// </summary>
 /// <remarks>
-/// This registrar automatically discovers types with FxMap attributes and creates
+/// This registrar automatically discovers types with FxMap profile configurations and creates
 /// GraphQL resolvers and type extensions for them.
 /// </remarks>
 public sealed class HotChocolateConfigurator
@@ -27,7 +27,7 @@ public sealed class HotChocolateConfigurator
     /// <list type="bullet">
     ///   <item><description>Registers the <see cref="DataMappingLoader"/> DataLoader for batched data fetching</description></item>
     ///   <item><description>Adds parameter middleware for expression parameter resolution</description></item>
-    ///   <item><description>Automatically creates type extensions for types with FxMap attributes</description></item>
+    ///   <item><description>Automatically creates type extensions for types with FxMap profile configurations</description></item>
     /// </list>
     /// </remarks>
     public void AddRequestExecutorBuilder(IRequestExecutorBuilder builder)

@@ -8,11 +8,11 @@ namespace FxMap.BuiltInPipelines;
 /// <summary>
 /// Internal send pipeline behavior that routes requests to local handlers when available.
 /// </summary>
-/// <typeparam name="TDistributedKey">The FxMap attribute type.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type.</typeparam>
 /// <param name="serviceProvider">The service provider for resolving handlers.</param>
 /// <remarks>
 /// This behavior implements the "short-circuit" optimization pattern. When the application
-/// has a local handler registered for the requested attribute type, the request is processed
+/// has a local handler registered for the requested distributed key type, the request is processed
 /// locally through <see cref="ReceivedPipelinesOrchestrator{TModel,TDistributedKey}"/> instead of
 /// being sent over the network transport. This provides significant performance improvements
 /// for monolithic deployments or services that handle their own data.

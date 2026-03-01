@@ -167,7 +167,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             public string Title { get; set; } = string.Empty;
         }
 
-        public sealed class EntityAConfig : AbstractFxMapConfig<EntityA>
+        public sealed class EntityAConfig : EntityConfigureOf<EntityA>
         {
             protected override void Configure()
             {
@@ -177,7 +177,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             }
         }
 
-        public sealed class EntityBConfig : AbstractFxMapConfig<EntityB>
+        public sealed class EntityBConfig : EntityConfigureOf<EntityB>
         {
             protected override void Configure()
             {

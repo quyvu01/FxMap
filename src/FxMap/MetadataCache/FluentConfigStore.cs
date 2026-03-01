@@ -15,14 +15,5 @@ public static class FluentConfigStore
         ProfileConfigs.Clear();
     }
 
-    internal static Type ResolveDistributedKeyType(KeyRuleGroup group, IReadOnlyCollection<Type> knownDistributedKeys) =>
-        group.DistributedKeyType ?? knownDistributedKeys.FirstOrDefault(t => t.Name == group.DistributedKey);
+    internal static Type ResolveDistributedKeyType(KeyRuleGroup group) => group.GetDistributedKeyType();
 }
-
-internal sealed record EntityConfigMetadata(
-    Type ModelType,
-    Type DistributedKeyType,
-    string DistributedKey,
-    string IdPropertyName,
-    string DefaultPropertyName,
-    IReadOnlyCollection<ExposedNameStore> ExposedNameStores);

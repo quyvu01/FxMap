@@ -36,8 +36,8 @@ public static class GrpcExtensions
     /// <remarks>
     /// This method configures the client side of gRPC transport. The client will:
     /// <list type="bullet">
-    ///   <item><description>Probe configured hosts to discover which attributes each server handles</description></item>
-    ///   <item><description>Route requests to the appropriate server based on attribute type</description></item>
+    ///   <item><description>Probe configured hosts to discover which distributed keys each server handles</description></item>
+    ///   <item><description>Route requests to the appropriate server based on distributed key type</description></item>
     ///   <item><description>Handle failover and retry logic through the pipeline behaviors</description></item>
     /// </list>
     /// </remarks>

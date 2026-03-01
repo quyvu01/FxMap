@@ -5,14 +5,11 @@ using FxMap.Extensions;
 
 namespace FxMap.Fluent;
 
-public abstract class AbstractFxMapConfig<TModel> : IFluentEntityConfig where TModel : class
+public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TModel : class
 {
-    public AbstractFxMapConfig()
-    {
-        Configure();
-    }
+    protected EntityConfigureOf() => Configure();
 
-    Type IFluentEntityConfig.ModelType => typeof(TModel);
+    Type IFluentEntityConfig.EntityType => typeof(TModel);
     string IFluentEntityConfig.IdPropertyName => IdPropertyName;
     string IFluentEntityConfig.DefaultPropertyName => DefaultPropertyName;
     IReadOnlyCollection<ExposedNameStore> IFluentEntityConfig.ExposedNameStores => [.._exposedNameStores];

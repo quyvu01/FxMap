@@ -9,7 +9,7 @@ namespace FxMap.BuiltInPipelines;
 /// <summary>
 /// Internal send pipeline behavior that handles exception suppression based on configuration.
 /// </summary>
-/// <typeparam name="TDistributedKey">The FxMap attribute type.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type.</typeparam>
 /// <remarks>
 /// When <see cref="FxMapStatics.ThrowIfExceptions"/> is false, this behavior catches exceptions
 /// and returns an empty response instead of propagating the error. This enables graceful

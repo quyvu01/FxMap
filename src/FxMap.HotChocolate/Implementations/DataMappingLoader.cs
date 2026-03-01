@@ -16,7 +16,7 @@ namespace FxMap.HotChocolate.Implementations;
 /// <remarks>
 /// This DataLoader:
 /// <list type="bullet">
-///   <item><description>Groups requests by attribute type and order for efficient batching</description></item>
+///   <item><description>Groups requests by distributed key type and order for efficient batching</description></item>
 ///   <item><description>Handles dependency resolution between fields</description></item>
 ///   <item><description>Caches results per request to avoid duplicate fetches</description></item>
 /// </list>

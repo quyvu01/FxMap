@@ -21,8 +21,8 @@ namespace FxMap.Grpc.Implementations;
 /// <remarks>
 /// This server exposes two gRPC endpoints:
 /// <list type="bullet">
-///   <item><description><c>GetItems</c> - Fetches data for a specific attribute type and selector IDs</description></item>
-///   <item><description><c>GeTDistributedKeys</c> - Returns the list of attribute types this server can handle (for discovery)</description></item>
+///   <item><description><c>GetItems</c> - Fetches data for a specific distributed key type and selector IDs</description></item>
+///   <item><description><c>GeTDistributedKeys</c> - Returns the list of distributed key types this server can handle (for discovery)</description></item>
 /// </list>
 /// </remarks>
 public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTransportService.FxMapTransportServiceBase

@@ -32,7 +32,7 @@ public class FieldContext
     public PropertyInfo RequiredPropertyInfo { get; set; }
 
     /// <summary>
-    /// Gets or sets the runtime type of the FxMap attribute.
+    /// Gets or sets the runtime type of the FxMap distributed key.
     /// </summary>
     public Type RuntimeDistributedKeyType { get; set; }
 

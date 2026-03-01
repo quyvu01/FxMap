@@ -1,7 +1,6 @@
 using System.Reflection;
 using FxMap.Abstractions;
 using FxMap.Accessors.PropertyAccessors;
-using FxMap.Configuration;
 using FxMap.Extensions;
 using FxMap.Fluent.Builders;
 using FxMap.Fluent.Rules;
@@ -91,14 +90,12 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
     private Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraphFromFluentRules(
         PropertyInfo[] properties, List<KeyRuleGroup> ruleGroups)
     {
-        var knownDistributedKeyTypes = _ruleGroups.Select(a => a.GetDistributedKeyType()).ToArray();
-
         // Build a lookup of target property → its direct PropertyContext
         var directDeps = new Dictionary<PropertyInfo, PropertyContext>();
 
         foreach (var group in ruleGroups)
         {
-            var attributeType = FluentConfigStore.ResolveDistributedKeyType(group, knownDistributedKeyTypes);
+            var attributeType = FluentConfigStore.ResolveDistributedKeyType(group);
             var selectorProperty = properties.FirstOrDefault(p => p.Name == group.SelectorPropertyName);
             if (selectorProperty is null || attributeType is null) continue;
 
@@ -152,7 +149,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
 
     /// <summary>
     /// Gets the mapping information for the specified property, including its dependency order,
-    /// expression, attribute type, and required accessor.
+    /// expression, distributed key type, and required accessor.
     /// </summary>
     /// <param name="propertyInfo">The property for which to retrieve mapping information.</param>
     /// <returns>

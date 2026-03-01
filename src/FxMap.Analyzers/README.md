@@ -4,7 +4,7 @@ Roslyn Code Analyzer for validating FxMap Expression syntax at compile-time.
 
 ## Overview
 
-FxMap.Analyzers provides comprehensive syntax validation for FxMap Expression strings used in attributes like `CountryOf`, `ProvinceOf`, `MemberOf`, etc. It catches expression syntax errors during compilation, preventing runtime failures.
+FxMap.Analyzers provides comprehensive syntax validation for FxMap Expression strings used in `ProfileOf<T>` configurations. It catches expression syntax errors during compilation, preventing runtime failures.
 
 ## Diagnostic Rules
 
@@ -42,95 +42,106 @@ This analyzer validates FxMap Expression strings for correct syntax including:
 
 ## Examples
 
-### ✅ Valid Expressions
+### Valid Expressions
 
 ```csharp
-// Simple property navigation
-[CountryOf(nameof(CountryName), Expression = "Country.Name")]
+// In a ProfileOf<T> configuration:
+public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
+{
+    protected override void Configure()
+    {
+        // Simple property navigation
+        UseDistributedKey<CountryOfAttribute>()
+            .Of(x => x.CountryId)
+            .For(x => x.CountryName, "Country.Name");
 
-// Projection with proper dot
-[CountryOf(nameof(CountryId), Expression = "Country.{Id, Name}")]
+        // Projection with proper dot
+        UseDistributedKey<CountryOfAttribute>()
+            .Of(x => x.CountryId)
+            .For(x => x.CountryInfo, "Country.{Id, Name}");
+    }
+}
 
 // Root projection
-[MemberOf(nameof(UserId), Expression = "{Id, Name, Email}")]
+.For(x => x.MemberInfo, "{Id, Name, Email}")
 
 // Projection with alias
-[MemberOf(nameof(Data), Expression = "{Id, Country.Name as CountryName}")]
+.For(x => x.Data, "{Id, Country.Name as CountryName}")
 
 // Filter with proper navigation
-[OrderOf(nameof(OrderId), Expression = "Orders(Status = 'Done').Items")]
+.For(x => x.OrderItems, "Orders(Status = 'Done').Items")
 
 // Indexer with proper navigation
-[ProvinceOf(nameof(ProvinceName), Expression = "Provinces[0 asc Name].Name")]
+.For(x => x.ProvinceName, "Provinces[0 asc Name].Name")
 
 // Complex filter with string operations
-[ProvinceOf(nameof(ProvinceId), Expression = "Provinces(Name endswith 'a')[0 desc Name].Name")]
+.For(x => x.ProvinceName, "Provinces(Name endswith 'a')[0 desc Name].Name")
 
 // Runtime parameters (both variable and default required)
-[MemberOf(nameof(UserId), Expression = "Users[${Skip|0} ${Take|10} asc Email]")]
+.For(x => x.Users, "Users[${Skip|0} ${Take|10} asc Email]")
 
 // Multiple runtime parameters
-[MemberOf(nameof(Data), Expression = "Users(Age > ${MinAge|18})[${Skip|0} ${Take|10} asc Email].{Id, Name}")]
+.For(x => x.Data, "Users(Age > ${MinAge|18})[${Skip|0} ${Take|10} asc Email].{Id, Name}")
 
 // Functions with arguments
-[MemberOf(nameof(ShortName), Expression = "{Id, Name:substring(0, 3) as Short}")]
+.For(x => x.ShortName, "{Id, Name:substring(0, 3) as Short}")
 
 // Computed expressions with alias
-[CountryOf(nameof(Data), Expression = "{Id, (Name:upper) as UpperName}")]
+.For(x => x.Data, "{Id, (Name:upper) as UpperName}")
 
 // Ternary with alias
-[CountryOf(nameof(Status), Expression = "{Id, (Active = true ? 'Yes' : 'No') as StatusText}")]
+.For(x => x.Status, "{Id, (Active = true ? 'Yes' : 'No') as StatusText}")
 ```
 
-### ❌ Invalid Expressions (Analyzer Errors)
+### Invalid Expressions (Analyzer Errors)
 
 ```csharp
 // Missing closing brace
-[CountryOf(nameof(CountryId), Expression = "Country.{Id, Name")]
+.For(x => x.CountryInfo, "Country.{Id, Name")
 // Error: Expected '}' after projection
 
 // Missing closing bracket
-[ProvinceOf(nameof(ProvinceId), Expression = "Provinces[asc Name")]
+.For(x => x.ProvinceInfo, "Provinces[asc Name")
 // Error: Expected ']' after indexer
 
 // Missing closing parenthesis
-[OrderOf(nameof(OrderId), Expression = "Orders(Status = 'Done'")]
+.For(x => x.OrderInfo, "Orders(Status = 'Done'")
 // Error: Expected ')' after filter condition
 
 // Missing dot before projection
-[CountryOf(nameof(CountryId), Expression = "Country{Id, Name}")]
+.For(x => x.CountryInfo, "Country{Id, Name}")
 // Error: Projection requires '.' before '{'
 
 // Missing dot after filter
-[OrderOf(nameof(OrderId), Expression = "Orders(Status = 'Done')Items")]
+.For(x => x.OrderItems, "Orders(Status = 'Done')Items")
 // Error: Property navigation requires '.' before identifier
 
 // Missing dot after indexer
-[ProvinceOf(nameof(ProvinceName), Expression = "Provinces[0 asc Name]Name")]
+.For(x => x.ProvinceName, "Provinces[0 asc Name]Name")
 // Error: Property navigation requires '.' before identifier
 
 // Invalid runtime parameter (missing default)
-[MemberOf(nameof(UserId), Expression = "Users[${Skip} ${Take|10} asc Email]")]
+.For(x => x.Users, "Users[${Skip} ${Take|10} asc Email]")
 // Error: Runtime parameter must have format ${variable|defaultValue}
 
 // Missing runtime parameter closing brace
-[MemberOf(nameof(UserId), Expression = "Users[${Skip|0 asc Email]")]
+.For(x => x.Users, "Users[${Skip|0 asc Email]")
 // Error: Expected '}' after runtime parameter
 
 // Unknown function
-[CountryOf(nameof(Name), Expression = "Name:invalid")]
+.For(x => x.Name, "Name:invalid")
 // Error: Unknown function 'invalid'
 
 // Function missing required arguments
-[CountryOf(nameof(Name), Expression = "Name:substring")]
+.For(x => x.Name, "Name:substring")
 // Error: Function 'substring' requires arguments
 
 // Computed expression without alias
-[CountryOf(nameof(Data), Expression = "{Id, (Name:upper)}")]
+.For(x => x.Data, "{Id, (Name:upper)}")
 // Error: Expected 'as' keyword after computed expression - alias is required
 
 // Invalid operator
-[MemberOf(nameof(UserId), Expression = "Users(Age >> 18)")]
+.For(x => x.Users, "Users(Age >> 18)")
 // Error: Expected value ('>>' is not a valid operator)
 ```
 
@@ -139,7 +150,7 @@ This analyzer validates FxMap Expression strings for correct syntax including:
 ### Via NuGet Package
 
 ```bash
-dotnet add package FxMap-Analyzers
+dotnet add package FxMap.Analyzers
 ```
 
 ### Via Project Reference
@@ -154,13 +165,13 @@ Add to your `.csproj`:
 
 ## How It Works
 
-1. **Compile-Time Analysis:** The analyzer runs during compilation and inspects all attributes ending with "Of"
-2. **Expression Parsing:** Each `Expression` parameter is validated using the full FxMap ExpressionParser
+1. **Compile-Time Analysis:** The analyzer runs during compilation and inspects all `ProfileOf<T>` configurations
+2. **Expression Parsing:** Each expression string passed to `.For()` is validated using the full FxMap ExpressionParser
 3. **Immediate Feedback:** Syntax errors are reported as compiler errors with detailed messages including position information
 
 ## Features
 
-### ✅ Current Validations
+### Current Validations
 
 - **Syntax Structure:** All brackets, braces, parentheses must be balanced
 - **Runtime Parameters:** Format validation for `${variable|defaultValue}`
@@ -171,7 +182,7 @@ Add to your `.csproj`:
 - **Alias Requirements:** Computed expressions must have aliases in projections
 - **Position Information:** Error messages include exact position of syntax errors
 
-### ❌ Current Limitations
+### Current Limitations
 
 This is a **syntax-only analyzer**. It does NOT validate:
 - Whether property names exist in your entities

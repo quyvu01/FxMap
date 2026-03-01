@@ -9,7 +9,7 @@ public class MemberAdditionalData
     public string Name { get; set; }
 }
 
-public class MemberAdditionalDataConfig : AbstractFxMapConfig<MemberAdditionalData>
+public class MemberAdditionalDataConfig : EntityConfigureOf<MemberAdditionalData>
 {
     protected override void Configure()
     {

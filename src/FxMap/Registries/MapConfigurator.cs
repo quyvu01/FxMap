@@ -19,14 +19,14 @@ namespace FxMap.Registries;
 /// <remarks>
 /// <para>
 /// This class is the entry point for configuring FxMap in your application's startup.
-/// Use the fluent API to register attributes, handlers, model configurations, and other settings.
+/// Use the FluentAPI to register profiles, entity configurations, handlers, and other settings.
 /// </para>
 /// <example>
 /// <code>
 /// services.AddFxMap(cfg =>
 /// {
-///     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Assembly);
-///     cfg.AddProfilesFromAssemblyContaining&lt;User&gt;();
+///     cfg.AddProfilesFromAssemblyContaining&lt;OrderResponseProfile&gt;();
+///     cfg.AddEntitiesFromAssemblyContaining&lt;UserEntityConfig&gt;();
 ///     cfg.SetRequestTimeOut(TimeSpan.FromSeconds(60));
 /// });
 /// </code>
@@ -74,7 +74,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     }
 
     /// <summary>
-    /// Scans the specified assembly for <see cref="AbstractFxMapConfig{TModel}"/> and <see cref="ProfileOf{TModel}"/>
+    /// Scans the specified assembly for <see cref="ProfileOf{TModel}"/> and <see cref="ProfileOf{TModel}"/>
     /// implementations, builds them, and registers their configurations.
     /// </summary>
     /// <typeparam name="TAssemblyMarker">A type in the assembly to scan for fluent configurations.</typeparam>
@@ -112,8 +112,8 @@ public class MapConfigurator(IServiceCollection serviceCollection)
             .ForEach(type =>
             {
                 var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
-                FluentConfigStore.EntityConfigs[config.ModelType] = new EntityConfigMetadata(
-                    config.ModelType,
+                FluentConfigStore.EntityConfigs[config.EntityType] = new EntityConfigMetadata(
+                    config.EntityType,
                     config.DistributedKeyType,
                     config.DistributedKey,
                     config.IdPropertyName,

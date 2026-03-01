@@ -11,7 +11,7 @@ public class City
     public int Population { get; set; }
 }
 
-public class CityConfig : AbstractFxMapConfig<City>
+public class CityConfig : EntityConfigureOf<City>
 {
     protected override void Configure()
     {

@@ -4,7 +4,7 @@ using FxMap.Fluent.Rules;
 namespace FxMap.Accessors.PropertyAccessors;
 
 /// <summary>
-/// Represents the mapping metadata for a property decorated with an FxMap attribute.
+/// Represents the mapping metadata for a property configured via FxMap FluentAPI.
 /// </summary>
 /// <param name="Order">
 /// The dependency order of this property. Properties with higher order values
@@ -15,7 +15,7 @@ namespace FxMap.Accessors.PropertyAccessors;
 /// Can be <c>null</c> if no expression is specified (uses default property).
 /// </param>
 /// <param name="RuntimeAttributeType">
-/// The runtime <see cref="Type"/> of the <see cref="IDistributedKey"/> decorating this property.
+/// The runtime <see cref="Type"/> of the <see cref="IDistributedKey"/> associated with this property.
 /// </param>
 /// <param name="RequiredAccessor">
 /// The compiled property accessor for the dependency property that this property requires.

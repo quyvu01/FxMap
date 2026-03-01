@@ -11,7 +11,7 @@ public sealed class Province
     public Country Country { get; set; }
 }
 
-public class ProvinceConfig : AbstractFxMapConfig<Province>
+public class ProvinceConfig : EntityConfigureOf<Province>
 {
     protected override void Configure()
     {

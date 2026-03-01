@@ -12,7 +12,7 @@ public class Province
     public List<City> Cities { get; set; } = [];
 }
 
-public class ProvinceConfig : AbstractFxMapConfig<Province>
+public class ProvinceConfig : EntityConfigureOf<Province>
 {
     protected override void Configure()
     {

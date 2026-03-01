@@ -26,7 +26,7 @@ public sealed class ExternalOfMetadata
     public string JustForTest { get; set; }
 }
 
-public class MemberSocialConfig : AbstractFxMapConfig<MemberSocial>
+public class MemberSocialConfig : EntityConfigureOf<MemberSocial>
 {
     protected override void Configure()
     {

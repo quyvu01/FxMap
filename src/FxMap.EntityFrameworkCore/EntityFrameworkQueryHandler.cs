@@ -14,7 +14,7 @@ namespace FxMap.EntityFrameworkCore;
 /// Entity Framework Core implementation using the new Expression DSL system (V2).
 /// </summary>
 /// <typeparam name="TModel">The entity model type.</typeparam>
-/// <typeparam name="TDistributedKey">The FxMap attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type associated with this handler.</typeparam>
 /// <remarks>
 /// <para>
 /// This handler uses a two-step approach:
@@ -29,7 +29,7 @@ namespace FxMap.EntityFrameworkCore;
 /// <list type="bullet">
 ///   <item>Single database round-trip for all expressions</item>
 ///   <item>Support for complex expressions (filters, indexers, aggregations)</item>
-///   <item>Support for ExposedName attribute</item>
+///   <item>Support for ExposedName configuration</item>
 ///   <item>Better EF Core compatibility</item>
 /// </list>
 /// </remarks>

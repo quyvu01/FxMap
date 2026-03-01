@@ -11,7 +11,7 @@ public class Country
     public List<Province> Provinces { get; set; } = [];
 }
 
-public class CountryConfig : AbstractFxMapConfig<Country>
+public class CountryConfig : EntityConfigureOf<Country>
 {
     protected override void Configure()
     {

@@ -191,7 +191,7 @@ public class FxMapRequestResponseContractTests
 
         // Assert - Expected JSON structure
         json.ShouldContain("\"Id\"");
-        json.ShouldContain("\"FxMapValues\"");
+        json.ShouldContain("\"Values\"");
         json.ShouldContain("\"Expression\"");
         json.ShouldContain("\"Value\"");
         json.ShouldContain("test-id");

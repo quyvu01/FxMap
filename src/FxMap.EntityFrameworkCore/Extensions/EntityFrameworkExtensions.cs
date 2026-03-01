@@ -28,10 +28,10 @@ public static class EntityFrameworkExtensions
     /// <code>
     /// services.AddFxMap(cfg =>
     /// {
-    ///     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Assembly);
-    ///     cfg.AddProfilesFromAssemblyContaining&lt;User&gt;();
+    ///     cfg.AddProfilesFromAssemblyContaining&lt;OrderResponseProfile&gt;();
+    ///     cfg.AddEntitiesFromAssemblyContaining&lt;UserEntityConfig&gt;();
     /// })
-    /// .AddFxMapEFCore(cfg =>
+    /// .AddEntityFrameworkCore(cfg =>
     /// {
     ///     cfg.AddDbContexts(typeof(ApplicationDbContext));
     /// });

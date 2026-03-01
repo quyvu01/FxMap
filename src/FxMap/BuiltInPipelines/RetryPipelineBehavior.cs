@@ -7,7 +7,7 @@ namespace FxMap.BuiltInPipelines;
 /// <summary>
 /// Internal send pipeline behavior that implements retry logic with configurable backoff.
 /// </summary>
-/// <typeparam name="TDistributedKey">The FxMap attribute type.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type.</typeparam>
 /// <remarks>
 /// This behavior uses the <see cref="FxMapStatics.RetryPolicy"/> configuration to retry failed requests.
 /// Features include:

@@ -13,7 +13,7 @@ namespace FxMap.Configuration;
 /// <remarks>
 /// This class serves as the central repository for:
 /// <list type="bullet">
-///   <item><description>Registered FxMap attribute assemblies</description></item>
+///   <item><description>Registered FxMap distributed key types and profiles</description></item>
 ///   <item><description>Model configuration metadata</description></item>
 ///   <item><description>Cached property information for response types</description></item>
 ///   <item><description>Global settings like retry policies and exception handling</description></item>
@@ -63,7 +63,7 @@ public static class FxMapStatics
         [
             ..FluentConfigStore.EntityConfigs.Values.Select(cfg =>
             {
-                var attributeType = cfg.DistributedKeyType;
+                var attributeType = cfg.GetDistributedKeyType();
                 return new EntityMapData(cfg.ModelType, attributeType,
                     new FxMapEntityConfig(cfg.IdPropertyName, cfg.DefaultPropertyName));
             })

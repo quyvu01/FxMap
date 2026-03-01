@@ -13,7 +13,7 @@ namespace FxMap.Builders;
 /// Version 2 of QueryHandlerBuilder using the new Expression DSL system.
 /// </summary>
 /// <typeparam name="TModel">The entity model type being queried.</typeparam>
-/// <typeparam name="TDistributedKey">The FxMap attribute type associated with this handler.</typeparam>
+/// <typeparam name="TDistributedKey">The FxMap distributed key type associated with this handler.</typeparam>
 /// <remarks>
 /// <para>
 /// This builder uses a two-step approach for better database compatibility:
@@ -27,7 +27,7 @@ namespace FxMap.Builders;
 /// </para>
 /// <list type="bullet">
 ///   <item>Support for complex expressions: filters, indexers, aggregations</item>
-///   <item>Support for ExposedName attribute for property masking</item>
+///   <item>Support for ExposedName configuration for property masking</item>
 ///   <item>Support for null-safe navigation (?. operator)</item>
 ///   <item>Better error handling per expression</item>
 /// </list>

@@ -12,7 +12,7 @@ namespace FxMap.Grpc.Implementations;
 /// <summary>
 /// gRPC implementation of <see cref="IRequestClient"/> for sending FxMap requests over gRPC.
 /// </summary>
-/// <param name="fxMapResponseFunc">The function delegate for making gRPC calls based on attribute type.</param>
+/// <param name="fxMapResponseFunc">The function delegate for making gRPC calls based on distributed key type.</param>
 /// <remarks>
 /// This client is automatically registered when <c>AddGrpcClients</c> is called and handles
 /// the serialization and transport of FxMap requests to remote gRPC servers.

@@ -12,13 +12,13 @@ public sealed class User
     public DateTime CreatedTime { get; set; }
 }
 
-public class UserConfig : AbstractFxMapConfig<User>
+public class UserConfig : EntityConfigureOf<User>
 {
     protected override void Configure()
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<UserOfAttribute>();
+        UseDistributedKey("UserOfAttribute");
         ExposedName(x => x.Email, "UserEmail");
     }
 }

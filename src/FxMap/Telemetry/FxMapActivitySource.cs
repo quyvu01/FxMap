@@ -28,7 +28,7 @@ public static class FxMapActivitySource
     /// <summary>
     /// Starts a client-side activity for an FxMap request.
     /// </summary>
-    /// <typeparam name="TDistributedKey">The FxMap attribute type being requested.</typeparam>
+    /// <typeparam name="TDistributedKey">The FxMap distributed key type being requested.</typeparam>
     /// <param name="transport">The transport mechanism (e.g., "kafka", "grpc", "rabbitmq").</param>
     /// <param name="operationName">Optional custom operation name. Defaults to "FxMap.Request".</param>
     /// <returns>An Activity if tracing is enabled, otherwise null.</returns>
@@ -53,7 +53,7 @@ public static class FxMapActivitySource
     /// <summary>
     /// Starts a server-side activity for processing an FxMap request.
     /// </summary>
-    /// <param name="attributeName">The name of the attribute being processed.</param>
+    /// <param name="attributeName">The name of the distributed key being processed.</param>
     /// <param name="parentContext">The parent activity context from the incoming request.</param>
     /// <param name="operationName">Optional custom operation name. Defaults to "FxMap.Process".</param>
     /// <returns>An Activity if tracing is enabled, otherwise null.</returns>
@@ -91,7 +91,7 @@ public static class FxMapActivitySource
     /// <summary>
     /// Starts a database activity for query operations.
     /// </summary>
-    /// <typeparam name="TDistributedKey">The FxMap attribute type.</typeparam>
+    /// <typeparam name="TDistributedKey">The FxMap distributed key type.</typeparam>
     /// <param name="dbSystem">The database system (e.g., "efcore", "mongodb").</param>
     /// <param name="operationName">Optional operation name. Defaults to "fxmap.db.query".</param>
     /// <returns>An Activity if tracing is enabled, otherwise null.</returns>

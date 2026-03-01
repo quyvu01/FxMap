@@ -13,7 +13,7 @@ namespace FxMap.Abstractions;
 /// </para>
 /// <para>
 /// Any service, handler, or component that participates in the FxMap mapping or data pipeline
-/// will typically implement this interface to indicate its association with a specific attribute type.
+/// will typically implement this interface to indicate its association with a specific distributed key type.
 /// </para>
 /// </remarks>
 public interface IFxMapBase<TDistributedKey> where TDistributedKey : IDistributedKey;

@@ -8,7 +8,7 @@ namespace FxMap.HotChocolate.Registries;
 /// <param name="ParentObject">The parent object instance containing this field.</param>
 /// <param name="Expression">The FxMap expression for this field.</param>
 /// <param name="Order">The dependency order for resolving this field.</param>
-/// <param name="DistributedKeyType">The FxMap attribute type associated with this field.</param>
+/// <param name="DistributedKeyType">The FxMap distributed key type associated with this field.</param>
 /// <param name="TargetPropertyInfo">The property info of the field to be populated.</param>
 /// <param name="RequiredPropertyInfo">The property info of the selector ID property.</param>
 /// <remarks>

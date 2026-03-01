@@ -86,7 +86,7 @@ public partial class FxMapExpressionSyntaxAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// Check if the attribute is an FxMap attribute.
+    /// Check if the attribute implements an FxMap distributed key.
     /// Uses semantic analysis (preferred) and falls back to naming convention for test scenarios.
     /// </summary>
     private static bool IsFxMapAttribute(INamedTypeSymbol attributeType)
@@ -101,7 +101,7 @@ public partial class FxMapExpressionSyntaxAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// Check if the attribute type inherits from FxMap.Attributes.FxMapAttribute
+    /// Check if the attribute type inherits from the FxMap base attribute type
     /// </summary>
     private static bool InheritsFromFxMapAttribute(INamedTypeSymbol attributeType)
     {

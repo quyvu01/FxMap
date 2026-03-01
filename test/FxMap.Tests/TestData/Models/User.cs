@@ -13,7 +13,7 @@ public class User
     public bool IsActive { get; set; }
 }
 
-public class UserConfig : AbstractFxMapConfig<User>
+public class UserConfig : EntityConfigureOf<User>
 {
     protected override void Configure()
     {

@@ -28,10 +28,10 @@ public static class FxMapExtensions
     /// <code>
     /// services.AddFxMap(cfg =>
     /// {
-    ///     cfg.AddAttributesContainNamespaces(typeof(UserOfAttribute).Assembly);
-    ///     cfg.AddProfilesFromAssemblyContaining&lt;User&gt;();
+    ///     cfg.AddProfilesFromAssemblyContaining&lt;OrderResponseProfile&gt;();
+    ///     cfg.AddEntitiesFromAssemblyContaining&lt;UserEntityConfig&gt;();
     /// })
-    /// .AddFxMapEFCore(cfg => cfg.AddDbContexts(typeof(Service1Context)));
+    /// .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(ApplicationDbContext)));
     /// </code>
     /// </example>
     public static ConfiguratorWrapped AddFxMap(this IServiceCollection services, Action<MapConfigurator> options)

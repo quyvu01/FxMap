@@ -12,7 +12,7 @@ public sealed class MemberAddress
     public string ZipCode { get; set; }
 }
 
-public class MemberAddressConfig : AbstractFxMapConfig<MemberAddress>
+public class MemberAddressConfig : EntityConfigureOf<MemberAddress>
 {
     protected override void Configure()
     {

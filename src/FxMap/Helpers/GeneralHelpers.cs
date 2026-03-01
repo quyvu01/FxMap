@@ -12,7 +12,7 @@ public static class GeneralHelpers
     /// <returns>True if the type is a primitive, string, DateTime, enum, decimal, or any value type.</returns>
     /// <remarks>
     /// This method is used to determine whether a type should be recursively processed
-    /// for FxMap attribute mapping or treated as a leaf value.
+    /// for FxMap property mapping or treated as a leaf value.
     /// </remarks>
     public static bool IsPrimitiveType(Type objectType) =>
         objectType.IsPrimitive ||

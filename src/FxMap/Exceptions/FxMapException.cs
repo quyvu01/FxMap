@@ -82,4 +82,13 @@ public static class FxMapException
             $"Attribute: {attributeType.FullName} has been assign to multiple entities: {string.Join(", ", entityTypes.Select(t => t.FullName))}");
 
     public sealed class InvalidParameterType(string message) : Exception(message);
+
+    public sealed class InvalidDistributedKeyConfiguration(Type distributedKeyType, string distributedKey)
+        : Exception(distributedKeyType is not null && !string.IsNullOrWhiteSpace(distributedKey)
+            ? $"Cannot set both DistributedKeyType ({distributedKeyType.FullName}) and DistributedKey (\"{distributedKey}\"). Use only one."
+            : "Either DistributedKeyType or DistributedKey must be set. Both cannot be null.");
+
+    public sealed class InvalidDistributedKeyName(string key)
+        : Exception(
+            $"DistributedKey \"{key}\" is invalid. Must start with a letter or underscore, and contain only letters, digits, or underscores (e.g., \"UserKey\", \"Order_Key\").");
 }

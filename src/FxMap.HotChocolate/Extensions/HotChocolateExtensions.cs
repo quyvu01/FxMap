@@ -17,7 +17,7 @@ public static class HotChocolateExtensions
     /// <remarks>
     /// This integration automatically:
     /// <list type="bullet">
-    ///   <item><description>Creates GraphQL resolvers for FxMap-decorated properties</description></item>
+    ///   <item><description>Creates GraphQL resolvers for FxMap-mapped properties</description></item>
     ///   <item><description>Batches data fetching using HotChocolate DataLoaders</description></item>
     ///   <item><description>Handles field dependencies and ordering</description></item>
     /// </list>
