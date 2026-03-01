@@ -72,9 +72,9 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                     var requestCt = new RequestContext([], token);
 
                     // Resolve conditional expressions and store on PropertyInformation
-                    foreach (var a in accessors.Where(a => a.PropertyInformation is { IsConditional: true }))
-                        a.PropertyInformation.ResolvedExpression =
-                            await a.PropertyInformation.ConditionalExpression.ResolveAsync(serviceProvider);
+                    foreach (var a in accessors)
+                        a.PropertyInformation.EffectiveExpression = await a.PropertyInformation
+                            .ResolveExpression(serviceProvider, token);
 
                     var expressions = new HashSet<string>(accessors
                         .Select(a => a.PropertyInformation.EffectiveExpression));

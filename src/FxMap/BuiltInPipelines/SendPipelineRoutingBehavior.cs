@@ -27,7 +27,7 @@ internal sealed class SendPipelineRoutingBehavior<TDistributedKey>(
         Func<Task<ItemsResponse<DataResponse>>> next)
     {
         // Check if we have the inner handler for `TDistributedKey` or not. If have, we will call the ReceivedPipelinesOrchestrator<,> instead of sending via the message!
-        var existedHandler = FxMapStatics.AttributeMapHandlers;
+        var existedHandler = FxMapStatics.DistributedKeyMapHandlers.Value;
         if (!existedHandler.TryGetValue(typeof(TDistributedKey), out var handlerType) || !handlerType.IsGenericType)
             return await next.Invoke();
         _receivedPipelinesOrchestratorType ??= typeof(ReceivedPipelinesOrchestrator<,>)

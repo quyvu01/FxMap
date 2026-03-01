@@ -57,7 +57,7 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
             ? new AmazonSQSClient(credentials, config)
             : new AmazonSQSClient(config);
 
-        var attributeTypes = FxMapStatics.AttributeMapHandlers.Keys.ToList();
+        var attributeTypes = FxMapStatics.DistributedKeyMapHandlers.Value.Keys.ToList();
         if (attributeTypes is not { Count: > 0 }) return;
 
         // Create request queues for each attribute type
@@ -201,7 +201,8 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
                 attributeAssembly =>
                 {
                     var fxMapAttributeType = Type.GetType(attributeAssembly)!;
-                    if (!FxMapStatics.AttributeMapHandlers.TryGetValue(fxMapAttributeType, out var handlerType))
+                    if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(fxMapAttributeType,
+                            out var handlerType))
                         throw new FxMapException.CannotFindHandlerForOfAttribute(fxMapAttributeType);
                     var modelType = handlerType.GetGenericArguments()[0];
                     return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, fxMapAttributeType);
@@ -268,7 +269,8 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
             var response = Result.Failed(e);
 
             // Record error
-            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
+            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+                e.GetType().Name);
 
             FxMapDiagnostics.RequestError(attributeName, TransportName, e, stopwatch.Elapsed);
 

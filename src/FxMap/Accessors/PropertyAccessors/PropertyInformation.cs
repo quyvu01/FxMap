@@ -31,19 +31,12 @@ public sealed record PropertyInformation(
     /// Gets the conditional expression for runtime expression resolution, if any.
     /// </summary>
     internal ConditionalExpression ConditionalExpression { get; init; }
+    internal string EffectiveExpression { get; set; }
 
-    /// <summary>
-    /// Returns true if this property uses a conditional expression that must be resolved at runtime.
-    /// </summary>
-    internal bool IsConditional => ConditionalExpression is not null;
-
-    /// <summary>
-    /// Stores the resolved expression value after evaluating a conditional expression at runtime.
-    /// </summary>
-    internal string ResolvedExpression { get; set; }
-
-    /// <summary>
-    /// Returns the effective expression: resolved conditional if available, otherwise the static expression.
-    /// </summary>
-    internal string EffectiveExpression => ResolvedExpression ?? Expression;
+    public async Task<string> ResolveExpression(IServiceProvider serviceProvider, CancellationToken token)
+    {
+        if (ConditionalExpression != null)
+            return await ConditionalExpression.ResolveAsync(serviceProvider, token);
+        return Expression;
+    }
 }

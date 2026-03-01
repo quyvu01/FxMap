@@ -4,23 +4,42 @@ namespace FxMap.Fluent.Builders;
 
 public sealed class ConditionalExpressionBuilder
 {
-    private readonly List<(Func<IServiceProvider, Task<bool>> AsyncCondition, string Expression)> _conditions = [];
+    private (Func<IServiceProvider, CancellationToken, Task<bool>> AsyncCondition, string Expression)
+        _condition;
 
-    private string _defaultExpression;
+    private Func<IServiceProvider, CancellationToken, Task<string>> _expressionFuncAsync;
+
+    public ConditionalExpressionBuilder If(bool condition, string expression)
+    {
+        _condition = ((sp, _) => Task.FromResult(condition), expression);
+        return this;
+    }
 
     public ConditionalExpressionBuilder If(Func<IServiceProvider, bool> condition, string expression)
     {
-        _conditions.Add((sp => Task.FromResult(condition(sp)), expression));
+        _condition = ((sp, _) => Task.FromResult(condition(sp)), expression);
         return this;
     }
 
-    public ConditionalExpressionBuilder IfAsync(Func<IServiceProvider, Task<bool>> condition, string expression)
+    public ConditionalExpressionBuilder If(Func<IServiceProvider, CancellationToken, Task<bool>> condition,
+        string expression)
     {
-        _conditions.Add((condition, expression));
+        _condition = (condition, expression);
         return this;
     }
 
-    public void Else(string defaultExpression) => _defaultExpression = defaultExpression;
+    public void Else(string elseExpression) => _expressionFuncAsync = (_, _) => Task.FromResult(elseExpression);
 
-    internal ConditionalExpression Build() => new(_conditions, _defaultExpression);
+    public void Else(Func<IServiceProvider, string> elseExpressionFunc)
+    {
+        _expressionFuncAsync = (sp, _) => Task.FromResult(elseExpressionFunc(sp));
+    }
+
+    public void Else(Func<IServiceProvider, CancellationToken, Task<string>> expressionFuncAsync)
+    {
+        _expressionFuncAsync = expressionFuncAsync;
+    }
+
+
+    internal ConditionalExpression Build() => new(_condition, _expressionFuncAsync);
 }

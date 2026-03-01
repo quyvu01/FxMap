@@ -54,7 +54,7 @@ public static class EntityFrameworkExtensions
         var efQueryHandler = typeof(EntityFrameworkQueryHandler<,>);
         serviceCollection.AddScoped(efQueryHandler);
 
-        FxMapStatics.ModelConfigurations.Value
+        FxMapStatics.EntitiesConfigurations.Value
             .ForEach(m =>
             {
                 var modelType = m.ModelType;

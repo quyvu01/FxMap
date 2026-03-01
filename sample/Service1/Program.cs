@@ -13,6 +13,7 @@ using OpenTelemetry.Metrics;
 using Serilog;
 using Service1;
 using Service1.Contexts;
+using Service1.Contract;
 using Service1.GraphQls;
 using Service1.Models;
 using Shared;
@@ -57,9 +58,8 @@ var registerBuilder = builder.Services.AddGraphQLServer()
 
 builder.Services.AddFxMap(cfg =>
     {
-        cfg.AddAttributesContainNamespaces(typeof(IKernelAssemblyMarker).Assembly);
-        cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
-        cfg.AddProfilesFromAssemblyContaining<Service1.Contract.Responses.MemberResponse>();
+        cfg.AddEntitiesFromAssemblyContaining<IAssemblyMarker>();
+        cfg.AddProfilesFromAssemblyContaining<IService1ContractAssembly>();
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -68,15 +68,6 @@ builder.Services.AddFxMap(cfg =>
             opts.CircuitBreakerThreshold = 3;
         });
         cfg.AddNats(c => c.Url("nats://localhost:4222"));
-        // cfg.AddSqs(c =>
-        // {
-        //     c.Region(RegionEndpoint.USEast1, credential =>
-        //     {
-        //         credential.ServiceUrl("http://localhost:4566");
-        //         credential.AccessKeyId("test");
-        //         credential.SecretAccessKey("test");
-        //     });
-        // });
         cfg.ThrowIfException();
     })
     .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context)))
@@ -87,7 +78,7 @@ builder.Services.AddFxMap(cfg =>
 
 builder.Services.AddDbContextPool<Service1Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestService1", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestService1", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
@@ -96,7 +87,7 @@ builder.Services.AddDbContextPool<Service1Context>(options =>
 
 builder.Services.AddDbContextPool<OtherService1Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestOtherService1", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestOtherService1", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);

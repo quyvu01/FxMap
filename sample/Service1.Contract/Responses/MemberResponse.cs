@@ -31,33 +31,33 @@ public class MemberResponseProfile : ProfileOf<MemberResponse>
         UseDistributedKey<MemberAddressOfAttribute>()
             .Of(x => x.MemberAddressId)
             .For(x => x.MemberProvinceId);
-        
+
         UseDistributedKey<ProvinceOfAttribute>()
             .Of(x => x.MemberProvinceId)
             .For(x => x.MemberProvinceName);
-        
+
         UseDistributedKey<MemberAdditionalOfAttribute>()
             .Of(x => x.MemberAdditionalId)
             .For(x => x.MemberAdditionalName);
-        
+
         UseDistributedKey<MemberSocialOfAttribute>()
             .Of(x => x.MemberSocialId)
             .For(x => x.MemberSocialName);
 
         UseDistributedKey<UserOfAttribute>()
             .Of(x => x.UserId)
-            .For(x => x.UserName,
-                c => c.If(_ => false, "UserEmail")
-                    .Else("Name"))
+            .For(x => x.UserName, c => c
+                .If(_ => true, "UserEmail")
+                .Else("Name"))
             .For(x => x.UserEmail, "UserEmail")
-        .For(x => x.ProvinceId, "ProvinceId");
+            .For(x => x.ProvinceId, "ProvinceId");
 
         UseDistributedKey<ProvinceOfAttribute>()
             .Of(x => x.ProvinceId)
             .For(x => x.ProvinceName)
             .For(x => x.CountryName, "Country.Name")
             .For(x => x.CountryId, "CountryId");
-        
+
         UseDistributedKey<CountryOfAttribute>()
             .Of(x => x.CountryId)
             .For(x => x.Provinces, "Provinces[asc Name]")

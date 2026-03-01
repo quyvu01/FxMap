@@ -133,7 +133,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             // Act
             var act = () => services.AddFxMap(cfg =>
             {
-                cfg.AddAttributesContainNamespaces(typeof(DuplicateTestOfAttribute).Assembly);
+                cfg.AddProfilesFromAssemblies(typeof(DuplicateTestOfAttribute).Assembly);
                 cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
             });
 

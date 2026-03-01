@@ -24,9 +24,6 @@ public static class FxMapExtensions
     /// <param name="services">The service collection to configure.</param>
     /// <param name="options">Configuration action for setting up FxMap.</param>
     /// <returns>A wrapped registration object for chaining transport extensions.</returns>
-    /// <exception cref="FxMapException.FxMapAttributesMustBeSet">
-    /// Thrown when no FxMap attributes are registered.
-    /// </exception>
     /// <example>
     /// <code>
     /// services.AddFxMap(cfg =>
@@ -42,11 +39,10 @@ public static class FxMapExtensions
         FxMapStatics.Clear();
         var newOfRegister = new MapConfigurator(services);
         options.Invoke(newOfRegister);
-        if (FxMapStatics.AttributesRegister is not { Count: > 0 }) throw new FxMapException.FxMapAttributesMustBeSet();
 
-        var defaultClientRequestHandlerType = typeof(NoOpClientRequestHandler<>);
+        var noOpClientRequestHandlerType = typeof(NoOpClientRequestHandler<>);
 
-        var modelConfigurations = FxMapStatics.ModelConfigurations.Value;
+        var modelConfigurations = FxMapStatics.EntitiesConfigurations.Value;
         var attributeTypes = FxMapStatics.DistributedKeyTypes.Value;
 
         var clientHandlerGenericType = typeof(ClientRequestHandler<>);
@@ -58,7 +54,7 @@ public static class FxMapExtensions
                 var existedService = services.FirstOrDefault(a => a.ServiceType == x.ServiceType);
                 if (existedService is not null)
                 {
-                    var implType = defaultClientRequestHandlerType.MakeGenericType(x.AttributeType);
+                    var implType = noOpClientRequestHandlerType.MakeGenericType(x.AttributeType);
                     if (existedService.ImplementationType != implType) return;
                     services.Replace(new ServiceDescriptor(x.ServiceType, x.HandlerType, ServiceLifetime.Transient));
                     return;
@@ -91,12 +87,6 @@ public static class FxMapExtensions
             .OfType(typeof(SendPipelineRoutingBehavior<>))
             .OfType(typeof(ExceptionPipelineBehavior<>))
         );
-
-        modelConfigurations.ForEach(m =>
-        {
-            var serviceInterfaceType = FxMapStatics.QueryOfHandlerType.MakeGenericType(m.ModelType, m.DistributedKeyType);
-            FxMapStatics.InternalAttributeMapHandlers.TryAdd(m.DistributedKeyType, serviceInterfaceType);
-        });
 
         return new ConfiguratorWrapped(newOfRegister);
     }

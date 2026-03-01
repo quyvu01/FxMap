@@ -44,7 +44,7 @@ public static class MongoDbExtensions
         registrarAction.Invoke(registrar);
         var mongoModelTypes = registrar.MongoModelTypes;
         var serviceCollection = serviceInjector.MapConfigurator.ServiceCollection;
-        FxMapStatics.ModelConfigurations.Value
+        FxMapStatics.EntitiesConfigurations.Value
             .Where(m => mongoModelTypes.Contains(m.ModelType))
             .ForEach(m =>
             {

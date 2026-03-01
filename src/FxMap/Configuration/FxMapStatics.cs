@@ -1,4 +1,3 @@
-using System.Reflection;
 using FxMap.Abstractions;
 using FxMap.Models;
 using FxMap.Exceptions;
@@ -28,7 +27,7 @@ public static class FxMapStatics
 
     internal static void Clear()
     {
-        AttributesRegister = [];
+        // DistributedKeysRegister = [];
         MaxNestingDepth = DefaultNestingDepth;
         MaxConcurrentProcessing = ConcurrentProcessing;
         SupervisorOptions = null;
@@ -37,7 +36,7 @@ public static class FxMapStatics
         FluentConfigStore.Clear();
     }
 
-    internal static List<Assembly> AttributesRegister { get; set; } = [];
+    // internal static List<Assembly> DistributedKeysRegister { get; set; } = [];
     internal static int MaxNestingDepth { get; set; } = DefaultNestingDepth;
     public static int MaxConcurrentProcessing { get; internal set; } = ConcurrentProcessing;
     public static bool ThrowIfExceptions { get; internal set; }
@@ -58,16 +57,14 @@ public static class FxMapStatics
     /// </summary>
     public static bool HasModelConfigurations => FluentConfigStore.EntityConfigs.Count > 0;
 
-    public static readonly Lazy<IReadOnlyCollection<MapModelData>> ModelConfigurations = new(() =>
+    public static readonly Lazy<IReadOnlyCollection<EntityMapData>> EntitiesConfigurations = new(() =>
     {
-        var knownDistributedKeys = DistributedKeyTypes.Value;
-        MapModelData[] models =
+        EntityMapData[] models =
         [
             ..FluentConfigStore.EntityConfigs.Values.Select(cfg =>
             {
-                var attributeType = cfg.DistributedKeyType
-                                    ?? knownDistributedKeys.FirstOrDefault(t => t.Name == cfg.DistributedKey);
-                return new MapModelData(cfg.ModelType, attributeType,
+                var attributeType = cfg.DistributedKeyType;
+                return new EntityMapData(cfg.ModelType, attributeType,
                     new FxMapEntityConfig(cfg.IdPropertyName, cfg.DefaultPropertyName));
             })
         ];
@@ -84,11 +81,17 @@ public static class FxMapStatics
 
     internal static readonly Lazy<IReadOnlyCollection<Type>> DistributedKeyTypes = new(() =>
     [
-        ..AttributesRegister.SelectMany(a => a.ExportedTypes)
-            .Where(a => typeof(IDistributedKey).IsAssignableFrom(a) && a.IsConcrete())
+        .. new HashSet<Type>(FluentConfigStore.ProfileConfigs.SelectMany(a => a.Value.RuleGroups)
+            .Select(a => a.GetDistributedKeyType()))
     ]);
 
-    internal static Dictionary<Type, Type> InternalAttributeMapHandlers { get; } = [];
-
-    public static IReadOnlyDictionary<Type, Type> AttributeMapHandlers => InternalAttributeMapHandlers;
+    public static Lazy<IReadOnlyDictionary<Type, Type>> DistributedKeyMapHandlers => new(() =>
+    {
+        var modelConfigurations = EntitiesConfigurations.Value;
+        return modelConfigurations.Select(m =>
+        {
+            var serviceInterfaceType = QueryOfHandlerType.MakeGenericType(m.ModelType, m.DistributedKeyType);
+            return (m.DistributedKeyType, ServiceInterfaceType: serviceInterfaceType);
+        }).ToDictionary(k => k.DistributedKeyType, kv => kv.ServiceInterfaceType);
+    });
 }

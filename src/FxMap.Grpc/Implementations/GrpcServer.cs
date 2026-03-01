@@ -64,7 +64,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
                     if (attributeType is null)
                         throw new GrpcExceptions.CannotDeserializeDistributedKeyType(typeAssembly);
 
-                    if (!FxMapStatics.AttributeMapHandlers.TryGetValue(attributeType, out var handlerType))
+                    if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(attributeType, out var handlerType))
                         throw new FxMapException.CannotFindHandlerForOfAttribute(attributeType);
 
                     var modelArg = handlerType.GetGenericArguments()[0];
@@ -147,7 +147,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
 
     public override Task<AttributeTypeResponse> GeTDistributedKeys(GeTDistributedKeysQuery request, ServerCallContext context)
     {
-        var fxMapConfigureStorage = FxMapStatics.ModelConfigurations;
+        var fxMapConfigureStorage = FxMapStatics.EntitiesConfigurations;
         var response = new AttributeTypeResponse();
         var attributeTypes = fxMapConfigureStorage.Value
             .Select(a => a.DistributedKeyType.GetAssemblyName());

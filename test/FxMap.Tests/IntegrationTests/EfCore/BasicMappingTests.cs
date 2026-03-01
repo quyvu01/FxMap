@@ -31,7 +31,7 @@ public class BasicMappingTests : TestDbContextBase<BasicMappingTestDbContext>
 
         services.AddFxMap(options =>
         {
-            options.AddAttributesContainNamespaces(typeof(ITestAssemblyMarker).Assembly);
+            options.AddEntitiesFromAssemblies(typeof(ITestAssemblyMarker).Assembly);
             options.AddProfilesFromAssemblyContaining<ITestAssemblyMarker>();
         }).AddEntityFrameworkCore(options =>
         {

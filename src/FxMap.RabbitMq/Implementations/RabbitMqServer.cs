@@ -57,7 +57,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
         await _channel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false,
             autoDelete: false, arguments: null, cancellationToken: cancellationToken);
 
-        var attributeTypes = FxMapStatics.AttributeMapHandlers.Keys.ToList();
+        var attributeTypes = FxMapStatics.DistributedKeyMapHandlers.Value.Keys.ToList();
         if (attributeTypes is not { Count: > 0 }) return;
 
         foreach (var exchangeName in attributeTypes.Select(attributeType => attributeType.GetExchangeName()))
@@ -125,7 +125,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             var receivedPipelineOrchestrator = AttributeAssemblyCached.GetOrAdd(props.Type, attributeAssembly =>
             {
                 var fxMapAttributeType = Type.GetType(attributeAssembly)!;
-                if (!FxMapStatics.AttributeMapHandlers.TryGetValue(fxMapAttributeType, out var handlerType))
+                if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(fxMapAttributeType, out var handlerType))
                     throw new FxMapException.CannotFindHandlerForOfAttribute(fxMapAttributeType);
                 var modelType = handlerType.GetGenericArguments()[0];
                 return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, fxMapAttributeType);

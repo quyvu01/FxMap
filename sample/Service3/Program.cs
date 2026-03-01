@@ -38,8 +38,7 @@ builder.Services.AddOpenTelemetry()
 
 builder.Services.AddFxMap(cfg =>
     {
-        cfg.AddAttributesContainNamespaces(typeof(IKernelAssemblyMarker).Assembly);
-        cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
+        cfg.AddEntitiesFromAssemblyContaining<IAssemblyMarker>();
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -68,7 +67,7 @@ builder.Services.AddGrpc();
 
 builder.Services.AddDbContextPool<Service3Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestService3", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestService3", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);

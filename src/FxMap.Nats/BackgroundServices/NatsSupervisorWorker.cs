@@ -27,7 +27,7 @@ internal sealed class NatsSupervisorWorker(
         try
         {
             // Register all NATS servers
-            foreach (var (attributeType, handlerType) in FxMapStatics.AttributeMapHandlers)
+            foreach (var (attributeType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
             {
                 var modelArg = handlerType.GetGenericArguments()[0];
                 var serverType = typeof(INatsServer<,>).MakeGenericType(modelArg, attributeType);

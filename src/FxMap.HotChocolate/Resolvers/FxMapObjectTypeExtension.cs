@@ -39,15 +39,10 @@ internal class FxMapObjectTypeExtension<T> : ObjectTypeExtension<T> where T : cl
 
                     var dependencyGraphs = profileConfig.DependencyGraphs;
 
-                    var expression = distributedData.Expression;
-                    
                     // Check and resolve for dependencies too, just not for selectors only!
-                    var props = profileConfig.RuleGroups.SelectMany(a => a.Rules)
-                        .Where(a => a.TargetPropertyInfo == data.TargetPropertyInfo && a.IsConditional);
-                    
-                    foreach (var rule in props)
-                        expression = await rule.ConditionalExpression.ResolveAsync(context.Services);
-                    
+                    var props = profileConfig.GetInformation(data.TargetPropertyInfo);
+                    var expression = await props.ResolveExpression(context.Services, context.RequestAborted);
+
                     var ctx = new FieldContext
                     {
                         TargetPropertyInfo = data.TargetPropertyInfo,

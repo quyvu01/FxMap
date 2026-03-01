@@ -15,7 +15,7 @@ public static class FluentConfigStore
         ProfileConfigs.Clear();
     }
 
-    internal static Type ResolveAttributeType(KeyRuleGroup group, IReadOnlyCollection<Type> knownDistributedKeys) =>
+    internal static Type ResolveDistributedKeyType(KeyRuleGroup group, IReadOnlyCollection<Type> knownDistributedKeys) =>
         group.DistributedKeyType ?? knownDistributedKeys.FirstOrDefault(t => t.Name == group.DistributedKey);
 }
 

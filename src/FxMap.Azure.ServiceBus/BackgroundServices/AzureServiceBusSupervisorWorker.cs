@@ -34,7 +34,7 @@ internal sealed class AzureServiceBusSupervisorWorker(
         try
         {
             // Create queues and register all Azure Service Bus servers
-            foreach (var (attributeType, handlerType) in FxMapStatics.AttributeMapHandlers)
+            foreach (var (attributeType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
             {
                 // Create queues first
                 var requestQueue = attributeType.GetAzureServiceBusRequestQueue();

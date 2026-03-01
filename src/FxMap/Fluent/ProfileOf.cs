@@ -12,10 +12,14 @@ namespace FxMap.Fluent;
 
 public abstract class ProfileOf<TModel> : IFluentProfileConfig
 {
+    private readonly List<KeyRuleGroup> _ruleGroups = [];
+
     /// <summary>
     /// Gets the CLR type that this model represents.
     /// </summary>
     public Type ClrType { get; private set; }
+
+    public IReadOnlyCollection<KeyRuleGroup> RuleGroups => _ruleGroups;
 
     /// <summary>
     /// Gets the dictionary of compiled property accessors, keyed by their <see cref="PropertyInfo"/>.
@@ -30,7 +34,6 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
     public IReadOnlyDictionary<PropertyInfo, PropertyContext[]> DependencyGraphs { get; private set; }
 
     Type IFluentProfileConfig.ModelType => typeof(TModel);
-    List<KeyRuleGroup> IFluentProfileConfig.RuleGroups => RuleGroups;
 
     void IFluentProfileConfig.Build()
     {
@@ -39,7 +42,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
         var clrType = typeof(TModel);
         ClrType = clrType;
         var properties = clrType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-        var dependencyGraph = BuildDependencyGraphFromFluentRules(properties, RuleGroups);
+        var dependencyGraph = BuildDependencyGraphFromFluentRules(properties, _ruleGroups);
 
         var propertiesWithinAttribute = dependencyGraph
             .Keys
@@ -61,12 +64,11 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
         DependencyGraphs = dependencyGraph;
     }
 
-    private List<KeyRuleGroup> RuleGroups { get; } = [];
 
     protected DistributedKeyRuleBuilder<TModel> UseDistributedKey(string key)
     {
         var group = new KeyRuleGroup { DistributedKey = key };
-        RuleGroups.Add(group);
+        _ruleGroups.Add(group);
         return new DistributedKeyRuleBuilder<TModel>(group);
     }
 
@@ -74,7 +76,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
         where TDistributedKey : IDistributedKey
     {
         var group = new KeyRuleGroup { DistributedKeyType = typeof(TDistributedKey) };
-        RuleGroups.Add(group);
+        _ruleGroups.Add(group);
         return new DistributedKeyRuleBuilder<TModel>(group);
     }
 
@@ -86,17 +88,17 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
         return (IPropertyAccessor)Activator.CreateInstance(accessorType, p)!;
     }
 
-    private static Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraphFromFluentRules(
+    private Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraphFromFluentRules(
         PropertyInfo[] properties, List<KeyRuleGroup> ruleGroups)
     {
-        var knownAttributes = FxMapStatics.DistributedKeyTypes.Value;
+        var knownDistributedKeyTypes = _ruleGroups.Select(a => a.GetDistributedKeyType()).ToArray();
 
         // Build a lookup of target property → its direct PropertyContext
         var directDeps = new Dictionary<PropertyInfo, PropertyContext>();
 
         foreach (var group in ruleGroups)
         {
-            var attributeType = FluentConfigStore.ResolveAttributeType(group, knownAttributes);
+            var attributeType = FluentConfigStore.ResolveDistributedKeyType(group, knownDistributedKeyTypes);
             var selectorProperty = properties.FirstOrDefault(p => p.Name == group.SelectorPropertyName);
             if (selectorProperty is null || attributeType is null) continue;
 
@@ -163,7 +165,8 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
             return new PropertyInformation(0, null, null, null);
         var dependency = dependencies.First();
         var requiredAccessor = GetAccessor(dependency.RequiredPropertyInfo);
-        return new PropertyInformation(dependencies.Length - 1, dependency.Expression, dependency.RuntimeDistributedKeyType,
+        return new PropertyInformation(dependencies.Length - 1, dependency.Expression,
+            dependency.RuntimeDistributedKeyType,
             requiredAccessor) { ConditionalExpression = dependency.ConditionalExpression };
     }
 }

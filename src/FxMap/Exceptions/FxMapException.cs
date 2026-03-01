@@ -12,10 +12,6 @@ namespace FxMap.Exceptions;
 /// </remarks>
 public static class FxMapException
 {
-    public sealed class FxMapAttributesMustBeSet()
-        : Exception(
-            "You have to call the method: `AddAttributesContainNamespaces` with assemblies to scanning your `FxMapAttributes`!");
-
     public sealed class CurrentIdTypeWasNotSupported() :
         Exception("Current Id type was not supported. Create the IdConverter!");
 

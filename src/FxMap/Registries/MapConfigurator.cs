@@ -35,6 +35,9 @@ namespace FxMap.Registries;
 /// <param name="serviceCollection">The service collection to register services into.</param>
 public class MapConfigurator(IServiceCollection serviceCollection)
 {
+    private readonly HashSet<Type> _knownEntityTypes = [];
+    private readonly HashSet<Type> _knownProfileTypes = [];
+
     /// <summary>
     /// Gets the underlying service collection for advanced registration scenarios.
     /// </summary>
@@ -71,17 +74,6 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     }
 
     /// <summary>
-    /// Registers the assemblies containing FxMap attribute definitions.
-    /// </summary>
-    /// <param name="attributeAssembly">The primary assembly containing FxMap attributes.</param>
-    /// <param name="otherAssemblies">Additional assemblies to scan for attributes.</param>
-    public void AddAttributesContainNamespaces(Assembly attributeAssembly, params Assembly[] otherAssemblies)
-    {
-        ArgumentNullException.ThrowIfNull(attributeAssembly);
-        FxMapStatics.AttributesRegister = [attributeAssembly, ..otherAssemblies ?? []];
-    }
-
-    /// <summary>
     /// Scans the specified assembly for <see cref="AbstractFxMapConfig{TModel}"/> and <see cref="ProfileOf{TModel}"/>
     /// implementations, builds them, and registers their configurations.
     /// </summary>
@@ -89,7 +81,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     public void AddProfilesFromAssemblyContaining<TAssemblyMarker>()
     {
         var assembly = typeof(TAssemblyMarker).Assembly;
-        ScanFluentConfigs(assembly);
+        ScanProfileConfigs(assembly);
     }
 
     /// <summary>
@@ -98,18 +90,26 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     public void AddProfilesFromAssemblies(params Assembly[] assemblies)
     {
         foreach (var assembly in assemblies)
-            ScanFluentConfigs(assembly);
+            ScanProfileConfigs(assembly);
     }
 
-    private static void ScanFluentConfigs(Assembly assembly)
+    public void AddEntitiesFromAssemblyContaining<TAssemblyMarker>()
     {
-        var concreteTypes = assembly.ExportedTypes
-            .Where(t => t is { IsClass: true, IsAbstract: false })
-            .ToArray();
+        var assembly = typeof(TAssemblyMarker).Assembly;
+        ScanEntityConfigs(assembly);
+    }
 
-        foreach (var type in concreteTypes)
-        {
-            if (type.IsAssignableTo(typeof(IFluentEntityConfig)))
+    public void AddEntitiesFromAssemblies(params Assembly[] assemblies)
+    {
+        foreach (var assembly in assemblies)
+            ScanEntityConfigs(assembly);
+    }
+
+    private void ScanEntityConfigs(Assembly assembly) =>
+        assembly.ExportedTypes
+            .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsAssignableTo(typeof(IFluentEntityConfig)) &&
+                        _knownEntityTypes.Add(t))
+            .ForEach(type =>
             {
                 var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
                 FluentConfigStore.EntityConfigs[config.ModelType] = new EntityConfigMetadata(
@@ -119,14 +119,19 @@ public class MapConfigurator(IServiceCollection serviceCollection)
                     config.IdPropertyName,
                     config.DefaultPropertyName,
                     config.ExposedNameStores);
-            }
-            else if (type.IsAssignableTo(typeof(IFluentProfileConfig)))
+            });
+
+    private void ScanProfileConfigs(Assembly assembly)
+    {
+        assembly.ExportedTypes
+            .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsAssignableTo(typeof(IFluentProfileConfig)) &&
+                        _knownProfileTypes.Add(t))
+            .ForEach(type =>
             {
                 var profile = (IFluentProfileConfig)Activator.CreateInstance(type)!;
                 profile.Build();
                 FluentConfigStore.ProfileConfigs[profile.ModelType] = profile;
-            }
-        }
+            });
     }
 
     /// <summary>

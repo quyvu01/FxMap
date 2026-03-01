@@ -27,7 +27,7 @@ internal sealed class KafkaSupervisorWorker(
         try
         {
             // Register all Kafka servers
-            foreach (var (attributeType, handlerType) in FxMapStatics.AttributeMapHandlers)
+            foreach (var (attributeType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
             {
                 var modelType = handlerType.GetGenericArguments()[0];
                 var serverType = typeof(IKafkaServer<,>).MakeGenericType(modelType, attributeType);
