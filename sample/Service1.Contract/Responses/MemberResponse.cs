@@ -47,7 +47,8 @@ public class MemberResponseProfile : ProfileOf<MemberResponse>
         UseDistributedKey<UserOfAttribute>()
             .Of(x => x.UserId)
             .For(x => x.UserName, c => c
-                .If(_ => true, "UserEmail")
+                .If(_ => true)
+                .Expression("UserEmail")
                 .Else("Name"))
             .For(x => x.UserEmail, "UserEmail")
             .For(x => x.ProvinceId, "ProvinceId");
