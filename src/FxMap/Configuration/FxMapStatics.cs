@@ -27,13 +27,14 @@ public static class FxMapStatics
 
     internal static void Clear()
     {
-        // DistributedKeysRegister = [];
         MaxNestingDepth = DefaultNestingDepth;
         MaxConcurrentProcessing = ConcurrentProcessing;
         SupervisorOptions = null;
         ThrowIfExceptions = false;
         RetryPolicy = null;
         FluentConfigStore.Clear();
+        EntitiesConfigurations = CreateEntitiesConfigurationsLazy();
+        DistributedKeyTypes = CreateDistributedKeyTypesLazy();
     }
 
     // internal static List<Assembly> DistributedKeysRegister { get; set; } = [];
@@ -57,7 +58,13 @@ public static class FxMapStatics
     /// </summary>
     public static bool HasModelConfigurations => FluentConfigStore.EntityConfigs.Count > 0;
 
-    public static readonly Lazy<IReadOnlyCollection<EntityMapData>> EntitiesConfigurations = new(() =>
+    public static Lazy<IReadOnlyCollection<EntityMapData>> EntitiesConfigurations { get; private set; } =
+        CreateEntitiesConfigurationsLazy();
+
+    internal static Lazy<IReadOnlyCollection<Type>> DistributedKeyTypes { get; private set; } =
+        CreateDistributedKeyTypesLazy();
+
+    private static Lazy<IReadOnlyCollection<EntityMapData>> CreateEntitiesConfigurationsLazy() => new(() =>
     {
         EntityMapData[] models =
         [
@@ -79,7 +86,7 @@ public static class FxMapStatics
         return models;
     });
 
-    internal static readonly Lazy<IReadOnlyCollection<Type>> DistributedKeyTypes = new(() =>
+    private static Lazy<IReadOnlyCollection<Type>> CreateDistributedKeyTypesLazy() => new(() =>
     [
         .. new HashSet<Type>(FluentConfigStore.ProfileConfigs.SelectMany(a => a.Value.RuleGroups)
             .Select(a => a.GetDistributedKeyType()))

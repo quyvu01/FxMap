@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Text.RegularExpressions;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,23 +8,21 @@ using FxMap.Expressions.Parsing;
 namespace FxMap.Analyzers;
 
 /// <summary>
-/// Analyzer is used to validate FxMap Expression parameters syntax.
+/// Roslyn analyzer that validates FxMap expression syntax at compile-time.
+/// Detects expression strings passed to FluentAPI methods: .For(), .Expression(), and .Else().
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public partial class FxMapExpressionSyntaxAnalyzer : DiagnosticAnalyzer
+public class FxMapExpressionSyntaxAnalyzer : DiagnosticAnalyzer
 {
-    // Rule ID and metadata
     public const string DiagnosticId = "OFX001";
     private const string Category = "Syntax";
 
     private static readonly LocalizableString Title = "FxMap Expression syntax is invalid";
-
     private static readonly LocalizableString MessageFormat = "Expression '{0}' is invalid: {1}";
 
     private static readonly LocalizableString Description =
-        "FxMap Expression must follow valid syntax rules including balanced brackets, braces, parentheses, runtime parameters, and proper use of operators.";
+        "FxMap Expression must follow valid syntax rules including balanced brackets, braces, parentheses, and proper use of operators.";
 
-    //Diagnostic Rule definition
     private static readonly DiagnosticDescriptor Rule = new(
         DiagnosticId,
         Title,
@@ -35,132 +32,81 @@ public partial class FxMapExpressionSyntaxAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: Description);
 
-    // Analyzer must be implemented 2 this members
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => [Rule];
 
     public override void Initialize(AnalysisContext context)
     {
-        // Do not analyze generated code
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
-
-        // Enable concurrent execution for better performance
         context.EnableConcurrentExecution();
-
-        // Register callback: Run the analysis when meet FxMap Attribute
-        context.RegisterSyntaxNodeAction(AnalyzeAttribute, SyntaxKind.Attribute);
+        context.RegisterSyntaxNodeAction(AnalyzeInvocation, SyntaxKind.InvocationExpression);
     }
 
-    private static void AnalyzeAttribute(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeInvocation(SyntaxNodeAnalysisContext context)
     {
-        var attributeSyntax = (AttributeSyntax)context.Node;
+        var invocation = (InvocationExpressionSyntax)context.Node;
 
-        // Get semantic information about the attribute
-        var attributeSymbol = context.SemanticModel.GetSymbolInfo(attributeSyntax).Symbol;
-        if (attributeSymbol is not IMethodSymbol constructorSymbol) return;
+        var methodName = GetMethodName(invocation);
+        if (methodName is null) return;
 
-        var attributeType = constructorSymbol.ContainingType;
+        // Determine which argument contains the expression string
+        var expressionLiteral = methodName switch
+        {
+            // .For(x => x.Prop, "expression") — second argument
+            "For" => GetStringLiteralArgument(invocation, argumentIndex: 1),
+            // .Expression("expression") or .Else("expression") — first argument
+            "Expression" or "Else" => GetStringLiteralArgument(invocation, argumentIndex: 0),
+            _ => null
+        };
 
-        // Check if this is an FxMap attribute using semantic analysis (preferred)
-        // or fallback to naming convention (for test scenarios where FxMap types are not available)
-        if (!IsFxMapAttribute(attributeType)) return;
+        if (expressionLiteral is null) return;
 
-        // Find argument named "Expression"
-        var expressionArgument = attributeSyntax.ArgumentList?.Arguments
-            .FirstOrDefault(arg => arg.NameEquals?.Name.Identifier.Text == "Expression");
-
-        // Fetch the Expression value (string literal)
-        if (expressionArgument?.Expression is not LiteralExpressionSyntax literalExpression) return;
-
-        var expressionValue = literalExpression.Token.ValueText;
+        var expressionValue = expressionLiteral.Token.ValueText;
         if (string.IsNullOrWhiteSpace(expressionValue)) return;
 
-        // VALIDATE: Using ExpressionParser to validate the expression
         var validationError = ValidateExpressionSyntax(expressionValue);
+        if (validationError is null) return;
 
-        if (validationError == null) return;
-        // Create diagnostic error
-        var diagnostic = Diagnostic.Create(Rule, literalExpression.GetLocation(), expressionValue,
-            validationError);
-
+        var diagnostic = Diagnostic.Create(Rule, expressionLiteral.GetLocation(), expressionValue, validationError);
         context.ReportDiagnostic(diagnostic);
     }
 
-    /// <summary>
-    /// Check if the attribute implements an FxMap distributed key.
-    /// Uses semantic analysis (preferred) and falls back to naming convention for test scenarios.
-    /// </summary>
-    private static bool IsFxMapAttribute(INamedTypeSymbol attributeType)
+    private static string GetMethodName(InvocationExpressionSyntax invocation)
     {
-        // Preferred: Check if attribute inherits from FxMap.Attributes.FxMapAttribute
-        if (InheritsFromFxMapAttribute(attributeType))
-            return true;
-
-        // Fallback: Check naming convention for test scenarios where FxMap assembly causes version conflicts
-        // Attributes ending with "OfAttribute" are considered FxMap attributes
-        return attributeType.Name.EndsWith("OfAttribute", StringComparison.Ordinal);
+        return invocation.Expression switch
+        {
+            MemberAccessExpressionSyntax memberAccess => memberAccess.Name.Identifier.Text,
+            IdentifierNameSyntax identifier => identifier.Identifier.Text,
+            GenericNameSyntax generic => generic.Identifier.Text,
+            _ => null
+        };
     }
 
-    /// <summary>
-    /// Check if the attribute type inherits from the FxMap base attribute type
-    /// </summary>
-    private static bool InheritsFromFxMapAttribute(INamedTypeSymbol attributeType)
+    private static LiteralExpressionSyntax GetStringLiteralArgument(
+        InvocationExpressionSyntax invocation, int argumentIndex)
     {
-        var currentType = attributeType.BaseType;
-        while (currentType != null)
-        {
-            // Check if base class is FxMapAttribute in FxMap.Attributes namespace
-            if (currentType.Name == "FxMapAttribute" &&
-                currentType.ContainingNamespace?.ToDisplayString() == "FxMap.Attributes")
-                return true;
+        var args = invocation.ArgumentList?.Arguments;
+        if (args.Value.Count <= argumentIndex) return null;
 
-            currentType = currentType.BaseType;
-        }
-
-        return false;
+        return args.Value[argumentIndex].Expression as LiteralExpressionSyntax;
     }
 
     /// <summary>
     /// Validate expression syntax using ExpressionParser.
     /// </summary>
-    /// <returns>Error message if invalid, null if OK</returns>
     private static string ValidateExpressionSyntax(string expression)
     {
         try
         {
-            // Step 1: Validate runtime parameters format ${variable|default}
-            var runtimeParamRegex = ExpressionRegex();
-            var matches = runtimeParamRegex.Matches(expression);
-
-            foreach (Match match in matches)
-            {
-                var hasDefault = match.Groups["default"].Success;
-                if (!hasDefault || string.IsNullOrEmpty(match.Groups["default"].Value))
-                    return "Runtime parameter must have format ${variable|defaultValue}";
-            }
-
-            // Step 2: Replace runtime parameters with their default values for parsing
-            var resolvedExpression = runtimeParamRegex.Replace(expression, match =>
-            {
-                var defaultValue = match.Groups["default"].Value;
-                return defaultValue;
-            });
-
-            // Step 3: Use ExpressionParser to parse and validate the expression
-            ExpressionParser.Parse(resolvedExpression);
-            return null; // Parse successful, no error
+            ExpressionParser.Parse(expression);
+            return null;
         }
         catch (ExpressionParseException ex)
         {
-            // Return the parser's error message
             return ex.Message;
         }
         catch (Exception ex)
         {
-            // Catch any unexpected exceptions
             return $"Unexpected error: {ex.Message}";
         }
     }
-
-    [GeneratedRegex(@"\$\{(?<parameter>[A-Za-z_][A-Za-z0-9_]*)(\|(?<default>[^}]*))?\}")]
-    private static partial Regex ExpressionRegex();
 }

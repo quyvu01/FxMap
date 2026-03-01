@@ -12,10 +12,13 @@ public sealed class TypeAccessor(Type objectType) : ITypeAccessor
 
     public PropertyInfo GetPropertyInfo(string name)
     {
-        var objectTypeCached = FluentConfigStore.EntityConfigs[objectType];
+        var hasConfig = FluentConfigStore.EntityConfigs.TryGetValue(objectType, out var objectTypeCached);
         var result = _properties.GetOrAdd(name, n =>
         {
             var properties = objectType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+
+            if (!hasConfig || objectTypeCached!.ExposedNameStores.Count == 0)
+                return properties.FirstOrDefault(p => p.Name == n);
 
             var matches = properties.Where(p =>
             {

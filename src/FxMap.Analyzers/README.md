@@ -20,23 +20,19 @@ This analyzer validates FxMap Expression strings for correct syntax including:
 - Braces `{}` for projections
 - Parentheses `()` for filters
 
-#### 2. **Runtime Parameters**
-- Must use format: `${variableName|defaultValue}`
-- Both variable name and default value are required
-
-#### 3. **Property Navigation**
+#### 2. **Property Navigation**
 - Projection requires dot: `Country.{Id, Name}` not `Country{Id, Name}`
 - Navigation after filter requires dot: `Orders(Status = 'Done').Items` not `Orders(Status = 'Done')Items`
 - Navigation after indexer requires dot: `Provinces[0 asc Name].Name` not `Provinces[0 asc Name]Name`
 
-#### 4. **Function Validation**
+#### 3. **Function Validation**
 - Function names must be valid (count, sum, avg, min, max, upper, lower, etc.)
 - Functions requiring arguments must have them (e.g., `substring`, `replace`)
 
-#### 5. **Computed Expressions**
+#### 4. **Computed Expressions**
 - Computed expressions in projections must have alias: `{Id, (Name:upper) as UpperName}` not `{Id, (Name:upper)}`
 
-#### 6. **Operators**
+#### 5. **Operators**
 - Must use valid operators: `=`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `startswith`, `endswith`
 - Logical operators: `&&`, `||`, `!`, `and`, `or`, `not`
 
@@ -77,12 +73,6 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 // Complex filter with string operations
 .For(x => x.ProvinceName, "Provinces(Name endswith 'a')[0 desc Name].Name")
 
-// Runtime parameters (both variable and default required)
-.For(x => x.Users, "Users[${Skip|0} ${Take|10} asc Email]")
-
-// Multiple runtime parameters
-.For(x => x.Data, "Users(Age > ${MinAge|18})[${Skip|0} ${Take|10} asc Email].{Id, Name}")
-
 // Functions with arguments
 .For(x => x.ShortName, "{Id, Name:substring(0, 3) as Short}")
 
@@ -119,14 +109,6 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 // Missing dot after indexer
 .For(x => x.ProvinceName, "Provinces[0 asc Name]Name")
 // Error: Property navigation requires '.' before identifier
-
-// Invalid runtime parameter (missing default)
-.For(x => x.Users, "Users[${Skip} ${Take|10} asc Email]")
-// Error: Runtime parameter must have format ${variable|defaultValue}
-
-// Missing runtime parameter closing brace
-.For(x => x.Users, "Users[${Skip|0 asc Email]")
-// Error: Expected '}' after runtime parameter
 
 // Unknown function
 .For(x => x.Name, "Name:invalid")
@@ -165,8 +147,8 @@ Add to your `.csproj`:
 
 ## How It Works
 
-1. **Compile-Time Analysis:** The analyzer runs during compilation and inspects all `ProfileOf<T>` configurations
-2. **Expression Parsing:** Each expression string passed to `.For()` is validated using the full FxMap ExpressionParser
+1. **Compile-Time Analysis:** The analyzer runs during compilation and inspects all FluentAPI configurations
+2. **Expression Parsing:** Each expression string passed to `.For()`, `.Expression()`, or `.Else()` is validated using the full FxMap ExpressionParser
 3. **Immediate Feedback:** Syntax errors are reported as compiler errors with detailed messages including position information
 
 ## Features
@@ -174,7 +156,6 @@ Add to your `.csproj`:
 ### Current Validations
 
 - **Syntax Structure:** All brackets, braces, parentheses must be balanced
-- **Runtime Parameters:** Format validation for `${variable|defaultValue}`
 - **Navigation Syntax:** Dot requirements for property navigation
 - **Function Names:** Validates against known function list
 - **Function Arguments:** Ensures required arguments are provided
@@ -220,7 +201,7 @@ error OFX001: Expression 'Country{Id, Name}' is invalid: Projection requires '.'
 - Projections: `Country.{Id, Name}`, `{Id, Name as UserName}`
 - Root projections: `{Id, Email, Country.Name as CountryName}`
 - Filters: `Countries(Active = true)`, `Provinces(Name contains 'land')`
-- Indexers: `Provinces[0 10 asc Name]`, `Items[${Skip|0} ${Take|10} desc Price]`
+- Indexers: `Provinces[0 10 asc Name]`, `Items[0 10 desc Price]`
 - Functions: `Name:upper`, `Price:round(2)`, `Items:count`
 - String functions: `upper`, `lower`, `trim`, `substring`, `replace`, `concat`, `split`
 - Math functions: `round`, `floor`, `ceil`, `abs`, `add`, `subtract`, `multiply`, `divide`
@@ -230,7 +211,6 @@ error OFX001: Expression 'Country{Id, Name}' is invalid: Projection requires '.'
 - Boolean functions: `any(condition)`, `all(condition)`
 - Ternary operator: `(Status = 'Active' ? 'Yes' : 'No') as StatusText`
 - Null coalescing: `(Nickname ?? Name) as DisplayName`
-- Runtime parameters: `${variableName|defaultValue}`
 - Chained functions: `Name:trim:upper`, `Price:add(10):round(2)`
 
 ## Contributing

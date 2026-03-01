@@ -1,5 +1,5 @@
 # FxMap
-
+Effective distributed data mapping!
 ```csharp
 public string UserId { get; set; }
 public string UserName { get; set; }
@@ -29,16 +29,16 @@ builder.Services.AddFxMap(cfg =>
 });
 
 // 2. Define a distributed key
-public sealed class UserOfAttribute : IDistributedKey;
+public sealed class UserDistributedKey : IDistributedKey;
 
 // 3. Configure the entity with FluentAPI
-public class UserConfig : AbstractFxMapConfig<User>
+public class UserConfig : EntityConfigureOf<User>
 {
     protected override void Configure()
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<UserOfAttribute>();
+        UseDistributedKey<UserDistributedKey>(); // Or you want to absolute lose coupling, you can use: UseDistributedKey("UserDistributedKey")
         ExposedName(x => x.Email, "UserEmail");
     }
 }
@@ -48,7 +48,7 @@ public class UserResponseProfile : ProfileOf<UserResponse>
 {
     protected override void Configure()
     {
-        UseDistributedKey<UserOfAttribute>()
+        UseDistributedKey<UserDistributedKey>() // Or you want to absolute lose coupling, you can use: UseDistributedKey("UserDistributedKey")
             .Of(x => x.UserId)
             .For(x => x.UserName)
             .For(x => x.UserEmail, "Email");
@@ -58,7 +58,7 @@ public class UserResponseProfile : ProfileOf<UserResponse>
 
 ## Key Features
 
-- **FluentAPI-based Mapping**: Declarative data fetching using `ProfileOf<T>` and `AbstractFxMapConfig<T>`
+- **FluentAPI-based Mapping**: Declarative data fetching using `ProfileOf<T>` and `EntityConfigureOf<T>`
 - **Powerful Expression Language**: SQL-like DSL for complex queries, filtering, aggregation, and projections
 - **Multiple Data Providers**: Support for EF Core, MongoDB, and more
 - **Multiple Transports**: gRPC, NATS, RabbitMQ, Kafka, Azure Service Bus, Amazon SQS
@@ -94,24 +94,24 @@ ternary operators, and more, visit **[Expression Documentation](https://fxmapmap
 
 ## Packages
 
-| Package                                                        | Description                      | .NET     |
-|----------------------------------------------------------------|----------------------------------|----------|
-| **Core**                                                       |
-| [FxMap][FxMap.nuget]                                           | Core library                     | 8.0, 9.0 |
-| **Data Providers**                                             |
-| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget]    | Entity Framework Core provider   | 8.0, 9.0 |
-| [FxMap.MongoDb][FxMap.MongoDb.nuget]                           | MongoDB provider                 | 8.0, 9.0 |
-| **Integrations**                                               |
-| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]                 | HotChocolate GraphQL integration | 8.0, 9.0 |
-| **Transports**                                                 |
-| [FxMap.Grpc][FxMap.Grpc.nuget]                                 | gRPC transport                   | 8.0, 9.0 |
-| [FxMap.Nats][FxMap.Nats.nuget]                                 | NATS transport                   | 8.0, 9.0 |
-| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                         | RabbitMQ transport               | 8.0, 9.0 |
-| [FxMap.Kafka][FxMap.Kafka.nuget]                               | Kafka transport                  | 8.0, 9.0 |
-| [FxMap.Azure.ServiceBus][FxMap.Azure.ServiceBus.nuget]         | Azure Service Bus transport      | 8.0, 9.0 |
-| [FxMap.Aws.Sqs][FxMap.Aws.Sqs.nuget]                          | Amazon SQS transport             | 8.0, 9.0 |
-| **Tooling**                                                    |
-| [FxMap.Analyzers][FxMap.Analyzers.nuget]                       | Roslyn analyzers                 | 8.0, 9.0 |
+| Package                                                      | Description                      | .NET     |
+|--------------------------------------------------------------|----------------------------------|----------|
+| **Core**                                                     |
+| [FxMap][FxMap.nuget]                                         | Core library                     | 8.0, 9.0 |
+| **Data Providers**                                           |
+| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget] | Entity Framework Core provider   | 8.0, 9.0 |
+| [FxMap.MongoDb][FxMap.MongoDb.nuget]                         | MongoDB provider                 | 8.0, 9.0 |
+| **Integrations**                                             |
+| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]               | HotChocolate GraphQL integration | 8.0, 9.0 |
+| **Transports**                                               |
+| [FxMap.Grpc][FxMap.Grpc.nuget]                               | gRPC transport                   | 8.0, 9.0 |
+| [FxMap.Nats][FxMap.Nats.nuget]                               | NATS transport                   | 8.0, 9.0 |
+| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                       | RabbitMQ transport               | 8.0, 9.0 |
+| [FxMap.Kafka][FxMap.Kafka.nuget]                             | Kafka transport                  | 8.0, 9.0 |
+| [FxMap.Azure.ServiceBus][FxMap.Azure.ServiceBus.nuget]       | Azure Service Bus transport      | 8.0, 9.0 |
+| [FxMap.Aws.Sqs][FxMap.Aws.Sqs.nuget]                         | Amazon SQS transport             | 8.0, 9.0 |
+| **Tooling**                                                  |
+| [FxMap.Analyzers][FxMap.Analyzers.nuget]                     | Roslyn analyzers                 | 8.0, 9.0 |
 
 ## Documentation
 
