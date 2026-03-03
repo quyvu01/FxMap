@@ -2,7 +2,7 @@
 
 name: Build FxMap and Publish
 env:
-  OFX_VERSION: 9.0.0
+  VERSION: 1.0.0
 
 on:
   push:
@@ -78,9 +78,9 @@ jobs:
       - id: v
         run: |
           if [ "${{ github.ref }}" = 'refs/heads/main' ]; then
-            echo "version=${OFX_VERSION}" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
           else
-            echo "version=${OFX_VERSION}-develop.${{ github.run_number }}" >> $GITHUB_OUTPUT
+            echo "version=${VERSION}-develop.${{ github.run_number }}" >> $GITHUB_OUTPUT
           fi
   
   publish:
