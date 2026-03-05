@@ -61,13 +61,11 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                     var emptyResponse = (FxMapAttributeType: x.DistributedKeyType, Response: _emptyResponse);
                     var accessors = x.Accessors.ToList();
                     if (accessors is not { Count: > 0 }) return emptyResponse;
-                    var selectorIds = accessors
+                    var selectorIds = new HashSet<string>(accessors
                         .Select(c => c.PropertyInformation?.RequiredAccessor?.Get(c.Model)?.ToString())
-                        .Where(c => c is not null)
-                        .Distinct()
-                        .ToArray();
+                        .Where(c => c is not null));
 
-                    if (selectorIds is not { Length: > 0 }) return emptyResponse;
+                    if (selectorIds is not { Count: > 0 }) return emptyResponse;
 
                     var requestCt = new RequestContext([], token);
 
@@ -76,11 +74,11 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                         a.PropertyInformation.EffectiveExpression = await a.PropertyInformation
                             .ResolveExpression(serviceProvider, token);
 
-                    var expressions = new HashSet<string>(accessors
-                        .Select(a => a.PropertyInformation.EffectiveExpression));
+                    var expressions = accessors
+                        .Select(a => a.PropertyInformation.EffectiveExpression);
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
-                        new DataFetchQuery(selectorIds, [..expressions]), requestCt);
+                        new DataFetchQuery([..selectorIds], [..expressions]), requestCt);
                     return (FxMapAttributeType: x.DistributedKeyType, Response: result);
                 });
                 var fetchedResult = await Task.WhenAll(tasks);

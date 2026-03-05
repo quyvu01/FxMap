@@ -31,9 +31,10 @@ public sealed record PropertyInformation(
     /// Gets the conditional expression for runtime expression resolution, if any.
     /// </summary>
     internal ConditionalExpression ConditionalExpression { get; init; }
+
     internal string EffectiveExpression { get; set; }
 
-    public async Task<string> ResolveExpression(IServiceProvider serviceProvider, CancellationToken token)
+    public async ValueTask<string> ResolveExpression(IServiceProvider serviceProvider, CancellationToken token)
     {
         if (ConditionalExpression != null)
             return await ConditionalExpression.ResolveAsync(serviceProvider, token);

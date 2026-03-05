@@ -4,17 +4,14 @@ namespace FxMap.Fluent.Builders;
 
 public sealed class ConditionalExpressionBuilder
 {
-    private Func<IServiceProvider, CancellationToken, Task<bool>> _condition;
-    private Func<IServiceProvider, CancellationToken, Task<string>> _ifExpression;
-    private Func<IServiceProvider, CancellationToken, Task<string>> _elseExpression;
-
-    public IExpressionStep If(bool condition) =>
-        If((_, _) => Task.FromResult(condition));
+    private Func<IServiceProvider, CancellationToken, ValueTask<bool>> _condition;
+    private Func<IServiceProvider, CancellationToken, ValueTask<string>> _ifExpression;
+    private Func<IServiceProvider, CancellationToken, ValueTask<string>> _elseExpression;
 
     public IExpressionStep If(Func<IServiceProvider, bool> condition) =>
-        If((sp, _) => Task.FromResult(condition(sp)));
+        If((sp, _) => ValueTask.FromResult(condition(sp)));
 
-    public IExpressionStep If(Func<IServiceProvider, CancellationToken, Task<bool>> condition)
+    public IExpressionStep If(Func<IServiceProvider, CancellationToken, ValueTask<bool>> condition)
     {
         _condition = condition;
         return new ExpressionStep(this);
@@ -26,31 +23,31 @@ public sealed class ConditionalExpressionBuilder
     {
         IElseStep Expression(string expression);
         IElseStep Expression(Func<IServiceProvider, string> expressionFunc);
-        IElseStep Expression(Func<IServiceProvider, CancellationToken, Task<string>> expressionFuncAsync);
+        IElseStep Expression(Func<IServiceProvider, CancellationToken, ValueTask<string>> expressionFuncAsync);
     }
 
     public interface IElseStep
     {
         void Else(string elseExpression);
         void Else(Func<IServiceProvider, string> elseExpressionFunc);
-        void Else(Func<IServiceProvider, CancellationToken, Task<string>> elseExpressionFuncAsync);
+        void Else(Func<IServiceProvider, CancellationToken, ValueTask<string>> elseExpressionFuncAsync);
     }
 
     private sealed class ExpressionStep(ConditionalExpressionBuilder builder) : IExpressionStep
     {
         public IElseStep Expression(string expression)
         {
-            builder._ifExpression = (_, _) => Task.FromResult(expression);
+            builder._ifExpression = (_, _) => ValueTask.FromResult(expression);
             return new ElseStep(builder);
         }
 
         public IElseStep Expression(Func<IServiceProvider, string> expressionFunc)
         {
-            builder._ifExpression = (sp, _) => Task.FromResult(expressionFunc(sp));
+            builder._ifExpression = (sp, _) => ValueTask.FromResult(expressionFunc(sp));
             return new ElseStep(builder);
         }
 
-        public IElseStep Expression(Func<IServiceProvider, CancellationToken, Task<string>> expressionFuncAsync)
+        public IElseStep Expression(Func<IServiceProvider, CancellationToken, ValueTask<string>> expressionFuncAsync)
         {
             builder._ifExpression = expressionFuncAsync;
             return new ElseStep(builder);
@@ -60,12 +57,12 @@ public sealed class ConditionalExpressionBuilder
     private sealed class ElseStep(ConditionalExpressionBuilder builder) : IElseStep
     {
         public void Else(string elseExpression) =>
-            builder._elseExpression = (_, _) => Task.FromResult(elseExpression);
+            builder._elseExpression = (_, _) => ValueTask.FromResult(elseExpression);
 
         public void Else(Func<IServiceProvider, string> elseExpressionFunc) =>
-            builder._elseExpression = (sp, _) => Task.FromResult(elseExpressionFunc(sp));
+            builder._elseExpression = (sp, _) => ValueTask.FromResult(elseExpressionFunc(sp));
 
-        public void Else(Func<IServiceProvider, CancellationToken, Task<string>> elseExpressionFuncAsync) =>
+        public void Else(Func<IServiceProvider, CancellationToken, ValueTask<string>> elseExpressionFuncAsync) =>
             builder._elseExpression = elseExpressionFuncAsync;
     }
 }
