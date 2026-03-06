@@ -48,14 +48,18 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             var attributes = FxMapStatics.DistributedKeyTypes.Value;
             var typeData = ReflectionHelpers.GetFxMapTypesData(allPropertyDatas, attributes);
 
+            // Pre-group once by order — avoids O(N×M) re-scan per order level
+            var propertiesByOrder = allPropertyDatas
+                .GroupBy(x => x.PropertyInformation.Order)
+                .ToDictionary(g => g.Key, IEnumerable<PropertyDescriptor> (g) => g);
+
             var typesDataGrouped = typeData
                 .GroupBy(a => a.Order)
                 .OrderBy(a => a.Key);
 
             foreach (var mappableTypes in typesDataGrouped)
             {
-                var orderedProperties = allPropertyDatas
-                    .Where(x => x.PropertyInformation.Order == mappableTypes.Key);
+                var orderedProperties = propertiesByOrder.GetValueOrDefault(mappableTypes.Key, []);
                 var tasks = mappableTypes.Select(async x =>
                 {
                     var emptyResponse = (FxMapAttributeType: x.DistributedKeyType, Response: _emptyResponse);
@@ -69,13 +73,13 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
                     var requestCt = new RequestContext([], token);
 
-                    // Resolve conditional expressions and store on PropertyInformation
+                    // Resolve conditional expressions and store on PropertyDescriptor (request-scoped)
                     foreach (var a in accessors)
-                        a.PropertyInformation.EffectiveExpression = await a.PropertyInformation
+                        a.EffectiveExpression = await a.PropertyInformation
                             .ResolveExpression(serviceProvider, token);
 
                     var expressions = accessors
-                        .Select(a => a.PropertyInformation.EffectiveExpression);
+                        .Select(a => a.EffectiveExpression);
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
                         new DataFetchQuery([..selectorIds], [..expressions]), requestCt);

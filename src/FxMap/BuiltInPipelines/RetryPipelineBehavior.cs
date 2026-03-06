@@ -25,6 +25,7 @@ internal sealed class RetryPipelineBehavior<TDistributedKey> : ISendPipelineBeha
     {
         var retryPolicy = FxMapStatics.RetryPolicy;
         if (retryPolicy is null) return await next.Invoke();
+        var ct = requestContext.CancellationToken;
         try
         {
             return await next.Invoke();
@@ -33,6 +34,7 @@ internal sealed class RetryPipelineBehavior<TDistributedKey> : ISendPipelineBeha
         {
             foreach (var retryCount in Enumerable.Range(1, retryPolicy.RetryCount))
             {
+                ct.ThrowIfCancellationRequested();
                 try
                 {
                     return await next.Invoke();
@@ -43,7 +45,7 @@ internal sealed class RetryPipelineBehavior<TDistributedKey> : ISendPipelineBeha
                     if (retryPolicy.SleepDurationProvider is { } sleepDurationProvider)
                     {
                         retryAfter = sleepDurationProvider.Invoke(retryCount);
-                        await Task.Delay(sleepDurationProvider.Invoke(retryCount));
+                        await Task.Delay(retryAfter, ct);
                     }
 
                     retryPolicy.OnRetry?.Invoke(ex, retryAfter);

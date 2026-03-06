@@ -35,6 +35,7 @@ public static class FxMapStatics
         FluentConfigStore.Clear();
         EntitiesConfigurations = CreateEntitiesConfigurationsLazy();
         DistributedKeyTypes = CreateDistributedKeyTypesLazy();
+        DistributedKeyMapHandlers = CreateDistributedKeyMapHandlersLazy();
     }
 
     // internal static List<Assembly> DistributedKeysRegister { get; set; } = [];
@@ -92,7 +93,10 @@ public static class FxMapStatics
             .Select(a => a.GetDistributedKeyType()))
     ]);
 
-    public static Lazy<IReadOnlyDictionary<Type, Type>> DistributedKeyMapHandlers => new(() =>
+    public static Lazy<IReadOnlyDictionary<Type, Type>> DistributedKeyMapHandlers { get; private set; } =
+        CreateDistributedKeyMapHandlersLazy();
+
+    private static Lazy<IReadOnlyDictionary<Type, Type>> CreateDistributedKeyMapHandlersLazy() => new(() =>
     {
         var modelConfigurations = EntitiesConfigurations.Value;
         return modelConfigurations.Select(m =>

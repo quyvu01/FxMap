@@ -67,7 +67,7 @@ internal static class ReflectionHelpers
                 Order: mdp.PropertyInformation?.Order ?? 0))
             .Join(attributeTypes, gr => gr.Key.AttributeType, at => at,
                 (d, x) => new DistributedKeyInfo(x, d
-                    .Select(a => new PropertyMappingData(a.Model, a.PropertyInformation)), d.Key.Order));
+                    .Select(a => new PropertyMappingData(a)), d.Key.Order));
 
     internal static void MapResponseData(IEnumerable<PropertyDescriptor> mappableProperties,
         IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
@@ -85,7 +85,7 @@ internal static class ReflectionHelpers
             {
                 var value = dt.Data
                     .FxMapValues
-                    .FirstOrDefault(a => a.Expression == ap.PropertyInformation.EffectiveExpression)?.Value;
+                    .FirstOrDefault(a => a.Expression == ap.EffectiveExpression)?.Value;
                 if (value is null || ap.PropertyInfo is not { } propertyInfo) return value;
                 try
                 {

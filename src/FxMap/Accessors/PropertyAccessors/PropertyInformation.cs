@@ -32,8 +32,6 @@ public sealed record PropertyInformation(
     /// </summary>
     internal ConditionalExpression ConditionalExpression { get; init; }
 
-    internal string EffectiveExpression { get; set; }
-
     public async ValueTask<string> ResolveExpression(IServiceProvider serviceProvider, CancellationToken token)
     {
         if (ConditionalExpression != null)
