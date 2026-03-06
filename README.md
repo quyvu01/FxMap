@@ -94,35 +94,34 @@ ternary operators, and more, visit **[Expression Documentation](https://fxmapmap
 
 ## Packages
 
-| Package                                                      | Description                      | .NET     |
-|--------------------------------------------------------------|----------------------------------|----------|
+| Package                                                      | Description                      | .NET           |
+|--------------------------------------------------------------|----------------------------------|----------------|
 | **Core**                                                     |
-| [FxMap][FxMap.nuget]                                         | Core library                     | 8.0, 9.0 |
+| [FxMap][FxMap.nuget]                                         | Core library                     | 8.0, 9.0, 10.0 |
 | **Data Providers**                                           |
-| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget] | Entity Framework Core provider   | 8.0, 9.0 |
-| [FxMap.MongoDb][FxMap.MongoDb.nuget]                         | MongoDB provider                 | 8.0, 9.0 |
+| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget] | Entity Framework Core provider   | 8.0, 9.0, 10.0 |
+| [FxMap.MongoDb][FxMap.MongoDb.nuget]                         | MongoDB provider                 | 8.0, 9.0, 10.0 |
 | **Integrations**                                             |
-| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]               | HotChocolate GraphQL integration | 8.0, 9.0 |
+| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]               | HotChocolate GraphQL integration | 8.0, 9.0, 10.0 |
 | **Transports**                                               |
-| [FxMap.Grpc][FxMap.Grpc.nuget]                               | gRPC transport                   | 8.0, 9.0 |
-| [FxMap.Nats][FxMap.Nats.nuget]                               | NATS transport                   | 8.0, 9.0 |
-| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                       | RabbitMQ transport               | 8.0, 9.0 |
-| [FxMap.Kafka][FxMap.Kafka.nuget]                             | Kafka transport                  | 8.0, 9.0 |
-| [FxMap.Azure.ServiceBus][FxMap.Azure.ServiceBus.nuget]       | Azure Service Bus transport      | 8.0, 9.0 |
-| [FxMap.Aws.Sqs][FxMap.Aws.Sqs.nuget]                         | Amazon SQS transport             | 8.0, 9.0 |
+| [FxMap.Grpc][FxMap.Grpc.nuget]                               | gRPC transport                   | 8.0, 9.0, 10.0 |
+| [FxMap.Nats][FxMap.Nats.nuget]                               | NATS transport                   | 8.0, 9.0, 10.0 |
+| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                       | RabbitMQ transport               | 8.0, 9.0, 10.0 |
+| [FxMap.Kafka][FxMap.Kafka.nuget]                             | Kafka transport                  | 8.0, 9.0, 10.0 |
+| [FxMap.Azure.ServiceBus][FxMap.Azure.ServiceBus.nuget]       | Azure Service Bus transport      | 8.0, 9.0, 10.0 |
+| [FxMap.Aws.Sqs][FxMap.Aws.Sqs.nuget]                         | Amazon SQS transport             | 8.0, 9.0, 10.0 |
 | **Tooling**                                                  |
-| [FxMap.Analyzers][FxMap.Analyzers.nuget]                     | Roslyn analyzers                 | 8.0, 9.0 |
+| [FxMap.Analyzers][FxMap.Analyzers.nuget]                     | Roslyn analyzers                 | 8.0, 9.0, 10.0 |
 
 ## Documentation
 
 Visit **[fxmapmapper.net](https://fxmapmapper.net)** for:
 
-- [Getting Started Guide](https://fxmapmapper.net/docs/getting-started)
-- [Configuration Options](https://fxmapmapper.net/docs/configuration)
-- [Expression Language Reference](https://fxmapmapper.net/docs/expressions)
-- [Data Provider Setup](https://fxmapmapper.net/docs/providers)
-- [Transport Configuration](https://fxmapmapper.net/docs/transports)
-- [API Reference](https://fxmapmapper.net/docs/api)
+- [Getting Started Guide](https://fxmapper.net/#get-started)
+- [Configuration Options](https://fxmapper.net/docs/basic-configuration)
+- [Expression Language Reference](https://fxmapper.net/docs/expressions)
+- [Data Provider Setup](https://fxmapper.net/docs/data-providers/)
+- [Transport Configuration](https://fxmapper.net/docs/transports)
 
 ## Contributing
 
