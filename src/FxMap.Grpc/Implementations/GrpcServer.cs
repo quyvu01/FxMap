@@ -65,7 +65,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
                         throw new GrpcExceptions.CannotDeserializeDistributedKeyType(typeAssembly);
 
                     if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(attributeType, out var handlerType))
-                        throw new FxMapException.CannotFindHandlerForOfAttribute(attributeType);
+                        throw new FxMapException.CannotFindHandlerForDistributedKey(attributeType);
 
                     var modelArg = handlerType.GetGenericArguments()[0];
                     return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelArg, attributeType);

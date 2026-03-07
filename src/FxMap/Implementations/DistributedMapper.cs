@@ -28,16 +28,16 @@ namespace FxMap.Implementations;
 /// <param name="serviceProvider">The service provider for resolving transport handlers and pipelines.</param>
 internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDistributedMapper
 {
-    private int _currentNestingLevel;
     private readonly ItemsResponse<DataResponse> _emptyResponse = new([]);
 
     private static readonly ConcurrentDictionary<Type, Type> SendOrchestratorTypes = new();
 
     public async Task MapDataAsync(object value, CancellationToken token = default)
     {
+        var currentNestingLevel = 0;
         while (true)
         {
-            if (_currentNestingLevel >= FxMapStatics.MaxNestingDepth)
+            if (currentNestingLevel >= FxMapStatics.MaxNestingDepth)
             {
                 if (FxMapStatics.ThrowIfExceptions) throw new FxMapException.MaxNestingDepthReached();
                 return;
@@ -101,7 +101,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                     return acc;
                 });
             if (nextMappableData is not { Count: > 0 }) break;
-            _currentNestingLevel += 1;
+            currentNestingLevel += 1;
             value = nextMappableData;
         }
     }

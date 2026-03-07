@@ -57,7 +57,7 @@ public static class FxMapStatics
     /// <summary>
     /// Returns true if entity configurations have been registered via fluent configuration.
     /// </summary>
-    public static bool HasModelConfigurations => FluentConfigStore.EntityConfigs.Count > 0;
+    public static bool HasModelConfigurations => !FluentConfigStore.EntityConfigs.IsEmpty;
 
     public static Lazy<IReadOnlyCollection<EntityMapData>> EntitiesConfigurations { get; private set; } =
         CreateEntitiesConfigurationsLazy();
@@ -81,7 +81,7 @@ public static class FxMapStatics
             .ForEach(a =>
             {
                 if (a.Count() <= 1) return;
-                throw new FxMapException.OneAttributedHasBeenAssignToMultipleEntities(a.Key,
+                throw new FxMapException.DistributedKeyAssignedToMultipleEntities(a.Key,
                     [..a.Select(o => o.ModelType)]);
             });
         return models;

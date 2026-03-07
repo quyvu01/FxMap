@@ -126,7 +126,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             {
                 var fxMapAttributeType = Type.GetType(attributeAssembly)!;
                 if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(fxMapAttributeType, out var handlerType))
-                    throw new FxMapException.CannotFindHandlerForOfAttribute(fxMapAttributeType);
+                    throw new FxMapException.CannotFindHandlerForDistributedKey(fxMapAttributeType);
                 var modelType = handlerType.GetGenericArguments()[0];
                 return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, fxMapAttributeType);
             });

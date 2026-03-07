@@ -24,8 +24,8 @@ public static class FxMapException
     public sealed class TypeIsNotCustomExpressionPipelineBehavior(Type type) :
         Exception($"{type.Name} must implement {typeof(ICustomExpressionBehavior<>).FullName}!");
 
-    public sealed class CannotFindHandlerForOfAttribute(Type type)
-        : Exception($"Cannot find handler for FxMapAttribute type: {type.Name}!");
+    public sealed class CannotFindHandlerForDistributedKey(Type type)
+        : Exception($"Cannot find handler for distributedKey: {type.Name}!");
 
     public sealed class StronglyTypeConfigurationImplementationMustNotBeGeneric(Type type)
         : Exception($"Strongly type configuration implementation must not be generic type: {type.Name}!");
@@ -33,9 +33,9 @@ public static class FxMapException
     public sealed class StronglyTypeConfigurationMustNotBeNull()
         : Exception("Strongly type Id configuration must not be null!");
 
-    public sealed class AttributeHasBeenConfiguredForModel(Type modelType, Type attributeType)
+    public sealed class DistributedKeyHasBeenConfiguredForModel(Type modelType, Type distributedKeyType)
         : Exception(
-            $"FxMapAttribute: {attributeType.FullName} has been configured for {modelType.FullName} at least twice!");
+            $"Distributed key: {distributedKeyType.FullName} has been configured for {modelType.FullName} at least twice!");
 
     public sealed class MaxNestingDepthReached()
         : Exception(
@@ -65,21 +65,15 @@ public static class FxMapException
     public sealed class NavigatorIncorrect(string navigator, string parentType)
         : Exception($"Object: '{parentType}' does not include navigator: {navigator}");
 
-    public sealed class InvalidParameter(string expression)
-        : Exception(
-            $"Expression: '{expression}' is must be look like this: '${{parameter|default}}'(i.e: '${{index|0}}')");
-
     public sealed class AmbiguousHandlers(Type interfaceType) :
         Exception($"Ambiguous handlers for interface '{interfaceType.FullName}'.");
-
-    public sealed class NoHandlerForAttribute(Type type) : Exception($"There is no handler for '{type.FullName}'!");
 
     public sealed class DuplicatedNameByExposedName(Type type, string exposedName) : Exception(
         $"ExposedName: {exposedName} cannot be duplicated for type '{type.FullName}'.");
 
-    public sealed class OneAttributedHasBeenAssignToMultipleEntities(Type attributeType, Type[] entityTypes)
-        : Exception(
-            $"Attribute: {attributeType.FullName} has been assign to multiple entities: {string.Join(", ", entityTypes.Select(t => t.FullName))}");
+    public sealed class DistributedKeyAssignedToMultipleEntities(Type distributedKeyType, Type[] entityTypes)
+        : Exception($"DistributedKey: {distributedKeyType.FullName} has been assign to multiple entities: " +
+                    $"{string.Join(", ", entityTypes.Select(t => t.FullName))}");
 
     public sealed class InvalidParameterType(string message) : Exception(message);
 
