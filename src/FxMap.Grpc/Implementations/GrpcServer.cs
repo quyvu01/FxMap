@@ -34,7 +34,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
     public override async Task<FxMapItemsGrpcResponse> GetItems(GetFxMapGrpcQuery request, ServerCallContext context)
     {
         // Extract attribute name for telemetry
-        var attributeName = request.AttributeAssemblyType?.Split(',')[0].Split('.').Last() ?? "Unknown";
+        var attributeName = request.DistributedKeyAssemblyType?.Split(',')[0].Split('.').Last() ?? "Unknown";
 
         // Extract parent trace context from gRPC metadata
         ActivityContext parentContext = default;
@@ -58,7 +58,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             FxMapDiagnostics.MessageReceive(TransportName, "grpc-endpoint", Activity.Current?.Id);
 
             var receivedPipelinesType = ReceivedPipelineTypes.Value
-                .GetOrAdd(request.AttributeAssemblyType, static typeAssembly =>
+                .GetOrAdd(request.DistributedKeyAssemblyType, static typeAssembly =>
                 {
                     var attributeType = Type.GetType(typeAssembly);
                     if (attributeType is null)
@@ -145,13 +145,13 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
         }
     }
 
-    public override Task<AttributeTypeResponse> GeTDistributedKeys(GeTDistributedKeysQuery request, ServerCallContext context)
+    public override Task<DistributedKeyTypeResponse> GetDistributedKeys(GetDistributedKeysQuery request, ServerCallContext context)
     {
         var fxMapConfigureStorage = FxMapStatics.EntitiesConfigurations;
-        var response = new AttributeTypeResponse();
+        var response = new DistributedKeyTypeResponse();
         var attributeTypes = fxMapConfigureStorage.Value
             .Select(a => a.DistributedKeyType.GetAssemblyName());
-        response.AttributeTypes.AddRange(attributeTypes);
+        response.DistributedKeyTypes.AddRange(attributeTypes);
         return Task.FromResult(response);
     }
 }

@@ -141,7 +141,7 @@ public static class GrpcExtensions
         cancellationTokenSource.CancelAfter(DefaultRequestTimeout);
         grpcQuery.SelectorIds.AddRange(query.SelectorIds ?? []);
         grpcQuery.Expression = JsonSerializer.Serialize(query.Expressions);
-        grpcQuery.AttributeAssemblyType = attributeType.GetAssemblyName();
+        grpcQuery.DistributedKeyAssemblyType = attributeType.GetAssemblyName();
         return await client.GetItemsAsync(grpcQuery, metadata, cancellationToken: cancellationTokenSource.Token);
     }
 
@@ -151,12 +151,12 @@ public static class GrpcExtensions
         {
             var channel = GetOrCreateChannel(serverHost);
             var client = new FxMapTransportService.FxMapTransportServiceClient(channel);
-            var query = new GeTDistributedKeysQuery();
+            var query = new GetDistributedKeysQuery();
             using var cancellationTokenSource = CancellationTokenSource
                 .CreateLinkedTokenSource(context?.CancellationToken ?? CancellationToken.None);
             cancellationTokenSource.CancelAfter(DefaultRequestTimeout);
-            var response = await client.GeTDistributedKeysAsync(query, cancellationToken: cancellationTokenSource.Token);
-            return new AttributesProbe(true, [..response.AttributeTypes.Select(Type.GetType)]);
+            var response = await client.GetDistributedKeysAsync(query, cancellationToken: cancellationTokenSource.Token);
+            return new AttributesProbe(true, [..response.DistributedKeyTypes.Select(Type.GetType)]);
         }
         catch (Exception)
         {
