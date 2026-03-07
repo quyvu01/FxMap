@@ -34,25 +34,25 @@ internal sealed class AzureServiceBusSupervisorWorker(
         try
         {
             // Create queues and register all Azure Service Bus servers
-            foreach (var (attributeType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
+            foreach (var (distributedKeyType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
             {
                 // Create queues first
-                var requestQueue = attributeType.GetAzureServiceBusRequestQueue();
-                var replyQueue = attributeType.GetAzureServiceBusReplyQueue();
+                var requestQueue = distributedKeyType.GetAzureServiceBusRequestQueue();
+                var replyQueue = distributedKeyType.GetAzureServiceBusReplyQueue();
                 await CreateQueueIfNotExistedAsync(requestQueue, stoppingToken);
                 await CreateQueueIfNotExistedAsync(replyQueue, stoppingToken);
 
                 var modelArg = handlerType.GetGenericArguments()[0];
-                var serverType = typeof(IAzureServiceBusServer<,>).MakeGenericType(modelArg, attributeType);
+                var serverType = typeof(IAzureServiceBusServer<,>).MakeGenericType(modelArg, distributedKeyType);
                 var server = serviceProvider.GetService(serverType);
 
                 if (server is not IRequestServer requestServer)
                 {
-                    logger.LogWarning("Failed to resolve Azure Service Bus server for {Attribute}", attributeType.Name);
+                    logger.LogWarning("Failed to resolve Azure Service Bus server for {DistributedKey}", distributedKeyType.Name);
                     continue;
                 }
 
-                var serverId = $"AzureServiceBusServer<{modelArg.Name},{attributeType.Name}>";
+                var serverId = $"AzureServiceBusServer<{modelArg.Name},{distributedKeyType.Name}>";
                 _supervisor.RegisterServer(serverId, requestServer);
             }
 

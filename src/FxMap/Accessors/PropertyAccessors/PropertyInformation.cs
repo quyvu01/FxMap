@@ -14,7 +14,7 @@ namespace FxMap.Accessors.PropertyAccessors;
 /// The expression string used to map or project the property value.
 /// Can be <c>null</c> if no expression is specified (uses default property).
 /// </param>
-/// <param name="RuntimeAttributeType">
+/// <param name="RuntimeDistributedKeyType">
 /// The runtime <see cref="Type"/> of the <see cref="IDistributedKey"/> associated with this property.
 /// </param>
 /// <param name="RequiredAccessor">
@@ -24,7 +24,7 @@ namespace FxMap.Accessors.PropertyAccessors;
 public sealed record PropertyInformation(
     int Order,
     string Expression,
-    Type RuntimeAttributeType,
+    Type RuntimeDistributedKeyType,
     IPropertyAccessor RequiredAccessor)
 {
     /// <summary>

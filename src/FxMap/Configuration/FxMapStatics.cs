@@ -71,8 +71,8 @@ public static class FxMapStatics
         [
             ..FluentConfigStore.EntityConfigs.Values.Select(cfg =>
             {
-                var attributeType = cfg.GetDistributedKeyType();
-                return new EntityMapData(cfg.ModelType, attributeType,
+                var distributedKeyType = cfg.GetDistributedKeyType();
+                return new EntityMapData(cfg.ModelType, distributedKeyType,
                     new FxMapEntityConfig(cfg.IdPropertyName, cfg.DefaultPropertyName));
             })
         ];

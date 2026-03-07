@@ -95,9 +95,9 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
 
         foreach (var group in ruleGroups)
         {
-            var attributeType = FluentConfigStore.ResolveDistributedKeyType(group);
+            var distributedKeyType = FluentConfigStore.ResolveDistributedKeyType(group);
             var selectorProperty = properties.FirstOrDefault(p => p.Name == group.SelectorPropertyName);
-            if (selectorProperty is null || attributeType is null) continue;
+            if (selectorProperty is null || distributedKeyType is null) continue;
 
             foreach (var rule in group.Rules)
             {
@@ -109,7 +109,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
                     TargetPropertyInfo = targetProperty,
                     Expression = rule.Expression,
                     SelectorPropertyName = selectorProperty.Name,
-                    RuntimeDistributedKeyType = attributeType,
+                    RuntimeDistributedKeyType = distributedKeyType,
                     RequiredPropertyInfo = selectorProperty,
                     ConditionalExpression = rule.ConditionalExpression
                 };

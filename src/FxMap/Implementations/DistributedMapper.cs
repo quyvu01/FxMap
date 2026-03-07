@@ -62,7 +62,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 var orderedProperties = propertiesByOrder.GetValueOrDefault(mappableTypes.Key, []);
                 var tasks = mappableTypes.Select(async x =>
                 {
-                    var emptyResponse = (FxMapAttributeType: x.DistributedKeyType, Response: _emptyResponse);
+                    var emptyResponse = (DistributedKeyType: x.DistributedKeyType, Response: _emptyResponse);
                     var accessors = x.Accessors.ToList();
                     if (accessors is not { Count: > 0 }) return emptyResponse;
                     var selectorIds = new HashSet<string>(accessors
@@ -83,7 +83,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
                         new DataFetchQuery([..selectorIds], [..expressions]), requestCt);
-                    return (FxMapAttributeType: x.DistributedKeyType, Response: result);
+                    return (DistributedKeyType: x.DistributedKeyType, Response: result);
                 });
                 var fetchedResult = await Task.WhenAll(tasks);
                 ReflectionHelpers.MapResponseData(orderedProperties, fetchedResult);

@@ -21,7 +21,7 @@ namespace FxMap.RabbitMq.Implementations;
 
 internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServer
 {
-    private static readonly ConcurrentDictionary<string, Type> AttributeAssemblyCached = new();
+    private static readonly ConcurrentDictionary<string, Type> DistributedKeyAssemblyCached = new();
     private readonly ILogger<RabbitMqServer> _logger = serviceProvider.GetService<ILogger<RabbitMqServer>>();
 
     // Backpressure: limit concurrent processing (configurable via FxMapConfigurator.SetMaxConcurrentProcessing)
@@ -57,10 +57,10 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
         await _channel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false,
             autoDelete: false, arguments: null, cancellationToken: cancellationToken);
 
-        var attributeTypes = FxMapStatics.DistributedKeyMapHandlers.Value.Keys.ToList();
-        if (attributeTypes is not { Count: > 0 }) return;
+        var distributedKeyTypes = FxMapStatics.DistributedKeyMapHandlers.Value.Keys.ToList();
+        if (distributedKeyTypes is not { Count: > 0 }) return;
 
-        foreach (var exchangeName in attributeTypes.Select(attributeType => attributeType.GetExchangeName()))
+        foreach (var exchangeName in distributedKeyTypes.Select(distributedKeyType => distributedKeyType.GetExchangeName()))
         {
             await _channel.ExchangeDeclareAsync(exchangeName, type: ExchangeType.Direct,
                 cancellationToken: cancellationToken);
@@ -102,10 +102,10 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
 
         // Parse message to get attribute name
         var message = JsonSerializer.Deserialize<FxMapRequest>(Encoding.UTF8.GetString(body));
-        var attributeName = props.Type?.Split(',')[0].Split('.').Last() ?? "Unknown";
+        var distributedKeyName = props.Type?.Split(',')[0].Split('.').Last() ?? "Unknown";
 
         // Start server-side activity
-        using var activity = FxMapActivitySource.StartServerActivity(attributeName, parentContext);
+        using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
@@ -122,13 +122,13 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             // Emit diagnostic event
             FxMapDiagnostics.MessageReceive(TransportName, ea.Exchange, props.CorrelationId);
 
-            var receivedPipelineOrchestrator = AttributeAssemblyCached.GetOrAdd(props.Type, attributeAssembly =>
+            var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(props.Type, distributedKeyAssembly =>
             {
-                var fxMapAttributeType = Type.GetType(attributeAssembly)!;
-                if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(fxMapAttributeType, out var handlerType))
-                    throw new FxMapException.CannotFindHandlerForDistributedKey(fxMapAttributeType);
+                var distributedKeyType = Type.GetType(distributedKeyAssembly)!;
+                if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(distributedKeyType, out var handlerType))
+                    throw new FxMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
                 var modelType = handlerType.GetGenericArguments()[0];
-                return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, fxMapAttributeType);
+                return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, distributedKeyType);
             });
 
             using var scope = serviceProvider.CreateScope();
@@ -150,7 +150,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
 
-            FxMapMetrics.RecordRequest(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds, itemCount);
+            FxMapMetrics.RecordRequest(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds, itemCount);
 
             activity?.SetFxMapTags(message?.Expressions, message?.SelectorIds, itemCount);
 
@@ -160,11 +160,11 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
         {
             stopwatch.Stop();
 
-            _logger?.LogWarning("Request timeout for <{Attribute}>", props.Type);
+            _logger?.LogWarning("Request timeout for <{DistributedKey}>", props.Type);
             var response = Result.Failed(new TimeoutException($"Request timeout for {props.Type}"));
 
             // Record timeout as error
-            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 "TimeoutException");
 
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
@@ -175,13 +175,13 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
         {
             stopwatch.Stop();
 
-            _logger?.LogError(e, "Error while responding <{Attribute}>", props.Type);
+            _logger?.LogError(e, "Error while responding <{DistributedKey}>", props.Type);
             var response = Result.Failed(e);
 
             // Record error
-            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
+            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
 
-            FxMapDiagnostics.RequestError(attributeName, TransportName, e, stopwatch.Elapsed);
+            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);

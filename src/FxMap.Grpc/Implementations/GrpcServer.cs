@@ -33,15 +33,15 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
 
     public override async Task<FxMapItemsGrpcResponse> GetItems(GetFxMapGrpcQuery request, ServerCallContext context)
     {
-        // Extract attribute name for telemetry
-        var attributeName = request.DistributedKeyAssemblyType?.Split(',')[0].Split('.').Last() ?? "Unknown";
+        // Extract distributedKey name for telemetry
+        var distributedKeyName = request.DistributedKeyAssemblyType?.Split(',')[0].Split('.').Last() ?? "Unknown";
 
         // Extract parent trace context from gRPC metadata
         ActivityContext parentContext = default;
         var traceparentHeader = context.RequestHeaders.FirstOrDefault(h => h.Key == "traceparent");
         if (traceparentHeader != null) ActivityContext.TryParse(traceparentHeader.Value, null, out parentContext);
 
-        using var activity = FxMapActivitySource.StartServerActivity(attributeName, parentContext);
+        using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
@@ -60,15 +60,15 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             var receivedPipelinesType = ReceivedPipelineTypes.Value
                 .GetOrAdd(request.DistributedKeyAssemblyType, static typeAssembly =>
                 {
-                    var attributeType = Type.GetType(typeAssembly);
-                    if (attributeType is null)
+                    var distributedKeyType = Type.GetType(typeAssembly);
+                    if (distributedKeyType is null)
                         throw new GrpcExceptions.CannotDeserializeDistributedKeyType(typeAssembly);
 
-                    if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(attributeType, out var handlerType))
-                        throw new FxMapException.CannotFindHandlerForDistributedKey(attributeType);
+                    if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(distributedKeyType, out var handlerType))
+                        throw new FxMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
 
                     var modelArg = handlerType.GetGenericArguments()[0];
-                    return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelArg, attributeType);
+                    return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelArg, distributedKeyType);
                 });
 
             // Use scoped service to prevent concurrent issues (e.g., with DbContext)
@@ -99,7 +99,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             var itemCount = response.Items?.Length ?? 0;
 
             FxMapMetrics.RecordRequest(
-                attributeName,
+                distributedKeyName,
                 TransportName,
                 stopwatch.Elapsed.TotalMilliseconds,
                 itemCount);
@@ -114,10 +114,10 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
         {
             stopwatch.Stop();
 
-            _logger?.LogWarning("Request timeout for gRPC GetItems: {AttributeType}", attributeName);
+            _logger?.LogWarning("Request timeout for gRPC GetItems: {DistributedKeyType}", distributedKeyName);
 
             FxMapMetrics.RecordError(
-                attributeName,
+                distributedKeyName,
                 TransportName,
                 stopwatch.Elapsed.TotalMilliseconds,
                 "TimeoutException");
@@ -125,18 +125,18 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
             throw new RpcException(new Status(StatusCode.DeadlineExceeded,
-                $"Request timeout for {attributeName}"));
+                $"Request timeout for {distributedKeyName}"));
         }
         catch (Exception e)
         {
             stopwatch.Stop();
 
-            _logger?.LogError(e, "Error while execute get items: {RequesTDistributedKeyAssemblyType}", attributeName);
+            _logger?.LogError(e, "Error while execute get items: {DistributedKeyType}", distributedKeyName);
 
-            FxMapMetrics.RecordError(attributeName, TransportName,
+            FxMapMetrics.RecordError(distributedKeyName, TransportName,
                 stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
 
-            FxMapDiagnostics.RequestError(attributeName, TransportName, e, stopwatch.Elapsed);
+            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
@@ -149,9 +149,9 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
     {
         var fxMapConfigureStorage = FxMapStatics.EntitiesConfigurations;
         var response = new DistributedKeyTypeResponse();
-        var attributeTypes = fxMapConfigureStorage.Value
+        var distributedKeyTypes = fxMapConfigureStorage.Value
             .Select(a => a.DistributedKeyType.GetAssemblyName());
-        response.DistributedKeyTypes.AddRange(attributeTypes);
+        response.DistributedKeyTypes.AddRange(distributedKeyTypes);
         return Task.FromResult(response);
     }
 }

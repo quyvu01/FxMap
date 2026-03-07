@@ -25,7 +25,7 @@ public static class FxMapException
         Exception($"{type.Name} must implement {typeof(ICustomExpressionBehavior<>).FullName}!");
 
     public sealed class CannotFindHandlerForDistributedKey(Type type)
-        : Exception($"Cannot find handler for distributedKey: {type.Name}!");
+        : Exception($"Cannot find handler for DistributedKey type: {type.Name}!");
 
     public sealed class StronglyTypeConfigurationImplementationMustNotBeGeneric(Type type)
         : Exception($"Strongly type configuration implementation must not be generic type: {type.Name}!");
@@ -35,7 +35,7 @@ public static class FxMapException
 
     public sealed class DistributedKeyHasBeenConfiguredForModel(Type modelType, Type distributedKeyType)
         : Exception(
-            $"Distributed key: {distributedKeyType.FullName} has been configured for {modelType.FullName} at least twice!");
+            $"DistributedKey: {distributedKeyType.FullName} has been configured for {modelType.FullName} at least twice!");
 
     public sealed class MaxNestingDepthReached()
         : Exception(
@@ -68,12 +68,15 @@ public static class FxMapException
     public sealed class AmbiguousHandlers(Type interfaceType) :
         Exception($"Ambiguous handlers for interface '{interfaceType.FullName}'.");
 
+    public sealed class NoHandlerForDistributedKey(Type type) : Exception($"There is no handler for '{type.FullName}'!");
+
+
     public sealed class DuplicatedNameByExposedName(Type type, string exposedName) : Exception(
         $"ExposedName: {exposedName} cannot be duplicated for type '{type.FullName}'.");
 
     public sealed class DistributedKeyAssignedToMultipleEntities(Type distributedKeyType, Type[] entityTypes)
-        : Exception($"DistributedKey: {distributedKeyType.FullName} has been assign to multiple entities: " +
-                    $"{string.Join(", ", entityTypes.Select(t => t.FullName))}");
+        : Exception(
+            $"DistributedKey: {distributedKeyType.FullName} has been assigned to multiple entities: {string.Join(", ", entityTypes.Select(t => t.FullName))}");
 
     public sealed class InvalidParameterType(string message) : Exception(message);
 

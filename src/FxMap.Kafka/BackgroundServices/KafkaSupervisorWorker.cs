@@ -27,19 +27,19 @@ internal sealed class KafkaSupervisorWorker(
         try
         {
             // Register all Kafka servers
-            foreach (var (attributeType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
+            foreach (var (distributedKeyType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
             {
                 var modelType = handlerType.GetGenericArguments()[0];
-                var serverType = typeof(IKafkaServer<,>).MakeGenericType(modelType, attributeType);
+                var serverType = typeof(IKafkaServer<,>).MakeGenericType(modelType, distributedKeyType);
                 var server = serviceProvider.GetService(serverType);
 
                 if (server is not IRequestServer requestServer)
                 {
-                    logger.LogWarning("Failed to resolve Kafka server for {Attribute}", attributeType.Name);
+                    logger.LogWarning("Failed to resolve Kafka server for {DistributedKey}", distributedKeyType.Name);
                     continue;
                 }
 
-                var serverId = $"KafkaServer<{modelType.Name},{attributeType.Name}>";
+                var serverId = $"KafkaServer<{modelType.Name},{distributedKeyType.Name}>";
                 _supervisor.RegisterServer(serverId, requestServer);
             }
 
