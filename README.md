@@ -9,7 +9,7 @@ public string UserEmail { get; set; }
 FxMap is an open-source library focused on FluentAPI-based data mapping. It streamlines data handling across services,
 reduces boilerplate code, and improves maintainability.
 
-**[Full Documentation](https://fxmapmapper.net)** | **[Getting Started](https://fxmapmapper.net/docs/getting-started)** |**[Expression Language](https://fxmapmapper.net/docs/expressions)**
+**[Full Documentation](https://fxmapper.net)** | **[Getting Started](https://fxmapper.net/docs/getting-started)** |**[Expression Language](https://fxmapper.net/docs/expressions)**
 
 > [!WARNING]
 > All FxMap.* packages need to have the same version.
@@ -90,7 +90,7 @@ public class UserResponseProfile : ProfileOf<UserResponse>
 ```
 
 For complete expression syntax including filters, indexers, functions, aggregations, boolean functions, coalesce,
-ternary operators, and more, visit **[Expression Documentation](https://fxmapmapper.net/docs/expressions)**.
+ternary operators, and more, visit **[Expression Documentation](https://fxmapper.net/docs/expressions)**.
 
 ## Packages
 
@@ -115,13 +115,14 @@ ternary operators, and more, visit **[Expression Documentation](https://fxmapmap
 
 ## Documentation
 
-Visit **[fxmapmapper.net](https://fxmapmapper.net)** for:
+Visit **[fxmapmapper.net](https://fxmapper.net)** for:
 
-- [Getting Started Guide](https://fxmapper.net/#get-started)
-- [Configuration Options](https://fxmapper.net/docs/basic-configuration)
+- [Getting Started Guide](https://fxmapper.net/docs/getting-started)
+- [Configuration Options](https://fxmapper.net/docs/configuration)
 - [Expression Language Reference](https://fxmapper.net/docs/expressions)
-- [Data Provider Setup](https://fxmapper.net/docs/data-providers/)
+- [Data Provider Setup](https://fxmapper.net/docs/providers)
 - [Transport Configuration](https://fxmapper.net/docs/transports)
+- [API Reference](https://fxmapper.net/docs/api)
 
 ## Contributing
 
