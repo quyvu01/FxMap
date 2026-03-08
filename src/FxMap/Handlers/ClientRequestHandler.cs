@@ -18,7 +18,7 @@ internal sealed class ClientRequestHandler<TDistributedKey>(IServiceProvider ser
     public async Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TDistributedKey> requestContext)
     {
         var client = serviceProvider.GetService<IRequestClient>();
-        if (client is null) throw new FxMapException.NoHandlerForAttribute(typeof(TDistributedKey));
+        if (client is null) throw new FxMapException.NoHandlerForDistributedKey(typeof(TDistributedKey));
         var result = await client.RequestAsync(requestContext);
         return result;
     }

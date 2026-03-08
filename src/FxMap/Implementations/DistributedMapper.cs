@@ -28,16 +28,16 @@ namespace FxMap.Implementations;
 /// <param name="serviceProvider">The service provider for resolving transport handlers and pipelines.</param>
 internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDistributedMapper
 {
-    private int _currentNestingLevel;
     private readonly ItemsResponse<DataResponse> _emptyResponse = new([]);
 
     private static readonly ConcurrentDictionary<Type, Type> SendOrchestratorTypes = new();
 
     public async Task MapDataAsync(object value, CancellationToken token = default)
     {
+        var currentNestingLevel = 0;
         while (true)
         {
-            if (_currentNestingLevel >= FxMapStatics.MaxNestingDepth)
+            if (currentNestingLevel >= FxMapStatics.MaxNestingDepth)
             {
                 if (FxMapStatics.ThrowIfExceptions) throw new FxMapException.MaxNestingDepthReached();
                 return;
@@ -48,17 +48,21 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             var attributes = FxMapStatics.DistributedKeyTypes.Value;
             var typeData = ReflectionHelpers.GetFxMapTypesData(allPropertyDatas, attributes);
 
+            // Pre-group once by order — avoids O(N×M) re-scan per order level
+            var propertiesByOrder = allPropertyDatas
+                .GroupBy(x => x.PropertyInformation.Order)
+                .ToDictionary(g => g.Key, IEnumerable<PropertyDescriptor> (g) => g);
+
             var typesDataGrouped = typeData
                 .GroupBy(a => a.Order)
                 .OrderBy(a => a.Key);
 
             foreach (var mappableTypes in typesDataGrouped)
             {
-                var orderedProperties = allPropertyDatas
-                    .Where(x => x.PropertyInformation.Order == mappableTypes.Key);
+                var orderedProperties = propertiesByOrder.GetValueOrDefault(mappableTypes.Key, []);
                 var tasks = mappableTypes.Select(async x =>
                 {
-                    var emptyResponse = (FxMapAttributeType: x.DistributedKeyType, Response: _emptyResponse);
+                    var emptyResponse = (DistributedKeyType: x.DistributedKeyType, Response: _emptyResponse);
                     var accessors = x.Accessors.ToList();
                     if (accessors is not { Count: > 0 }) return emptyResponse;
                     var selectorIds = new HashSet<string>(accessors
@@ -69,17 +73,17 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
                     var requestCt = new RequestContext([], token);
 
-                    // Resolve conditional expressions and store on PropertyInformation
+                    // Resolve conditional expressions and store on PropertyDescriptor (request-scoped)
                     foreach (var a in accessors)
-                        a.PropertyInformation.EffectiveExpression = await a.PropertyInformation
+                        a.EffectiveExpression = await a.PropertyInformation
                             .ResolveExpression(serviceProvider, token);
 
                     var expressions = accessors
-                        .Select(a => a.PropertyInformation.EffectiveExpression);
+                        .Select(a => a.EffectiveExpression);
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
                         new DataFetchQuery([..selectorIds], [..expressions]), requestCt);
-                    return (FxMapAttributeType: x.DistributedKeyType, Response: result);
+                    return (DistributedKeyType: x.DistributedKeyType, Response: result);
                 });
                 var fetchedResult = await Task.WhenAll(tasks);
                 ReflectionHelpers.MapResponseData(orderedProperties, fetchedResult);
@@ -97,7 +101,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                     return acc;
                 });
             if (nextMappableData is not { Count: > 0 }) break;
-            _currentNestingLevel += 1;
+            currentNestingLevel += 1;
             value = nextMappableData;
         }
     }

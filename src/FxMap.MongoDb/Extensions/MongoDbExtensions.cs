@@ -49,9 +49,9 @@ public static class MongoDbExtensions
             .ForEach(m =>
             {
                 var modelType = m.ModelType;
-                var attributeType = m.DistributedKeyType;
-                var serviceType = FxMapStatics.QueryOfHandlerType.MakeGenericType(modelType, attributeType);
-                var implementedType = MongoDbQueryOfHandlerType.MakeGenericType(modelType, attributeType);
+                var distributedKeyType = m.DistributedKeyType;
+                var serviceType = FxMapStatics.QueryOfHandlerType.MakeGenericType(modelType, distributedKeyType);
+                var implementedType = MongoDbQueryOfHandlerType.MakeGenericType(modelType, distributedKeyType);
                 serviceCollection.AddTransient(serviceType, implementedType);
             });
         return serviceInjector;

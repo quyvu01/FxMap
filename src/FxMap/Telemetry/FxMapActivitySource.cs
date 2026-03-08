@@ -43,7 +43,7 @@ public static class FxMapActivitySource
         if (activity == null) return null;
 
         // OpenTelemetry semantic conventions
-        activity.SetTag(Constants.Telemetry.TagFxMapAttribute, typeof(TDistributedKey).Name);
+        activity.SetTag(Constants.Telemetry.TagFxMapDistributedKey, typeof(TDistributedKey).Name);
         activity.SetTag(Constants.Telemetry.TagFxMapTransport, transport);
         activity.SetTag(Constants.Telemetry.TagFxMapVersion, Constants.Version);
 
@@ -53,7 +53,7 @@ public static class FxMapActivitySource
     /// <summary>
     /// Starts a server-side activity for processing an FxMap request.
     /// </summary>
-    /// <param name="attributeName">The name of the distributed key being processed.</param>
+    /// <param name="distributedKeyName">The name of the distributed key being processed.</param>
     /// <param name="parentContext">The parent activity context from the incoming request.</param>
     /// <param name="operationName">Optional custom operation name. Defaults to "FxMap.Process".</param>
     /// <returns>An Activity if tracing is enabled, otherwise null.</returns>
@@ -61,7 +61,7 @@ public static class FxMapActivitySource
     /// Server activities represent the processing of incoming requests.
     /// The parentContext should be extracted from the incoming message headers.
     /// </remarks>
-    public static Activity StartServerActivity(string attributeName, ActivityContext parentContext = default,
+    public static Activity StartServerActivity(string distributedKeyName, ActivityContext parentContext = default,
         string operationName = null)
     {
         var activity = Source.StartActivity(
@@ -71,7 +71,7 @@ public static class FxMapActivitySource
 
         if (activity == null) return null;
 
-        activity.SetTag(Constants.Telemetry.TagFxMapAttribute, attributeName);
+        activity.SetTag(Constants.Telemetry.TagFxMapDistributedKey, distributedKeyName);
         activity.SetTag(Constants.Telemetry.TagFxMapVersion, Constants.Version);
 
         return activity;
@@ -102,7 +102,7 @@ public static class FxMapActivitySource
 
         if (activity == null) return null;
 
-        activity.SetTag(Constants.Telemetry.TagFxMapAttribute, typeof(TDistributedKey).Name);
+        activity.SetTag(Constants.Telemetry.TagFxMapDistributedKey, typeof(TDistributedKey).Name);
         activity.SetTag(Constants.Telemetry.TagFxMapVersion, Constants.Version);
         activity.SetTag(Constants.Telemetry.TagDbSystem, dbSystem);
 

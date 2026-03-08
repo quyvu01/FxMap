@@ -59,9 +59,9 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
             .ToArray();
         var handler = executableHandlers.Length switch
         {
-            0 => throw new FxMapException.CannotFindHandlerForOfAttribute(typeof(TDistributedKey)),
+            0 => throw new FxMapException.CannotFindHandlerForDistributedKey(typeof(TDistributedKey)),
             1 => executableHandlers.First(),
-            _ => throw new FxMapException.AttributeHasBeenConfiguredForModel(typeof(TModel), typeof(TDistributedKey)),
+            _ => throw new FxMapException.DistributedKeyHasBeenConfiguredForModel(typeof(TModel), typeof(TDistributedKey)),
         };
 
         // Deserialize expressions from Expression, we handle the custom expressions and original expression as well

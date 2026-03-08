@@ -16,7 +16,7 @@ public static class Constants
         public const string OperationProcess = "fxmap.process";
 
         // OpenTelemetry semantic convention tag keys (activity tags) - fxmap.* prefix
-        public const string TagFxMapAttribute = "fxmap.attribute";
+        public const string TagFxMapDistributedKey = "fxmap.distributed_key";
         public const string TagFxMapTransport = "fxmap.transport";
         public const string TagFxMapVersion = "fxmap.version";
         public const string TagFxMapExpressions = "fxmap.expressions";
@@ -48,7 +48,7 @@ public static class Constants
         public const string TagStatusDescription = "otel.status_description";
 
         // Metric label/dimension names (following MassTransit pattern: fxmap.*)
-        public const string LabelFxMapAttribute = "fxmap.attribute";
+        public const string LabelFxMapDistributedKey = "fxmap.distributed_key";
         public const string LabelFxMapTransport = "fxmap.transport";
         public const string LabelFxMapStatus = "fxmap.status";
         public const string LabelFxMapErrorType = "fxmap.error_type";

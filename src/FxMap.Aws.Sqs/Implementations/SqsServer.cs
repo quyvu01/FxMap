@@ -23,7 +23,7 @@ namespace FxMap.Aws.Sqs.Implementations;
 
 internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
 {
-    private static readonly ConcurrentDictionary<string, Type> AttributeAssemblyCached = [];
+    private static readonly ConcurrentDictionary<string, Type> DistributedKeyAssemblyCached = [];
     private readonly ILogger<SqsServer> _logger = serviceProvider.GetService<ILogger<SqsServer>>();
 
     // Backpressure: limit concurrent processing
@@ -57,11 +57,11 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
             ? new AmazonSQSClient(credentials, config)
             : new AmazonSQSClient(config);
 
-        var attributeTypes = FxMapStatics.DistributedKeyMapHandlers.Value.Keys.ToList();
-        if (attributeTypes is not { Count: > 0 }) return;
+        var distributedKeyTypes = FxMapStatics.DistributedKeyMapHandlers.Value.Keys.ToList();
+        if (distributedKeyTypes is not { Count: > 0 }) return;
 
-        // Create request queues for each attribute type
-        foreach (var queueName in attributeTypes.Select(attributeType => attributeType.GetQueueName()))
+        // Create request queues for each distributed key type
+        foreach (var queueName in distributedKeyTypes.Select(distributedKeyType => distributedKeyType.GetQueueName()))
         {
             try
             {
@@ -166,7 +166,7 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
         var replyToQueueUrl = message.MessageAttributes
             .GetValueOrDefault(SqsConstants.MessageAttributeReplyTo)
             ?.StringValue;
-        var attributeTypeString = message.MessageAttributes
+        var distributedKeyTypeString = message.MessageAttributes
             .GetValueOrDefault(SqsConstants.MessageAttributeType)
             ?.StringValue;
 
@@ -175,12 +175,12 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
         if (message.MessageAttributes.TryGetValue(SqsConstants.MessageAttributeTraceparent, out var traceparent))
             ActivityContext.TryParse(traceparent.StringValue, null, out parentContext);
 
-        // Parse message to get attribute name
+        // Parse message to get distributed key name
         var fxmapRequest = JsonSerializer.Deserialize<FxMapRequest>(message.Body);
-        var attributeName = attributeTypeString?.Split(',')[0].Split('.').Last() ?? "Unknown";
+        var distributedKeyName = distributedKeyTypeString?.Split(',')[0].Split('.').Last() ?? "Unknown";
 
         // Start server-side activity
-        using var activity = FxMapActivitySource.StartServerActivity(attributeName, parentContext);
+        using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
@@ -197,15 +197,15 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
             // Emit diagnostic event
             FxMapDiagnostics.MessageReceive(TransportName, queueUrl, correlationId);
 
-            var receivedPipelineOrchestrator = AttributeAssemblyCached.GetOrAdd(attributeTypeString,
-                attributeAssembly =>
+            var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(distributedKeyTypeString,
+                distributedKeyAssembly =>
                 {
-                    var fxMapAttributeType = Type.GetType(attributeAssembly)!;
-                    if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(fxMapAttributeType,
+                    var distributedKeyType = Type.GetType(distributedKeyAssembly)!;
+                    if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(distributedKeyType,
                             out var handlerType))
-                        throw new FxMapException.CannotFindHandlerForOfAttribute(fxMapAttributeType);
+                        throw new FxMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
                     var modelType = handlerType.GetGenericArguments()[0];
-                    return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, fxMapAttributeType);
+                    return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, distributedKeyType);
                 });
 
             using var scope = serviceProvider.CreateScope();
@@ -239,7 +239,7 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
             stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
 
-            FxMapMetrics.RecordRequest(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds, itemCount);
+            FxMapMetrics.RecordRequest(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds, itemCount);
 
             activity?.SetFxMapTags(fxmapRequest?.Expressions, fxmapRequest?.SelectorIds, itemCount);
 
@@ -249,11 +249,11 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
         {
             stopwatch.Stop();
 
-            _logger?.LogWarning("Request timeout for <{Attribute}>", attributeTypeString);
-            var response = Result.Failed(new TimeoutException($"Request timeout for {attributeTypeString}"));
+            _logger?.LogWarning("Request timeout for <{DistributedKey}>", distributedKeyTypeString);
+            var response = Result.Failed(new TimeoutException($"Request timeout for {distributedKeyTypeString}"));
 
             // Record timeout as error
-            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 "TimeoutException");
 
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
@@ -265,14 +265,14 @@ internal class SqsServer(IServiceProvider serviceProvider) : ISqsServer
         {
             stopwatch.Stop();
 
-            _logger?.LogError(e, "Error while responding <{Attribute}>", attributeTypeString);
+            _logger?.LogError(e, "Error while responding <{DistributedKey}>", distributedKeyTypeString);
             var response = Result.Failed(e);
 
             // Record error
-            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 e.GetType().Name);
 
-            FxMapDiagnostics.RequestError(attributeName, TransportName, e, stopwatch.Elapsed);
+            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);

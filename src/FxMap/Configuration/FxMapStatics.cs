@@ -35,6 +35,7 @@ public static class FxMapStatics
         FluentConfigStore.Clear();
         EntitiesConfigurations = CreateEntitiesConfigurationsLazy();
         DistributedKeyTypes = CreateDistributedKeyTypesLazy();
+        DistributedKeyMapHandlers = CreateDistributedKeyMapHandlersLazy();
     }
 
     // internal static List<Assembly> DistributedKeysRegister { get; set; } = [];
@@ -56,7 +57,7 @@ public static class FxMapStatics
     /// <summary>
     /// Returns true if entity configurations have been registered via fluent configuration.
     /// </summary>
-    public static bool HasModelConfigurations => FluentConfigStore.EntityConfigs.Count > 0;
+    public static bool HasModelConfigurations => !FluentConfigStore.EntityConfigs.IsEmpty;
 
     public static Lazy<IReadOnlyCollection<EntityMapData>> EntitiesConfigurations { get; private set; } =
         CreateEntitiesConfigurationsLazy();
@@ -70,8 +71,8 @@ public static class FxMapStatics
         [
             ..FluentConfigStore.EntityConfigs.Values.Select(cfg =>
             {
-                var attributeType = cfg.GetDistributedKeyType();
-                return new EntityMapData(cfg.ModelType, attributeType,
+                var distributedKeyType = cfg.GetDistributedKeyType();
+                return new EntityMapData(cfg.ModelType, distributedKeyType,
                     new FxMapEntityConfig(cfg.IdPropertyName, cfg.DefaultPropertyName));
             })
         ];
@@ -80,7 +81,7 @@ public static class FxMapStatics
             .ForEach(a =>
             {
                 if (a.Count() <= 1) return;
-                throw new FxMapException.OneAttributedHasBeenAssignToMultipleEntities(a.Key,
+                throw new FxMapException.DistributedKeyAssignedToMultipleEntities(a.Key,
                     [..a.Select(o => o.ModelType)]);
             });
         return models;
@@ -92,7 +93,10 @@ public static class FxMapStatics
             .Select(a => a.GetDistributedKeyType()))
     ]);
 
-    public static Lazy<IReadOnlyDictionary<Type, Type>> DistributedKeyMapHandlers => new(() =>
+    public static Lazy<IReadOnlyDictionary<Type, Type>> DistributedKeyMapHandlers { get; private set; } =
+        CreateDistributedKeyMapHandlersLazy();
+
+    private static Lazy<IReadOnlyDictionary<Type, Type>> CreateDistributedKeyMapHandlersLazy() => new(() =>
     {
         var modelConfigurations = EntitiesConfigurations.Value;
         return modelConfigurations.Select(m =>

@@ -59,15 +59,15 @@ internal static class ReflectionHelpers
         }
     }
 
-    // To use merge-expression, we have to group by attribute only, exclude expression as the older version!
+    // To use merge-expression, we have to group by distributed key only, exclude expression as the older version!
     internal static IEnumerable<DistributedKeyInfo> GetFxMapTypesData
-        (IEnumerable<PropertyDescriptor> mappableDataProperties, IEnumerable<Type> attributeTypes) =>
+        (IEnumerable<PropertyDescriptor> mappableDataProperties, IEnumerable<Type> distributedKeyTypes) =>
         mappableDataProperties
-            .GroupBy(mdp => (AttributeType: mdp.PropertyInformation?.RuntimeAttributeType,
+            .GroupBy(mdp => (DistributedKeyType: mdp.PropertyInformation?.RuntimeDistributedKeyType,
                 Order: mdp.PropertyInformation?.Order ?? 0))
-            .Join(attributeTypes, gr => gr.Key.AttributeType, at => at,
+            .Join(distributedKeyTypes, gr => gr.Key.DistributedKeyType, at => at,
                 (d, x) => new DistributedKeyInfo(x, d
-                    .Select(a => new PropertyMappingData(a.Model, a.PropertyInformation)), d.Key.Order));
+                    .Select(a => new PropertyMappingData(a)), d.Key.Order));
 
     internal static void MapResponseData(IEnumerable<PropertyDescriptor> mappableProperties,
         IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
@@ -77,7 +77,7 @@ internal static class ReflectionHelpers
                 .Select(x => (x.Id, FxMapValues: x.Values))
                 .Select(k => (a.DistributedKeyType, Data: k)))
             .SelectMany(x => x);
-        mappableProperties.Join(dataWithExpression, ap => (ap.PropertyInformation?.RuntimeAttributeType, ap
+        mappableProperties.Join(dataWithExpression, ap => (ap.PropertyInformation?.RuntimeDistributedKeyType, ap
                 .PropertyInformation?
                 .RequiredAccessor?
                 .Get(ap.Model)?.ToString()),
@@ -85,7 +85,7 @@ internal static class ReflectionHelpers
             {
                 var value = dt.Data
                     .FxMapValues
-                    .FirstOrDefault(a => a.Expression == ap.PropertyInformation.EffectiveExpression)?.Value;
+                    .FirstOrDefault(a => a.Expression == ap.EffectiveExpression)?.Value;
                 if (value is null || ap.PropertyInfo is not { } propertyInfo) return value;
                 try
                 {

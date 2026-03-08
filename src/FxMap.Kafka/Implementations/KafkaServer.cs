@@ -108,11 +108,11 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             }
             catch (ConsumeException ex)
             {
-                _logger?.LogError(ex, "Error consuming Kafka message for <{Attribute}>", typeof(TDistributedKey).Name);
+                _logger?.LogError(ex, "Error consuming Kafka message for <{DistributedKey}>", typeof(TDistributedKey).Name);
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error processing Kafka message for <{Attribute}>", typeof(TDistributedKey).Name);
+                _logger?.LogError(ex, "Error processing Kafka message for <{DistributedKey}>", typeof(TDistributedKey).Name);
             }
         }
     }
@@ -147,8 +147,8 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             }
         }
 
-        var attributeName = typeof(TDistributedKey).Name;
-        using var activity = FxMapActivitySource.StartServerActivity(attributeName, parentContext);
+        var distributedKeyName = typeof(TDistributedKey).Name;
+        using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
@@ -188,7 +188,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             var itemCount = data?.Items?.Length ?? 0;
 
             FxMapMetrics.RecordRequest(
-                attributeName,
+                distributedKeyName,
                 TransportName,
                 stopwatch.Elapsed.TotalMilliseconds,
                 itemCount);
@@ -200,10 +200,10 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         {
             stopwatch.Stop();
 
-            _logger?.LogWarning("Request timeout for <{Attribute}>", attributeName);
+            _logger?.LogWarning("Request timeout for <{DistributedKey}>", distributedKeyName);
 
             FxMapMetrics.RecordError(
-                attributeName,
+                distributedKeyName,
                 TransportName,
                 stopwatch.Elapsed.TotalMilliseconds,
                 "TimeoutException");
@@ -211,22 +211,22 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
             var response = Result
-                .Failed(new TimeoutException($"Request timeout for {attributeName}"));
+                .Failed(new TimeoutException($"Request timeout for {distributedKeyName}"));
             await TrySendResponseAsync(consumeResult, messageUnWrapped.ReplyTo, response, stoppingToken);
         }
         catch (Exception e)
         {
             stopwatch.Stop();
 
-            _logger?.LogError(e, "Error while responding <{Attribute}>", attributeName);
+            _logger?.LogError(e, "Error while responding <{DistributedKey}>", distributedKeyName);
 
             FxMapMetrics.RecordError(
-                attributeName,
+                distributedKeyName,
                 TransportName,
                 stopwatch.Elapsed.TotalMilliseconds,
                 e.GetType().Name);
 
-            FxMapDiagnostics.RequestError(attributeName, TransportName, e, stopwatch.Elapsed);
+            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
@@ -260,7 +260,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to send response for <{Attribute}>", typeof(TDistributedKey).Name);
+            _logger?.LogError(ex, "Failed to send response for <{DistributedKey}>", typeof(TDistributedKey).Name);
         }
     }
 
@@ -272,7 +272,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to commit offset for <{Attribute}>", typeof(TDistributedKey).Name);
+            _logger?.LogError(ex, "Failed to commit offset for <{DistributedKey}>", typeof(TDistributedKey).Name);
         }
     }
 

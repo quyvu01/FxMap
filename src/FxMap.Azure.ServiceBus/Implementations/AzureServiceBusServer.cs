@@ -66,7 +66,7 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
 
     private Task ProcessErrorAsync(ProcessErrorEventArgs args)
     {
-        _logger?.LogError(args.Exception, "Azure Service Bus error for <{Attribute}>: {ErrorSource}",
+        _logger?.LogError(args.Exception, "Azure Service Bus error for <{DistributedKey}>: {ErrorSource}",
             typeof(TDistributedKey).Name, args.ErrorSource);
         return Task.CompletedTask;
     }
@@ -80,9 +80,9 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
         if (request.ApplicationProperties?.TryGetValue("traceparent", out var traceparent) ?? false)
             ActivityContext.TryParse(Encoding.UTF8.GetString((byte[])traceparent), null, out parentContext);
 
-        var attributeName = typeof(TDistributedKey).Name;
+        var distributedKeyName = typeof(TDistributedKey).Name;
         var requestQueue = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
-        using var activity = FxMapActivitySource.StartServerActivity(attributeName, parentContext);
+        using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
@@ -123,7 +123,7 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
             stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
 
-            FxMapMetrics.RecordRequest(attributeName, TransportName,
+            FxMapMetrics.RecordRequest(distributedKeyName, TransportName,
                 stopwatch.Elapsed.TotalMilliseconds, itemCount);
 
             activity?.SetFxMapTags(requestDeserialize.Expressions, requestDeserialize.SelectorIds, itemCount);
@@ -133,13 +133,13 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
         {
             stopwatch.Stop();
 
-            _logger?.LogWarning("Request timeout for <{Attribute}>", attributeName);
+            _logger?.LogWarning("Request timeout for <{DistributedKey}>", distributedKeyName);
 
-            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
                 "TimeoutException");
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
-            var response = Result.Failed(new TimeoutException($"Request timeout for {attributeName}"));
+            var response = Result.Failed(new TimeoutException($"Request timeout for {distributedKeyName}"));
             await TrySendResponseAsync(request, sender, response, stoppingToken);
             await TryCompleteMessageAsync(args, request, stoppingToken);
         }
@@ -147,11 +147,11 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
         {
             stopwatch.Stop();
 
-            _logger?.LogError(e, "Error while responding <{Attribute}>", attributeName);
+            _logger?.LogError(e, "Error while responding <{DistributedKey}>", distributedKeyName);
 
-            FxMapMetrics.RecordError(attributeName, TransportName, stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
+            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
 
-            FxMapDiagnostics.RequestError(attributeName, TransportName, e, stopwatch.Elapsed);
+            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
@@ -186,7 +186,7 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to send response for <{Attribute}>", typeof(TDistributedKey).Name);
+            _logger?.LogError(ex, "Failed to send response for <{DistributedKey}>", typeof(TDistributedKey).Name);
         }
     }
 
@@ -199,7 +199,7 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Failed to complete message for <{Attribute}>", typeof(TDistributedKey).Name);
+            _logger?.LogError(ex, "Failed to complete message for <{DistributedKey}>", typeof(TDistributedKey).Name);
         }
     }
 

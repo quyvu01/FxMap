@@ -43,18 +43,18 @@ public static class FxMapExtensions
         var noOpClientRequestHandlerType = typeof(NoOpClientRequestHandler<>);
 
         var modelConfigurations = FxMapStatics.EntitiesConfigurations.Value;
-        var attributeTypes = FxMapStatics.DistributedKeyTypes.Value;
+        var distributedKeyTypes = FxMapStatics.DistributedKeyTypes.Value;
 
         var clientHandlerGenericType = typeof(ClientRequestHandler<>);
-        attributeTypes
-            .Select(a => (AttributeType: a, HandlerType: clientHandlerGenericType.MakeGenericType(a),
+        distributedKeyTypes
+            .Select(a => (DistributedKeyType: a, HandlerType: clientHandlerGenericType.MakeGenericType(a),
                 ServiceType: typeof(IClientRequestHandler<>).MakeGenericType(a)))
             .ForEach(x =>
             {
                 var existedService = services.FirstOrDefault(a => a.ServiceType == x.ServiceType);
                 if (existedService is not null)
                 {
-                    var implType = noOpClientRequestHandlerType.MakeGenericType(x.AttributeType);
+                    var implType = noOpClientRequestHandlerType.MakeGenericType(x.DistributedKeyType);
                     if (existedService.ImplementationType != implType) return;
                     services.Replace(new ServiceDescriptor(x.ServiceType, x.HandlerType, ServiceLifetime.Transient));
                     return;

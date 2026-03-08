@@ -58,10 +58,10 @@ public static class EntityFrameworkExtensions
             .ForEach(m =>
             {
                 var modelType = m.ModelType;
-                var attributeType = m.DistributedKeyType;
-                var serviceType = FxMapStatics.QueryOfHandlerType.MakeGenericType(modelType, attributeType);
-                var implementedType = efQueryHandler.MakeGenericType(modelType, attributeType);
-                var defaultHandlerType = FxMapStatics.NoOpQueryOfHandlerType.MakeGenericType(modelType, attributeType);
+                var distributedKeyType = m.DistributedKeyType;
+                var serviceType = FxMapStatics.QueryOfHandlerType.MakeGenericType(modelType, distributedKeyType);
+                var implementedType = efQueryHandler.MakeGenericType(modelType, distributedKeyType);
+                var defaultHandlerType = FxMapStatics.NoOpQueryOfHandlerType.MakeGenericType(modelType, distributedKeyType);
                 serviceCollection.AddScoped(serviceType, sp =>
                 {
                     var modelCached = modelCacheLookup.GetOrAdd(modelType, mt =>
