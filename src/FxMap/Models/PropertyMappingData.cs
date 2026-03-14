@@ -8,7 +8,7 @@ namespace FxMap.Models;
 internal sealed class PropertyMappingData(PropertyDescriptor descriptor)
 {
     public object Model => descriptor.Model;
-    public Accessors.PropertyAccessors.PropertyInformation PropertyInformation => descriptor.PropertyInformation;
+    public Accessors.PropertyAccessors.PropertyInformation PropertyInformation => descriptor.Property;
 
     internal string EffectiveExpression
     {

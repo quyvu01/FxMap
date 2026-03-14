@@ -78,7 +78,7 @@ builder.Services.AddFxMap(cfg =>
 
 builder.Services.AddDbContextPool<Service1Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestService1", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapService1", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);
@@ -87,7 +87,7 @@ builder.Services.AddDbContextPool<Service1Context>(options =>
 
 builder.Services.AddDbContextPool<OtherService1Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestOtherService1", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapOtherService1", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);

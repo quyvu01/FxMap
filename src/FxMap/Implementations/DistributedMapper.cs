@@ -50,7 +50,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
             // Pre-group once by order — avoids O(N×M) re-scan per order level
             var propertiesByOrder = allPropertyDatas
-                .GroupBy(x => x.PropertyInformation.Order)
+                .GroupBy(x => x.Property.Order)
                 .ToDictionary(g => g.Key, IEnumerable<PropertyDescriptor> (g) => g);
 
             var typesDataGrouped = typeData
@@ -62,28 +62,29 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 var orderedProperties = propertiesByOrder.GetValueOrDefault(mappableTypes.Key, []);
                 var tasks = mappableTypes.Select(async x =>
                 {
-                    var emptyResponse = (DistributedKeyType: x.DistributedKeyType, Response: _emptyResponse);
+                    var emptyResponse = (x.DistributedKeyType, Response: _emptyResponse);
                     var accessors = x.Accessors.ToList();
                     if (accessors is not { Count: > 0 }) return emptyResponse;
-                    var selectorIds = new HashSet<string>(accessors
-                        .Select(c => c.PropertyInformation?.RequiredAccessor?.Get(c.Model)?.ToString())
-                        .Where(c => c is not null));
+                    var selectorIds = accessors
+                        .Select(c => c.PropertyInformation?.RequiredAccessor?.Get(c.Model)?
+                            .ToString()).ToArray();
 
-                    if (selectorIds is not { Count: > 0 }) return emptyResponse;
+                    if (selectorIds is not { Length: > 0 }) return emptyResponse;
 
                     var requestCt = new RequestContext([], token);
 
                     // Resolve conditional expressions and store on PropertyDescriptor (request-scoped)
-                    foreach (var a in accessors)
-                        a.EffectiveExpression = await a.PropertyInformation
-                            .ResolveExpression(serviceProvider, token);
+                    var effectiveExpressionTasks = accessors
+                        .Select(async a => a.EffectiveExpression = await a.PropertyInformation
+                            .ResolveExpression(serviceProvider, token));
+                    await Task.WhenAll(effectiveExpressionTasks);
 
                     var expressions = accessors
                         .Select(a => a.EffectiveExpression);
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
-                        new DataFetchQuery([..selectorIds], [..expressions]), requestCt);
-                    return (DistributedKeyType: x.DistributedKeyType, Response: result);
+                        new DataFetchQuery(selectorIds, [..expressions]), requestCt);
+                    return (x.DistributedKeyType, Response: result);
                 });
                 var fetchedResult = await Task.WhenAll(tasks);
                 ReflectionHelpers.MapResponseData(orderedProperties, fetchedResult);
@@ -116,8 +117,10 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         var sendPipelineType = SendOrchestratorTypes
             .GetOrAdd(runtimeType, static type => typeof(SendPipelinesOrchestrator<>).MakeGenericType(type));
         var sendPipelineWrapped = (SendPipelinesOrchestrator)serviceProvider.GetService(sendPipelineType)!;
+        string[] selectorIds = [..new HashSet<string>(query.SelectorIds.Where(a => a is not null))];
+        string[] expressions = [..new HashSet<string>(query.Expressions)];
         var result = await sendPipelineWrapped
-            .ExecuteAsync(new FxMapRequest(query.SelectorIds, [..new HashSet<string>(query.Expressions)]), context);
+            .ExecuteAsync(new FxMapRequest(selectorIds, expressions), context);
         return result;
     }
 }

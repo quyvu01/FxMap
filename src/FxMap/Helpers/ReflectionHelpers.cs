@@ -63,8 +63,8 @@ internal static class ReflectionHelpers
     internal static IEnumerable<DistributedKeyInfo> GetFxMapTypesData
         (IEnumerable<PropertyDescriptor> mappableDataProperties, IEnumerable<Type> distributedKeyTypes) =>
         mappableDataProperties
-            .GroupBy(mdp => (DistributedKeyType: mdp.PropertyInformation?.RuntimeDistributedKeyType,
-                Order: mdp.PropertyInformation?.Order ?? 0))
+            .GroupBy(mdp => (DistributedKeyType: mdp.Property?.RuntimeDistributedKeyType,
+                Order: mdp.Property?.Order ?? 0))
             .Join(distributedKeyTypes, gr => gr.Key.DistributedKeyType, at => at,
                 (d, x) => new DistributedKeyInfo(x, d
                     .Select(a => new PropertyMappingData(a)), d.Key.Order));
@@ -77,8 +77,8 @@ internal static class ReflectionHelpers
                 .Select(x => (x.Id, FxMapValues: x.Values))
                 .Select(k => (a.DistributedKeyType, Data: k)))
             .SelectMany(x => x);
-        mappableProperties.Join(dataWithExpression, ap => (ap.PropertyInformation?.RuntimeDistributedKeyType, ap
-                .PropertyInformation?
+        mappableProperties.Join(dataWithExpression, ap => (ap.Property?.RuntimeDistributedKeyType, ap
+                .Property?
                 .RequiredAccessor?
                 .Get(ap.Model)?.ToString()),
             dt => (dt.DistributedKeyType, dt.Data.Id), (ap, dt) =>
