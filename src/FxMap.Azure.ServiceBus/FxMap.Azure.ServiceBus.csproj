@@ -3,7 +3,7 @@
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
         <LangVersion>default</LangVersion>
-        <Version>1.0.2</Version>
+        <Version>1.0.3</Version>
         <Authors>Quy Vu</Authors>
         <PackageId>FxMap.Azure.ServiceBus</PackageId>
         <Description>Azure ServiceBus extension. Use Azure ServiceBus as Data transporting</Description>
