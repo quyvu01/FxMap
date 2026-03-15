@@ -1,5 +1,4 @@
 using FxMap.Abstractions;
-using FxMap.Configuration;
 
 namespace FxMap.Exceptions;
 
@@ -10,7 +9,7 @@ namespace FxMap.Exceptions;
 /// These exceptions provide detailed error messages for common configuration
 /// and runtime issues encountered when using the FxMap framework.
 /// </remarks>
-public static class FxMapException
+public static class DistributedMapException
 {
     public sealed class CurrentIdTypeWasNotSupported() :
         Exception("Current Id type was not supported. Create the IdConverter!");
@@ -39,7 +38,7 @@ public static class FxMapException
 
     public sealed class MaxNestingDepthReached()
         : Exception(
-            $"FxMap mapping engine has reached the maximum nesting depth: {FxMapStatics.MaxNestingDepth}! Use `SetMaxNestingDepth` to increase the limit.");
+            "FxMap mapping engine has reached the maximum nesting depth! Use `SetMaxNestingDepth` to increase the limit.");
 
     public sealed class AddProfilesFromAssemblyContaining()
         : Exception(
@@ -68,7 +67,8 @@ public static class FxMapException
     public sealed class AmbiguousHandlers(Type interfaceType) :
         Exception($"Ambiguous handlers for interface '{interfaceType.FullName}'.");
 
-    public sealed class NoHandlerForDistributedKey(Type type) : Exception($"There is no handler for '{type.FullName}'!");
+    public sealed class NoHandlerForDistributedKey(Type type)
+        : Exception($"There is no handler for '{type.FullName}'!");
 
 
     public sealed class DuplicatedNameByExposedName(Type type, string exposedName) : Exception(

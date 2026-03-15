@@ -8,12 +8,9 @@ using Microsoft.Extensions.Logging;
 using FxMap.Abstractions;
 using FxMap.Models;
 using FxMap.Azure.ServiceBus.Abstractions;
-using FxMap.Azure.ServiceBus.Extensions;
-using FxMap.Azure.ServiceBus.Statics;
 using FxMap.Azure.ServiceBus.Wrappers;
 using FxMap.Implementations;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Azure.ServiceBus.Implementations;
@@ -22,10 +19,12 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
     AzureServiceBusClientWrapper clientWrapper,
     IServiceProvider serviceProvider)
     : IAzureServiceBusServer<TModel, TDistributedKey>
-    where TDistributedKey : IDistributedKey where TModel : class
+    where TDistributedKey : IDistributedKey
+    where TModel : class
 {
-    private readonly ILogger<AzureServiceBusServer<TModel, TDistributedKey>> _logger =
-        serviceProvider.GetService<ILogger<AzureServiceBusServer<TModel, TDistributedKey>>>();
+    private readonly ILogger<AzureServiceBusServer<TModel, TDistributedKey>> _logger = serviceProvider.GetService<ILogger<AzureServiceBusServer<TModel, TDistributedKey>>>();
+    private readonly IMapperConfiguration _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+    private readonly IAzureServiceBusConfiguration _azureServiceBusConfiguration = serviceProvider.GetRequiredService<IAzureServiceBusConfiguration>();
 
     private const string TransportName = "azureservicebus";
 
@@ -35,10 +34,10 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        var requestQueue = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
+        var requestQueue = _azureServiceBusConfiguration.GetRequestQueue(typeof(TDistributedKey));
         var options = new ServiceBusSessionProcessorOptions
         {
-            MaxConcurrentSessions = AzureServiceBusStatic.MaxConcurrentSessions,
+            MaxConcurrentSessions = _azureServiceBusConfiguration.MaxConcurrentSessions,
             MaxConcurrentCallsPerSession = 1,
             AutoCompleteMessages = false
         };
@@ -81,13 +80,13 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
             ActivityContext.TryParse(Encoding.UTF8.GetString((byte[])traceparent), null, out parentContext);
 
         var distributedKeyName = typeof(TDistributedKey).Name;
-        var requestQueue = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
+        var requestQueue = _azureServiceBusConfiguration.GetRequestQueue(typeof(TDistributedKey));
         using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
         var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+        cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
         var cancellationToken = cts.Token;
 
         ServiceBusSender sender = null;
@@ -99,7 +98,7 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
 
             FxMapDiagnostics.MessageReceive(TransportName, requestQueue, request.CorrelationId);
 
-            var requestDeserialize = JsonSerializer.Deserialize<FxMapRequest>(request.Body);
+            var requestDeserialize = JsonSerializer.Deserialize<DistributedMapRequest>(request.Body);
 
             using var serviceScope = serviceProvider.CreateScope();
             var pipeline = serviceScope.ServiceProvider

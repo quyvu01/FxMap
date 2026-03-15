@@ -25,7 +25,7 @@ namespace FxMap.Abstractions;
 /// This interface provides a type-safe orchestration layer that ensures all middleware and handlers 
 /// are executed in the correct order before producing a response.
 /// </remarks>
-public interface IReceivedPipelinesOrchestrator<TDistributedKey> : IFxMapBase<TDistributedKey>
+public interface IReceivedPipelinesOrchestrator<TDistributedKey> : IMapperBase<TDistributedKey>
     where TDistributedKey : IDistributedKey
 {
     /// <summary>

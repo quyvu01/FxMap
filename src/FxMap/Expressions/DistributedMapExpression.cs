@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
-using FxMap.Accessors.TypeAccessors;
-using FxMap.MetadataCache;
+using FxMap.Delegates;
 using FxMap.Expressions.Building;
 using FxMap.Expressions.Nodes;
 using FxMap.Expressions.Parsing;
@@ -41,15 +40,15 @@ namespace FxMap.Expressions;
 /// var expr = FxMapExpression.Parse&lt;Country&gt;("Provinces(Name:count > 3)");
 /// </code>
 /// </example>
-public sealed class FxMapExpression<TModel>
+public sealed class DistributedMapExpression<TModel>
 {
     private readonly ExpressionNode _rootNode;
-    private readonly Func<Type, ITypeAccessor> _typeAccessorProvider;
+    private readonly GetTypeAccessor _typeAccessorProvider;
 
-    private FxMapExpression(ExpressionNode rootNode, Func<Type, ITypeAccessor> typeAccessorProvider = null)
+    private DistributedMapExpression(ExpressionNode rootNode, GetTypeAccessor typeAccessorProvider = null)
     {
         _rootNode = rootNode;
-        _typeAccessorProvider = typeAccessorProvider ?? TypeCaching.GetTypeAccessor;
+        _typeAccessorProvider = typeAccessorProvider;
     }
 
     /// <summary>
@@ -63,10 +62,11 @@ public sealed class FxMapExpression<TModel>
     /// <param name="expression">The expression string to parse.</param>
     /// <param name="typeAccessorProvider">Optional custom type accessor provider for ExposedName resolution.</param>
     /// <returns>A parsed FxMapExpression ready for building LINQ expressions.</returns>
-    public static FxMapExpression<TModel> Parse(string expression, Func<Type, ITypeAccessor> typeAccessorProvider = null)
+    public static DistributedMapExpression<TModel> Parse(string expression,
+        GetTypeAccessor typeAccessorProvider = null)
     {
         var node = ExpressionParser.Parse(expression);
-        return new FxMapExpression<TModel>(node, typeAccessorProvider);
+        return new DistributedMapExpression<TModel>(node, typeAccessorProvider);
     }
 
     /// <summary>
@@ -82,7 +82,6 @@ public sealed class FxMapExpression<TModel>
     /// <returns>A lambda expression of the form (TModel x) => TResult.</returns>
     public Expression<Func<TModel, TResult>> ToLambda<TResult>()
     {
-        var result = Build();
         var parameter = Expression.Parameter(typeof(TModel), "x");
         var context = new ExpressionBuildContext(typeof(TModel), parameter, parameter, _typeAccessorProvider);
 
@@ -126,8 +125,8 @@ public static class FxMapExpression
     /// <typeparam name="TModel">The model type.</typeparam>
     /// <param name="expression">The expression string.</param>
     /// <returns>A parsed FxMapExpression.</returns>
-    public static FxMapExpression<TModel> Parse<TModel>(string expression) =>
-        FxMapExpression<TModel>.Parse(expression);
+    public static DistributedMapExpression<TModel> Parse<TModel>(string expression) =>
+        DistributedMapExpression<TModel>.Parse(expression);
 
     /// <summary>
     /// Parses and builds a lambda expression in one step.
@@ -137,7 +136,7 @@ public static class FxMapExpression
     /// <param name="expression">The expression string.</param>
     /// <returns>A lambda expression.</returns>
     public static Expression<Func<TModel, TResult>> BuildLambda<TModel, TResult>(string expression) =>
-        FxMapExpression<TModel>.Parse(expression).ToLambda<TResult>();
+        DistributedMapExpression<TModel>.Parse(expression).ToLambda<TResult>();
 
     /// <summary>
     /// Parses and builds a lambda expression with inferred result type.
@@ -146,5 +145,5 @@ public static class FxMapExpression
     /// <param name="expression">The expression string.</param>
     /// <returns>A lambda expression.</returns>
     public static LambdaExpression BuildLambda<TModel>(string expression) =>
-        FxMapExpression<TModel>.Parse(expression).ToLambda();
+        DistributedMapExpression<TModel>.Parse(expression).ToLambda();
 }

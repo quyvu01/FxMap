@@ -1,5 +1,4 @@
 using FxMap.Fluent;
-using Shared.Attributes;
 
 namespace Service2.Models;
 

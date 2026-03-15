@@ -10,7 +10,6 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using Service2;
 using Service2.Contexts;
-using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 

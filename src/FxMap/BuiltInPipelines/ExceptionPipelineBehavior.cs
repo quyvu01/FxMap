@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FxMap.Abstractions;
 using FxMap.Responses;
-using FxMap.Configuration;
 
 namespace FxMap.BuiltInPipelines;
 
@@ -11,7 +10,7 @@ namespace FxMap.BuiltInPipelines;
 /// </summary>
 /// <typeparam name="TDistributedKey">The FxMap distributed key type.</typeparam>
 /// <remarks>
-/// When <see cref="FxMapStatics.ThrowIfExceptions"/> is false, this behavior catches exceptions
+/// When <see cref="IMapperConfiguration.ThrowIfExceptions"/> is false, this behavior catches exceptions
 /// and returns an empty response instead of propagating the error. This enables graceful
 /// degradation in production environments where missing data shouldn't crash the application.
 /// </remarks>
@@ -35,8 +34,8 @@ internal sealed class ExceptionPipelineBehavior<TDistributedKey>(IServiceProvide
 
             // Only suppress non-critical exceptions
             if (ex is OutOfMemoryException or StackOverflowException or ThreadAbortException) throw;
-
-            if (FxMapStatics.ThrowIfExceptions) throw;
+            var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+            if (fxMapConfiguration.ThrowIfExceptions) throw;
             return new ItemsResponse<DataResponse>([]);
         }
     }

@@ -31,7 +31,7 @@ public sealed class CustomExpressionPipeline(IServiceCollection serviceCollectio
     /// The lifetime of the registered service. Defaults to <see cref="ServiceLifetime.Scoped"/>.
     /// </param>
     /// <returns>The current instance for fluent chaining.</returns>
-    /// <exception cref="FxMapException.TypeIsNotCustomExpressionPipelineBehavior">
+    /// <exception cref="DistributedMapException.TypeIsNotCustomExpressionPipelineBehavior">
     /// Thrown when the specified type does not implement <see cref="ICustomExpressionBehavior{TDistributedKey}"/>.
     /// </exception>
     public CustomExpressionPipeline OfType<TCustomExpressionPipelineBehavior>(
@@ -43,7 +43,7 @@ public sealed class CustomExpressionPipeline(IServiceCollection serviceCollectio
             .ToList();
 
         if (signatureInterfaceTypes is not { Count: > 0 })
-            throw new FxMapException.TypeIsNotCustomExpressionPipelineBehavior(pipelineType);
+            throw new DistributedMapException.TypeIsNotCustomExpressionPipelineBehavior(pipelineType);
 
         signatureInterfaceTypes.ForEach(serviceType =>
         {

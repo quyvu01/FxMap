@@ -38,7 +38,7 @@ public sealed class ReceivedPipeline(IServiceCollection serviceCollection) : IPi
             .ToList();
 
         if (signatureInterfaceTypes is not { Count: > 0 })
-            throw new FxMapException.TypeIsNotReceivedPipelineBehavior(runtimePipelineType);
+            throw new DistributedMapException.TypeIsNotReceivedPipelineBehavior(runtimePipelineType);
         if (runtimePipelineType.IsGenericType && runtimePipelineType.ContainsGenericParameters)
         {
             var serviceDescriptor =

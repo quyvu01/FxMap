@@ -10,7 +10,6 @@ using OpenTelemetry.Metrics;
 using Serilog;
 using Service3Api;
 using Service3Api.Contexts;
-using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()

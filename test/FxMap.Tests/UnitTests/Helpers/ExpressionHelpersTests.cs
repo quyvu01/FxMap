@@ -63,7 +63,7 @@ public class ExpressionHelpersTests
         var parameter = Expression.Parameter(typeof(TestCollection));
 
         // Act & Assert - segment includes both property name and array syntax
-        Should.Throw<FxMapException.CollectionFormatNotCorrected>(() =>
+        Should.Throw<DistributedMapException.CollectionFormatNotCorrected>(() =>
             ExpressionHelpers.GetCollectionQueryableData(parameter, invalidSegment));
     }
 
@@ -95,7 +95,7 @@ public class ExpressionHelpersTests
         var parameter = Expression.Parameter(typeof(TestCollection));
 
         // Act & Assert - Invalid direction throws CollectionFormatNotCorrected (format validation happens first)
-        Should.Throw<FxMapException.CollectionFormatNotCorrected>(() =>
+        Should.Throw<DistributedMapException.CollectionFormatNotCorrected>(() =>
             ExpressionHelpers.GetCollectionQueryableData(parameter, invalidSegment));
     }
 

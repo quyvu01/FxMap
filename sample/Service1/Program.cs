@@ -16,7 +16,6 @@ using Service1.Contexts;
 using Service1.Contract;
 using Service1.GraphQls;
 using Service1.Models;
-using Shared;
 using Shared.RunSqlMigration;
 
 var builder = WebApplication.CreateBuilder(args);

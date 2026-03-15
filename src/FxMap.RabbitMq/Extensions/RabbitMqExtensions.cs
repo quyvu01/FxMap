@@ -4,7 +4,6 @@ using FxMap.RabbitMq.Abstractions;
 using FxMap.RabbitMq.BackgroundServices;
 using FxMap.RabbitMq.Implementations;
 using FxMap.Registries;
-using FxMap.Configuration;
 using FxMap.RabbitMq.Registries;
 using FxMap.Supervision;
 
@@ -16,12 +15,19 @@ public static class RabbitMqExtensions
     {
         var config = new RabbitMqConfigurator();
         options.Invoke(config);
-        var services = mapRegister.ServiceCollection;
+        var services = mapRegister.Services;
+        services.AddSingleton<IRabbitMqConfiguration>(new RabbitMqConfiguration(
+            config.HostValue,
+            config.VirtualHostValue,
+            config.PortValue,
+            config.Credential.UserNameValue,
+            config.Credential.PasswordValue,
+            config.Credential.SslOptionValue));
         services.AddSingleton<IRabbitMqServer, RabbitMqServer>();
         services.AddSingleton<IRequestClient, RabbitMqRequestClient>();
 
         // Register supervisor options: global > default
-        var supervisorOptions = FxMapStatics.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use RabbitMqSupervisorWorker with supervisor pattern

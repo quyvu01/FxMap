@@ -1,11 +1,11 @@
 using System.Text.Json;
+using FxMap.Delegates;
 using HotChocolate.Resolvers;
 using FxMap.Extensions;
 using FxMap.HotChocolate.Constants;
 using FxMap.HotChocolate.GraphQlContext;
 using FxMap.HotChocolate.Implementations;
 using FxMap.HotChocolate.Registries;
-using FxMap.MetadataCache;
 
 namespace FxMap.HotChocolate.Resolvers;
 
@@ -38,10 +38,13 @@ public sealed class DataResolvers<TResponse> where TResponse : class
             ctx is not FieldContext currentContext || currentContext.TargetPropertyInfo is null)
             throw new InvalidOperationException($"{nameof(FieldContext)} must be added with key: {fieldContextHeader}");
 
-        var obj = FluentConfigStore.ProfileConfigs.GetValueOrDefault(typeof(TResponse));
+        var getProfileConfig = resolverContext.Resolver<GetProfileConfig>();
+        var profileConfig = getProfileConfig(typeof(TResponse));
 
         List<Task<string>> allTasks =
-            [FieldResultAsync(currentContext), ..GetDependencyTasks(currentContext, FieldResultAsync)];
+        [
+            FieldResultAsync(currentContext), ..GetDependencyTasks(getProfileConfig, currentContext, FieldResultAsync)
+        ];
 
         await Task.WhenAll(allTasks);
         var data = allTasks.First().Result;
@@ -59,7 +62,7 @@ public sealed class DataResolvers<TResponse> where TResponse : class
 
         async Task<string> FieldResultAsync(FieldContext fieldContext)
         {
-            var selectorId = obj?
+            var selectorId = profileConfig?
                 .Accessors.GetValueOrDefault(fieldContext.RequiredPropertyInfo)
                 .Get(response)?.ToString();
             // Fetch the dependency fields
@@ -77,12 +80,12 @@ public sealed class DataResolvers<TResponse> where TResponse : class
         }
     }
 
-    private static Task<string>[] GetDependencyTasks(FieldContext currentContext,
+    private static Task<string>[] GetDependencyTasks(GetProfileConfig getProfileConfig, FieldContext currentContext,
         Func<FieldContext, Task<string>> fieldResultTask)
     {
-        var obj = FluentConfigStore.ProfileConfigs.GetValueOrDefault(typeof(TResponse));
-        if (obj is null) return [];
-        var dependenciesGraph = obj.DependencyGraphs;
+        var profileConfig = getProfileConfig(typeof(TResponse));
+        if (profileConfig is null) return [];
+        var dependenciesGraph = profileConfig.DependencyGraphs;
         if (!dependenciesGraph.TryGetValue(currentContext.TargetPropertyInfo, out var infos)) return [];
         return
         [

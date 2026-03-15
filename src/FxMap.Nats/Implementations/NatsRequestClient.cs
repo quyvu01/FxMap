@@ -4,17 +4,27 @@ using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
 using FxMap.Exceptions;
 using FxMap.Extensions;
-using FxMap.Nats.Extensions;
+using FxMap.Nats.Abstractions;
 using FxMap.Nats.Wrappers;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Nats.Implementations;
 
-internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : IRequestClient
+internal sealed class NatsRequestClient : IRequestClient
 {
+    private readonly NatsClientWrapper _natsClientWrapper;
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly INatsConfiguration _natsConfiguration;
     private const string TransportName = "nats";
+
+    public NatsRequestClient(NatsClientWrapper natsClientWrapper, IMapperConfiguration mapperConfiguration,
+        INatsConfiguration natsConfiguration)
+    {
+        _natsClientWrapper = natsClientWrapper;
+        _mapperConfiguration = mapperConfiguration;
+        _natsConfiguration = natsConfiguration;
+    }
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
         RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
@@ -40,7 +50,7 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
                 // Add FxMap-specific tags
                 activity.SetMessagingTags(
                     system: TransportName,
-                    destination: typeof(TDistributedKey).GetNatsSubject(),
+                    destination: _natsConfiguration.GetSubject(typeof(TDistributedKey)),
                     operation: "publish");
 
                 activity.SetFxMapTags(requestContext.Query.Expressions,
@@ -57,20 +67,20 @@ internal sealed class NatsRequestClient(NatsClientWrapper natsClientWrapper) : I
             // Track active requests
             FxMapMetrics.UpdateActiveRequests(1);
 
-            var reply = await natsClientWrapper.NatsClient
+            var reply = await _natsClientWrapper.NatsClient
                 .RequestAsync<MapRequest<TDistributedKey>, Result>(
-                    typeof(TDistributedKey).GetNatsSubject(),
+                    _natsConfiguration.GetSubject(typeof(TDistributedKey)),
                     requestContext.Query, natsHeaders,
-                    replyOpts: new NatsSubOpts { Timeout = FxMapStatics.DefaultRequestTimeout },
+                    replyOpts: new NatsSubOpts { Timeout = _mapperConfiguration.DefaultRequestTimeout },
                     cancellationToken: requestContext.CancellationToken);
 
             var response = reply.Data;
-            if (response is null) throw new FxMapException.ReceivedException("Received null response from server");
+            if (response is null) throw new DistributedMapException.ReceivedException("Received null response from server");
 
             if (!response.IsSuccess)
             {
                 throw response.Fault?.ToException()
-                      ?? new FxMapException.ReceivedException("Unknown error from server");
+                      ?? new DistributedMapException.ReceivedException("Unknown error from server");
             }
 
             // Record success metrics

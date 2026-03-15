@@ -8,7 +8,6 @@ using FxMap.Azure.ServiceBus.BackgroundServices;
 using FxMap.Azure.ServiceBus.Implementations;
 using FxMap.Azure.ServiceBus.Wrappers;
 using FxMap.Registries;
-using FxMap.Configuration;
 using FxMap.Supervision;
 
 namespace FxMap.Azure.ServiceBus.Extensions;
@@ -21,7 +20,9 @@ public static class AzureServiceBusExtensions
         options.Invoke(setting);
         var connectionString = setting.ConnectionString;
         var serviceBusClientOptions = setting.ServiceBusClientOptions;
-        var services = mapRegister.ServiceCollection;
+        var services = mapRegister.Services;
+        services.AddSingleton<IAzureServiceBusConfiguration>(
+            new AzureServiceBusConfiguration(setting.TopicPrefixValue, setting.MaxConcurrentSessionsValue));
         services.AddSingleton(_ =>
         {
             var client = new ServiceBusClient(connectionString, serviceBusClientOptions);
@@ -35,7 +36,7 @@ public static class AzureServiceBusExtensions
         services.AddSingleton<IRequestClient, AzureServiceBusClient>();
 
         // Register supervisor options: global > default
-        var supervisorOptions = FxMapStatics.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use AzureServiceBusSupervisorWorker with supervisor pattern

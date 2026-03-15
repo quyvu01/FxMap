@@ -1,15 +1,18 @@
-using FxMap.Kafka.Statics;
+using FxMap.Kafka.Registries;
 
 namespace FxMap.Kafka.Registries;
 
 public sealed class KafkaConfigurator
 {
-    public void Host(string host) => KafkaStatics.KafkaHost = host;
+    internal string KafkaHostValue { get; private set; }
+    internal KafkaSslOptions KafkaSslOptionsValue { get; private set; }
+
+    public void Host(string host) => KafkaHostValue = host;
 
     public void Ssl(Action<KafkaSslOptions> kafkaSslOptions)
     {
         var options = new KafkaSslOptions();
         kafkaSslOptions(options);
-        KafkaStatics.KafkaSslOptions = options;
+        KafkaSslOptionsValue = options;
     }
 }

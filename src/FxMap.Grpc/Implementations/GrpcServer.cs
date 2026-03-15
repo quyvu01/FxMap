@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
+using FxMap.Abstractions;
 using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -9,7 +10,6 @@ using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Grpc.Exceptions;
 using FxMap.Implementations;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Grpc.Implementations;
@@ -25,11 +25,20 @@ namespace FxMap.Grpc.Implementations;
 ///   <item><description><c>GeTDistributedKeys</c> - Returns the list of distributed key types this server can handle (for discovery)</description></item>
 /// </list>
 /// </remarks>
-public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTransportService.FxMapTransportServiceBase
+public sealed class GrpcServer : FxMapTransportService.FxMapTransportServiceBase
 {
     private static readonly Lazy<ConcurrentDictionary<string, Type>> ReceivedPipelineTypes = new(() => []);
-    private readonly ILogger<GrpcServer> _logger = serviceProvider.GetService<ILogger<GrpcServer>>();
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ILogger<GrpcServer> _logger;
+    private readonly IMapperConfiguration _mapperConfiguration;
     private const string TransportName = "grpc";
+
+    public GrpcServer(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = serviceProvider.GetService<ILogger<GrpcServer>>();
+        _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+    }
 
     public override async Task<FxMapItemsGrpcResponse> GetItems(GetFxMapGrpcQuery request, ServerCallContext context)
     {
@@ -46,7 +55,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-        cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+        cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
         var cancellationToken = cts.Token;
 
         try
@@ -58,21 +67,22 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             FxMapDiagnostics.MessageReceive(TransportName, "grpc-endpoint", Activity.Current?.Id);
 
             var receivedPipelinesType = ReceivedPipelineTypes.Value
-                .GetOrAdd(request.DistributedKeyAssemblyType, static typeAssembly =>
+                .GetOrAdd(request.DistributedKeyAssemblyType, typeAssembly =>
                 {
                     var distributedKeyType = Type.GetType(typeAssembly);
                     if (distributedKeyType is null)
                         throw new GrpcExceptions.CannotDeserializeDistributedKeyType(typeAssembly);
 
-                    if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(distributedKeyType, out var handlerType))
-                        throw new FxMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
+                    if (!_mapperConfiguration.DistributedKeyMapHandlers.TryGetValue(distributedKeyType,
+                            out var handlerType))
+                        throw new DistributedMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
 
                     var modelArg = handlerType.GetGenericArguments()[0];
                     return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelArg, distributedKeyType);
                 });
 
             // Use scoped service to prevent concurrent issues (e.g., with DbContext)
-            using var scope = serviceProvider.CreateScope();
+            using var scope = _serviceProvider.CreateScope();
             var receivedPipelinesOrchestrator = (ReceivedPipelinesOrchestrator)scope.ServiceProvider
                 .GetRequiredService(receivedPipelinesType)!;
 
@@ -81,7 +91,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             string[] selectorIds = [..request.SelectorIds];
             var expressions = JsonSerializer.Deserialize<string[]>(request.Expression);
 
-            var message = new FxMapRequest(selectorIds, expressions);
+            var message = new DistributedMapRequest(selectorIds, expressions);
             var response = await receivedPipelinesOrchestrator
                 .ExecuteAsync(message, headers, cancellationToken);
 
@@ -145,11 +155,12 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
         }
     }
 
-    public override Task<DistributedKeyTypeResponse> GetDistributedKeys(GetDistributedKeysQuery request, ServerCallContext context)
+    public override Task<DistributedKeyTypeResponse> GetDistributedKeys(GetDistributedKeysQuery request,
+        ServerCallContext context)
     {
-        var fxMapConfigureStorage = FxMapStatics.EntitiesConfigurations;
+        var entityInfos = _mapperConfiguration.EntityInfos;
         var response = new DistributedKeyTypeResponse();
-        var distributedKeyTypes = fxMapConfigureStorage.Value
+        var distributedKeyTypes = entityInfos
             .Select(a => a.DistributedKeyType.GetAssemblyName());
         response.DistributedKeyTypes.AddRange(distributedKeyTypes);
         return Task.FromResult(response);

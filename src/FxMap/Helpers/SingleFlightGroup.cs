@@ -26,7 +26,7 @@ namespace FxMap.Helpers;
 /// </remarks>
 internal sealed class SingleFlightGroup<TValue>
 {
-    private readonly ConcurrentDictionary<int, Lazy<Task<TValue>>> _inflight = new();
+    private readonly ConcurrentDictionary<int, Lazy<Task<TValue>>> _inFlight = new();
 
     /// <summary>
     /// Executes <paramref name="factory"/> if no in-flight operation with the same <paramref name="key"/> exists;
@@ -40,7 +40,7 @@ internal sealed class SingleFlightGroup<TValue>
         // GetOrAdd with Lazy<Task> ensures only one Task is ever created per key,
         // even under high concurrency. LazyThreadSafetyMode.ExecutionAndPublication
         // guarantees a single invocation of the value factory.
-        var lazy = _inflight.GetOrAdd(key, _ => new Lazy<Task<TValue>>(
+        var lazy = _inFlight.GetOrAdd(key, _ => new Lazy<Task<TValue>>(
             () => ExecuteAndCleanup(key, factory),
             LazyThreadSafetyMode.ExecutionAndPublication));
         return lazy.Value;
@@ -54,7 +54,7 @@ internal sealed class SingleFlightGroup<TValue>
         }
         finally
         {
-            _inflight.TryRemove(key, out _);
+            _inFlight.TryRemove(key, out _);
         }
     }
 }

@@ -15,7 +15,7 @@ public sealed class PropertyRuleBuilder<TModel>
     {
         _group.Rules.Add(new PropertyMappingRule
         {
-            TargetPropertyName = GetPropertyName(targetProperty),
+            TargetPropertyName = targetProperty.GetPropertyInfo().Name,
             TargetPropertyInfo = targetProperty.GetPropertyInfo(),
             Expression = expression
         });
@@ -29,17 +29,10 @@ public sealed class PropertyRuleBuilder<TModel>
         conditionalBuilder(builder);
         _group.Rules.Add(new PropertyMappingRule
         {
-            TargetPropertyName = GetPropertyName(targetProperty),
+            TargetPropertyName = targetProperty.GetPropertyInfo().Name,
             TargetPropertyInfo = targetProperty.GetPropertyInfo(),
             ConditionalExpression = builder.Build()
         });
         return this;
-    }
-
-    private static string GetPropertyName<TProp>(Expression<Func<TModel, TProp>> expression)
-    {
-        if (expression.Body is MemberExpression member)
-            return member.Member.Name;
-        throw new ArgumentException("Expression must be a property accessor.");
     }
 }

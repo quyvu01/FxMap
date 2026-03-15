@@ -1,6 +1,5 @@
 using System.Linq.Expressions;
-using FxMap.Accessors.TypeAccessors;
-using FxMap.MetadataCache;
+using FxMap.Delegates;
 using FxMap.Expressions.Parsing;
 
 namespace FxMap.Expressions.Building;
@@ -32,13 +31,10 @@ namespace FxMap.Expressions.Building;
 public sealed class ProjectionBuilder<TModel>(
     string idProperty,
     string defaultProperty = null,
-    Func<Type, ITypeAccessor> typeAccessorProvider = null)
+    GetTypeAccessor typeAccessorProvider = null)
     where TModel : class
 {
     private readonly ParameterExpression _parameter = Expression.Parameter(typeof(TModel), "x");
-
-    private readonly Func<Type, ITypeAccessor> _typeAccessorProvider =
-        typeAccessorProvider ?? TypeCaching.GetTypeAccessor;
 
     /// <summary>
     /// Builds a projection expression that returns object[].
@@ -114,7 +110,7 @@ public sealed class ProjectionBuilder<TModel>(
 
     private Expression BuildIdExpression()
     {
-        var typeAccessor = _typeAccessorProvider(typeof(TModel));
+        var typeAccessor = typeAccessorProvider(typeof(TModel));
         // Use GetPropertyInfoDirect to bypass ExposedName for Id property
         var idPropertyInfo = typeAccessor.GetPropertyInfoDirect(idProperty)
                              ?? throw new InvalidOperationException(
@@ -131,7 +127,7 @@ public sealed class ProjectionBuilder<TModel>(
         if (string.IsNullOrEmpty(defaultProperty))
             return Expression.Constant(null, typeof(object));
 
-        var typeAccessor = _typeAccessorProvider(typeof(TModel));
+        var typeAccessor = typeAccessorProvider(typeof(TModel));
         // Use GetPropertyInfoDirect to bypass ExposedName for defaultProperty
         var propertyInfo = typeAccessor.GetPropertyInfoDirect(defaultProperty)
                            ?? throw new InvalidOperationException(
@@ -153,7 +149,7 @@ public sealed class ProjectionBuilder<TModel>(
         var node = ExpressionParser.Parse(expression);
 
         // Build context
-        var context = new ExpressionBuildContext(typeof(TModel), _parameter, _parameter, _typeAccessorProvider);
+        var context = new ExpressionBuildContext(typeof(TModel), _parameter, _parameter, typeAccessorProvider);
 
         // Build the LINQ expression
         var builder = new LinqExpressionBuilder();
@@ -196,7 +192,7 @@ public static class ProjectionBuilder
     public static ProjectionBuilder<TModel> Create<TModel>(
         string idProperty,
         string defaultProperty = null,
-        Func<Type, ITypeAccessor> typeAccessorProvider = null)
+        GetTypeAccessor typeAccessorProvider = null)
         where TModel : class =>
         new(idProperty, defaultProperty, typeAccessorProvider);
 }

@@ -5,13 +5,11 @@ using System.Text.Json;
 using Azure.Messaging.ServiceBus;
 using Microsoft.Extensions.Logging;
 using FxMap.Abstractions;
-using FxMap.Azure.ServiceBus.Extensions;
-using FxMap.Azure.ServiceBus.Statics;
+using FxMap.Azure.ServiceBus.Abstractions;
 using FxMap.Azure.ServiceBus.Wrappers;
 using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Azure.ServiceBus.Implementations;
@@ -21,6 +19,8 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
     private readonly ServiceBusSender _serviceBusSender;
     private readonly ServiceBusSessionProcessor _replyProcessor;
     private readonly ILogger<OpenAzureServiceBusClient<TDistributedKey>> _logger;
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly IAzureServiceBusConfiguration _azureServiceBusConfiguration;
     private readonly ConcurrentDictionary<string, TaskCompletionSource<BinaryData>> _pendingReplies = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
     private readonly string _sessionId;
@@ -29,18 +29,22 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
     private const string TransportName = "azureservicebus";
 
     public OpenAzureServiceBusClient(AzureServiceBusClientWrapper clientWrapper,
+        IMapperConfiguration mapperConfiguration,
+        IAzureServiceBusConfiguration azureServiceBusConfiguration,
         ILogger<OpenAzureServiceBusClient<TDistributedKey>> logger = null)
     {
         _logger = logger;
+        _mapperConfiguration = mapperConfiguration;
+        _azureServiceBusConfiguration = azureServiceBusConfiguration;
         var client = clientWrapper.ServiceBusClient;
         _sessionId = Guid.NewGuid().ToString();
-        var requestQueueName = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
-        _replyQueueName = typeof(TDistributedKey).GetAzureServiceBusReplyQueue();
+        var requestQueueName = _azureServiceBusConfiguration.GetRequestQueue(typeof(TDistributedKey));
+        _replyQueueName = _azureServiceBusConfiguration.GetReplyQueue(typeof(TDistributedKey));
         _serviceBusSender = client.CreateSender(requestQueueName);
         _replyProcessor = client.CreateSessionProcessor(_replyQueueName, new ServiceBusSessionProcessorOptions
         {
             AutoCompleteMessages = false,
-            MaxConcurrentSessions = AzureServiceBusStatic.MaxConcurrentSessions,
+            MaxConcurrentSessions = _azureServiceBusConfiguration.MaxConcurrentSessions,
             MaxConcurrentCallsPerSession = 1,
             SessionIds = { _sessionId }
         });
@@ -81,7 +85,7 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
             await EnsureInitializedAsync(requestContext.CancellationToken);
 
             var correlationId = Guid.NewGuid().ToString();
-            var requestQueueName = typeof(TDistributedKey).GetAzureServiceBusRequestQueue();
+            var requestQueueName = _azureServiceBusConfiguration.GetRequestQueue(typeof(TDistributedKey));
 
             var messageSerialize = JsonSerializer.Serialize(requestContext.Query);
             var requestMessage = new ServiceBusMessage(messageSerialize)
@@ -124,7 +128,7 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
 
                 // Wait with proper timeout and cancellation
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(requestContext.CancellationToken);
-                cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+                cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
 
                 try
                 {
@@ -132,11 +136,11 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
                     var response = result.ToObjectFromJson<Result>();
 
                     if (response is null)
-                        throw new FxMapException.ReceivedException("Received null response from server");
+                        throw new DistributedMapException.ReceivedException("Received null response from server");
 
                     if (!response.IsSuccess)
                         throw response.Fault?.ToException()
-                              ?? new FxMapException.ReceivedException("Unknown error from server");
+                              ?? new DistributedMapException.ReceivedException("Unknown error from server");
 
                     // Record success metrics
                     stopwatch.Stop();

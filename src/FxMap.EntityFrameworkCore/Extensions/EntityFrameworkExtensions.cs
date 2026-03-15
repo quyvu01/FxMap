@@ -1,10 +1,10 @@
 using System.Collections.Concurrent;
+using FxMap.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using FxMap.EntityFrameworkCore.Abstractions;
 using FxMap.EntityFrameworkCore.Implementations;
 using FxMap.Exceptions;
 using FxMap.Extensions;
-using FxMap.Configuration;
 using FxMap.EntityFrameworkCore.Registries;
 using FxMap.Wrappers;
 
@@ -21,7 +21,7 @@ public static class EntityFrameworkExtensions
     /// <param name="serviceInjector">The FxMap registration wrapper.</param>
     /// <param name="registrarAction">Configuration action for registering DbContexts.</param>
     /// <returns>The FxMap registration wrapper for method chaining.</returns>
-    /// <exception cref="FxMapException.AddProfilesFromAssemblyContaining">
+    /// <exception cref="DistributedMapException.AddProfilesFromAssemblyContaining">
     /// Thrown when model configurations have not been set up before calling this method.
     /// </exception>
     /// <example>
@@ -40,9 +40,11 @@ public static class EntityFrameworkExtensions
     public static ConfiguratorWrapped AddEntityFrameworkCore(this ConfiguratorWrapped serviceInjector,
         Action<EfCoreConfigurator> registrarAction)
     {
-        if (!FxMapStatics.HasModelConfigurations) throw new FxMapException.AddProfilesFromAssemblyContaining();
+        var entityConfig = serviceInjector.MapConfigurator.EntityConfigs;
+        if (entityConfig is not { Count: > 0 })
+            throw new DistributedMapException.AddProfilesFromAssemblyContaining(); // Todo: update Exception again!
 
-        var serviceCollection = serviceInjector.MapConfigurator.ServiceCollection;
+        var serviceCollection = serviceInjector.MapConfigurator.Services;
         var newFxMapEfCoreRegistrar = new EfCoreConfigurator(serviceCollection);
         registrarAction.Invoke(newFxMapEfCoreRegistrar);
 
@@ -54,14 +56,15 @@ public static class EntityFrameworkExtensions
         var efQueryHandler = typeof(EntityFrameworkQueryHandler<,>);
         serviceCollection.AddScoped(efQueryHandler);
 
-        FxMapStatics.EntitiesConfigurations.Value
+        entityConfig
             .ForEach(m =>
             {
-                var modelType = m.ModelType;
-                var distributedKeyType = m.DistributedKeyType;
-                var serviceType = FxMapStatics.QueryOfHandlerType.MakeGenericType(modelType, distributedKeyType);
+                var config = m.Value;
+                var modelType = config.EntityType;
+                var distributedKeyType = config.GetDistributedKeyType();
+                var serviceType = typeof(IQueryOfHandler<,>).MakeGenericType(modelType, distributedKeyType);
                 var implementedType = efQueryHandler.MakeGenericType(modelType, distributedKeyType);
-                var defaultHandlerType = FxMapStatics.NoOpQueryOfHandlerType.MakeGenericType(modelType, distributedKeyType);
+                var defaultHandlerType = typeof(NoOpQueryOfHandler<,>).MakeGenericType(modelType, distributedKeyType);
                 serviceCollection.AddScoped(serviceType, sp =>
                 {
                     var modelCached = modelCacheLookup.GetOrAdd(modelType, mt =>

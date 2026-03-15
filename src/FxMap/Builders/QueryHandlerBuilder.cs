@@ -3,7 +3,6 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
-using FxMap.MetadataCache;
 using FxMap.Delegates;
 using FxMap.Expressions.Building;
 
@@ -39,7 +38,7 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
     private const string ParameterName = "x";
 
     protected readonly MapEntityConfig FxMapEntityConfig = serviceProvider
-        .GetRequiredService<GetFxMapConfiguration>()
+        .GetRequiredService<MapperDelegates>()
         .Invoke(typeof(TModel), typeof(TDistributedKey));
 
     // Static cache per generic type combination - this is correct behavior in C#
@@ -84,7 +83,7 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
         var builder = new ProjectionBuilder<TModel>(
             FxMapEntityConfig.IdProperty,
             FxMapEntityConfig.DefaultProperty,
-            TypeCaching.GetTypeAccessor);
+            serviceProvider.GetRequiredService<GetTypeAccessor>());
 
         var projection = builder.Build(expressionList);
 
@@ -135,7 +134,8 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
                 ModelParameter = Expression.Parameter(typeof(TModel), ParameterName);
 
                 // Get Id property info - use GetPropertyInfoDirect to bypass ExposedName
-                var typeAccessor = TypeCaching.GetTypeAccessor(typeof(TModel));
+                var getTypeAccessor = serviceProvider.GetRequiredService<GetTypeAccessor>();
+                var typeAccessor = getTypeAccessor.Invoke(typeof(TModel));
                 IdPropertyInfo = typeAccessor.GetPropertyInfoDirect(idPropertyName)
                                  ?? throw new InvalidOperationException(
                                      $"Id property '{idPropertyName}' not found on type '{typeof(TModel).Name}'");

@@ -25,7 +25,7 @@ namespace FxMap.Abstractions;
 /// </list>
 /// Multiple send pipeline behaviors can be registered and will be executed in order.
 /// </remarks>
-public interface ISendPipelineBehavior<TDistributedKey> : IFxMapBase<TDistributedKey>
+public interface ISendPipelineBehavior<TDistributedKey> : IMapperBase<TDistributedKey>
     where TDistributedKey : IDistributedKey
 {
     /// <summary>

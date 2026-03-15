@@ -4,7 +4,6 @@ using FxMap.Kafka.Abstractions;
 using FxMap.Kafka.BackgroundServices;
 using FxMap.Kafka.Implementations;
 using FxMap.Registries;
-using FxMap.Configuration;
 using FxMap.Kafka.Registries;
 using FxMap.Supervision;
 
@@ -16,12 +15,13 @@ public static class KafkaExtensions
     {
         var config = new KafkaConfigurator();
         options.Invoke(config);
-        var services = mapRegister.ServiceCollection;
+        var services = mapRegister.Services;
+        services.AddSingleton<IKafkaConfiguration>(new KafkaConfiguration(config.KafkaHostValue, config.KafkaSslOptionsValue));
         services.AddSingleton(typeof(IKafkaServer<,>), typeof(KafkaServer<,>));
         services.AddSingleton<IRequestClient, KafkaClient>();
 
         // Register supervisor options: global > default
-        var supervisorOptions = FxMapStatics.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use KafkaSupervisorWorker with supervisor pattern

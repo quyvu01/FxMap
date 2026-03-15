@@ -22,7 +22,7 @@ public interface IClientRequestHandler;
 /// It allows clients (e.g., NATS, gRPC, RabbitMQ... clients) to send requests containing
 /// selector IDs and expressions, and receive a response from the server.
 /// </remarks>
-public interface IClientRequestHandler<TDistributedKey> : IFxMapBase<TDistributedKey>, IClientRequestHandler
+public interface IClientRequestHandler<TDistributedKey> : IMapperBase<TDistributedKey>, IClientRequestHandler
     where TDistributedKey : IDistributedKey
 {
     /// <summary>

@@ -71,7 +71,7 @@ internal abstract class AbstractIdConverter
     protected static IEnumerable<TId> ParseStronglyTypeIds<TId>(IServiceProvider serviceProvider, string[] selectorIds)
     {
         var stronglyTypeService = serviceProvider.GetService<IStronglyTypeConverter<TId>>();
-        if (stronglyTypeService is null) throw new FxMapException.CurrentIdTypeWasNotSupported();
+        if (stronglyTypeService is null) throw new DistributedMapException.CurrentIdTypeWasNotSupported();
         return selectorIds
             .Where(a => stronglyTypeService.CanConvert(a))
             .Select(a => stronglyTypeService.Convert(a));

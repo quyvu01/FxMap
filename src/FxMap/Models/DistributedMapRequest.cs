@@ -15,4 +15,4 @@ namespace FxMap.Models;
 /// The expressions defining how to map or project the data.
 /// Can be a simple property name or a complex expression with navigation and filtering.
 /// </param>
-public sealed record FxMapRequest(string[] SelectorIds, string[] Expressions);
+public sealed record DistributedMapRequest(string[] SelectorIds, string[] Expressions);

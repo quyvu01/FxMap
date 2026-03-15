@@ -1,5 +1,5 @@
 using System.Linq.Expressions;
-using FxMap.Accessors.TypeAccessors;
+using FxMap.Delegates;
 
 namespace FxMap.Expressions.Building;
 
@@ -15,7 +15,7 @@ public sealed record ExpressionBuildContext(
     Type CurrentType,
     Expression CurrentExpression,
     ParameterExpression Parameter,
-    Func<Type, ITypeAccessor> TypeAccessorProvider,
+    GetTypeAccessor TypeAccessorProvider,
     GroupByBuildContext GroupByContext = null)
 {
     /// <summary>

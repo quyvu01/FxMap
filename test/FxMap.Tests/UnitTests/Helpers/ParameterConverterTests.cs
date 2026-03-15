@@ -102,7 +102,7 @@ public class ParameterConverterTests
         var parameters = new[] { 1, 2, 3 };
 
         // Act & Assert
-        var exception = Should.Throw<FxMapException.InvalidParameterType>(
+        var exception = Should.Throw<DistributedMapException.InvalidParameterType>(
             () => ParameterConverter.ConvertToDictionary(parameters));
 
         exception.Message.ShouldContain("IEnumerable");
@@ -116,7 +116,7 @@ public class ParameterConverterTests
         var parameters = new List<string> { "a", "b", "c" };
 
         // Act & Assert
-        var exception = Should.Throw<FxMapException.InvalidParameterType>(
+        var exception = Should.Throw<DistributedMapException.InvalidParameterType>(
             () => ParameterConverter.ConvertToDictionary(parameters));
 
         exception.Message.ShouldContain("IEnumerable");

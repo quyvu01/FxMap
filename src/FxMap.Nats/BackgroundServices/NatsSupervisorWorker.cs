@@ -1,9 +1,9 @@
+using FxMap.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using FxMap.Abstractions.Transporting;
 using FxMap.Nats.Abstractions;
-using FxMap.Configuration;
 using FxMap.Supervision;
 
 namespace FxMap.Nats.BackgroundServices;
@@ -27,7 +27,8 @@ internal sealed class NatsSupervisorWorker(
         try
         {
             // Register all NATS servers
-            foreach (var (distributedKeyType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
+            var fxConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+            foreach (var (distributedKeyType, handlerType) in fxConfiguration.DistributedKeyMapHandlers)
             {
                 var modelArg = handlerType.GetGenericArguments()[0];
                 var serverType = typeof(INatsServer<,>).MakeGenericType(modelArg, distributedKeyType);

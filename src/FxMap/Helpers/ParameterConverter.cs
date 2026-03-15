@@ -54,7 +54,7 @@ internal static class ParameterConverter
     /// - Anonymous type or regular object (properties converted to dictionary)
     /// </param>
     /// <returns>A dictionary with property names as keys and string values.</returns>
-    /// <exception cref="FxMapException.InvalidParameterType">
+    /// <exception cref="DistributedMapException.InvalidParameterType">
     /// Thrown when parameters is an IEnumerable (except Dictionary&lt;string, string&gt;).
     /// </exception>
     /// <example>
@@ -85,7 +85,7 @@ internal static class ParameterConverter
         // Validation: Reject IEnumerable types (except string)
         if (type != typeof(string) && typeof(IEnumerable).IsAssignableFrom(type))
         {
-            throw new FxMapException.InvalidParameterType(
+            throw new DistributedMapException.InvalidParameterType(
                 $"Parameter type '{type.Name}' is IEnumerable which is not supported. " +
                 "Use Dictionary<string, string> or an object with properties instead.");
         }

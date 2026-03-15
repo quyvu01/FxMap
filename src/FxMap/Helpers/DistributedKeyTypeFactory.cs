@@ -28,10 +28,10 @@ internal static partial class DistributedKeyTypeFactory
     /// If <paramref name="distributedKeyType"/> is provided, returns it directly.
     /// If <paramref name="distributedKey"/> (string) is provided, generates or retrieves a cached dynamic type.
     /// </summary>
-    /// <exception cref="FxMapException.InvalidDistributedKeyConfiguration">
+    /// <exception cref="DistributedMapException.InvalidDistributedKeyConfiguration">
     /// Thrown when both or neither of the parameters are set.
     /// </exception>
-    /// <exception cref="FxMapException.InvalidDistributedKeyName">
+    /// <exception cref="DistributedMapException.InvalidDistributedKeyName">
     /// Thrown when the string key contains invalid characters.
     /// </exception>
     internal static Type Resolve(Type distributedKeyType, string distributedKey)
@@ -40,7 +40,7 @@ internal static partial class DistributedKeyTypeFactory
         var hasKey = !string.IsNullOrWhiteSpace(distributedKey);
 
         if (hasType == hasKey)
-            throw new FxMapException.InvalidDistributedKeyConfiguration(distributedKeyType, distributedKey);
+            throw new DistributedMapException.InvalidDistributedKeyConfiguration(distributedKeyType, distributedKey);
 
         return hasType ? distributedKeyType : GetOrCreateType(distributedKey);
     }
@@ -62,7 +62,7 @@ internal static partial class DistributedKeyTypeFactory
     private static void ValidateKeyName(string key)
     {
         if (!ValidKeyPattern().IsMatch(key))
-            throw new FxMapException.InvalidDistributedKeyName(key);
+            throw new DistributedMapException.InvalidDistributedKeyName(key);
     }
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]

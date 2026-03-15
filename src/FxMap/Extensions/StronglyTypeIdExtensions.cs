@@ -14,7 +14,7 @@ public static class StronglyTypeIdExtensions
     /// </summary>
     /// <param name="mapRegister">The FxMap registration instance.</param>
     /// <param name="options">Configuration action for registering ID converters.</param>
-    /// <exception cref="FxMapException.StronglyTypeConfigurationMustNotBeNull">
+    /// <exception cref="DistributedMapException.StronglyTypeConfigurationMustNotBeNull">
     /// Thrown when the options parameter is null.
     /// </exception>
     /// <example>
@@ -27,8 +27,8 @@ public static class StronglyTypeIdExtensions
     /// </example>
     public static void AddStronglyTypeIdConverter(this MapConfigurator mapRegister, Action<StronglyTypeIdRegister> options)
     {
-        if (options is null) throw new FxMapException.StronglyTypeConfigurationMustNotBeNull();
-        var stronglyTypeIdRegister = new StronglyTypeIdRegister(mapRegister.ServiceCollection);
+        if (options is null) throw new DistributedMapException.StronglyTypeConfigurationMustNotBeNull();
+        var stronglyTypeIdRegister = new StronglyTypeIdRegister(mapRegister.Services);
         options.Invoke(stronglyTypeIdRegister);
     }
 }

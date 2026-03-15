@@ -7,8 +7,6 @@ using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Fluent;
 using FxMap.Helpers;
-using FxMap.Configuration;
-using FxMap.MetadataCache;
 using FxMap.Supervision;
 
 namespace FxMap.Registries;
@@ -32,16 +30,26 @@ namespace FxMap.Registries;
 /// </code>
 /// </example>
 /// </remarks>
-/// <param name="serviceCollection">The service collection to register services into.</param>
-public class MapConfigurator(IServiceCollection serviceCollection)
+/// <param name="services">The service collection to register services into.</param>
+public class MapConfigurator(IServiceCollection services)
 {
     private readonly HashSet<Type> _knownEntityTypes = [];
     private readonly HashSet<Type> _knownProfileTypes = [];
+    private readonly Dictionary<Type, IFluentProfileConfig> _profileConfigs = [];
+    private readonly Dictionary<Type, IFluentEntityConfig> _entityConfigs = [];
+    public IReadOnlyDictionary<Type, IFluentProfileConfig> ProfileConfigs => _profileConfigs;
+    public IReadOnlyDictionary<Type, IFluentEntityConfig> EntityConfigs => _entityConfigs;
+    public int MaxNestingDepth { get; private set; } = 128;
+    public int MaxConcurrentProcessing { get; private set; } = 128;
+    public bool ThrowIfExceptions { get; private set; }
+    public TimeSpan DefaultRequestTimeout { get; private set; } = TimeSpan.FromSeconds(30);
+    internal RetryPolicy RetryPolicy { get; private set; }
+    public SupervisorOptions SupervisorOptions { get; internal set; }
 
     /// <summary>
     /// Gets the underlying service collection for advanced registration scenarios.
     /// </summary>
-    public IServiceCollection ServiceCollection { get; } = serviceCollection;
+    public IServiceCollection Services { get; } = services;
 
     /// <summary>
     /// Registers custom client request handlers from the specified assembly.
@@ -57,18 +65,18 @@ public class MapConfigurator(IServiceCollection serviceCollection)
             .ForEach(it =>
             {
                 var interfaceType = it.Key;
-                if (it.Count() > 1) throw new FxMapException.AmbiguousHandlers(it.Key);
+                if (it.Count() > 1) throw new DistributedMapException.AmbiguousHandlers(it.Key);
                 var attributeArgument = interfaceType.GetGenericArguments()[0];
                 var serviceType = mappableRequestHandlerType.MakeGenericType(attributeArgument);
-                var existedService = ServiceCollection.FirstOrDefault(a => a.ServiceType == serviceType);
+                var existedService = Services.FirstOrDefault(a => a.ServiceType == serviceType);
                 var handlerType = it.First().ClassType;
                 if (existedService is null)
                 {
-                    ServiceCollection.AddTransient(serviceType, handlerType);
+                    Services.AddTransient(serviceType, handlerType);
                     return;
                 }
 
-                ServiceCollection.Replace(new ServiceDescriptor(serviceType, handlerType,
+                Services.Replace(new ServiceDescriptor(serviceType, handlerType,
                     ServiceLifetime.Transient));
             });
     }
@@ -112,13 +120,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
             .ForEach(type =>
             {
                 var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
-                FluentConfigStore.EntityConfigs[config.EntityType] = new EntityConfigMetadata(
-                    config.EntityType,
-                    config.DistributedKeyType,
-                    config.DistributedKey,
-                    config.IdPropertyName,
-                    config.DefaultPropertyName,
-                    config.ExposedNameStores);
+                _entityConfigs.TryAdd(config.EntityType, config);
             });
 
     private void ScanProfileConfigs(Assembly assembly)
@@ -130,14 +132,14 @@ public class MapConfigurator(IServiceCollection serviceCollection)
             {
                 var profile = (IFluentProfileConfig)Activator.CreateInstance(type)!;
                 profile.Build();
-                FluentConfigStore.ProfileConfigs[profile.ModelType] = profile;
+                _profileConfigs.TryAdd(profile.ModelType, profile);
             });
     }
 
     /// <summary>
     /// Enables throwing exceptions during mapping operations instead of silently failing.
     /// </summary>
-    public void ThrowIfException() => FxMapStatics.ThrowIfExceptions = true;
+    public void ThrowIfException() => ThrowIfExceptions = true;
 
     /// <summary>
     /// Sets the maximum depth for nested object mapping to prevent infinite recursion.
@@ -146,7 +148,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     public void SetMaxNestingDepth(int maxNestingDepth)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(maxNestingDepth);
-        FxMapStatics.MaxNestingDepth = maxNestingDepth;
+        MaxNestingDepth = maxNestingDepth;
     }
 
     /// <summary>
@@ -174,7 +176,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     public void SetMaxConcurrentProcessing(int maxConcurrentProcessing)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(maxConcurrentProcessing, 1);
-        FxMapStatics.MaxConcurrentProcessing = maxConcurrentProcessing;
+        MaxConcurrentProcessing = maxConcurrentProcessing;
     }
 
     /// <summary>
@@ -184,7 +186,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     public void SetRequestTimeOut(TimeSpan timeout)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(timeout, TimeSpan.Zero);
-        FxMapStatics.DefaultRequestTimeout = timeout;
+        DefaultRequestTimeout = timeout;
     }
 
     /// <summary>
@@ -197,7 +199,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
         Action<Exception, TimeSpan> onRetry = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(retryCount, 0);
-        FxMapStatics.RetryPolicy = new RetryPolicy(retryCount, sleepDurationProvider, onRetry);
+        RetryPolicy = new RetryPolicy(retryCount, sleepDurationProvider, onRetry);
     }
 
     /// <summary>
@@ -241,7 +243,7 @@ public class MapConfigurator(IServiceCollection serviceCollection)
     /// </example>
     public void ConfigureSupervisor(Action<SupervisorOptions> configure)
     {
-        FxMapStatics.SupervisorOptions ??= new SupervisorOptions();
-        configure(FxMapStatics.SupervisorOptions);
+        SupervisorOptions ??= new SupervisorOptions();
+        configure(SupervisorOptions);
     }
 }

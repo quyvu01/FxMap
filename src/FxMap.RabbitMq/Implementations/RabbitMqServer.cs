@@ -2,6 +2,7 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
+using FxMap.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FxMap.Models;
@@ -10,41 +11,51 @@ using FxMap.Implementations;
 using FxMap.RabbitMq.Abstractions;
 using FxMap.RabbitMq.Constants;
 using FxMap.RabbitMq.Extensions;
-using FxMap.RabbitMq.Statics;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
 namespace FxMap.RabbitMq.Implementations;
 
-internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServer
+internal class RabbitMqServer : IRabbitMqServer
 {
     private static readonly ConcurrentDictionary<string, Type> DistributedKeyAssemblyCached = new();
-    private readonly ILogger<RabbitMqServer> _logger = serviceProvider.GetService<ILogger<RabbitMqServer>>();
+    private readonly ILogger<RabbitMqServer> _logger;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly IRabbitMqConfiguration _rabbitMqConfiguration;
 
     // Backpressure: limit concurrent processing (configurable via FxMapConfigurator.SetMaxConcurrentProcessing)
-    private readonly SemaphoreSlim _semaphore = new(FxMapStatics.MaxConcurrentProcessing,
-        FxMapStatics.MaxConcurrentProcessing);
+    private readonly SemaphoreSlim _semaphore;
 
     private IConnection _connection;
     private IChannel _channel;
     private const string TransportName = "rabbitmq";
+
+    public RabbitMqServer(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = serviceProvider.GetService<ILogger<RabbitMqServer>>();
+        _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+        _rabbitMqConfiguration = serviceProvider.GetRequiredService<IRabbitMqConfiguration>();
+        _semaphore = new SemaphoreSlim(_mapperConfiguration.MaxConcurrentProcessing,
+            _mapperConfiguration.MaxConcurrentProcessing);
+    }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         var queueName = $"{FxMapRabbitMqConstants.QueueNamePrefix}-{AppDomain.CurrentDomain.FriendlyName.ToLower()}";
         const string routingKey = FxMapRabbitMqConstants.RoutingKey;
 
-        var userName = RabbitMqStatics.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
-        var password = RabbitMqStatics.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
+        var userName = _rabbitMqConfiguration.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
+        var password = _rabbitMqConfiguration.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
         var connectionFactory = new ConnectionFactory
         {
-            HostName = RabbitMqStatics.RabbitMqHost,
-            VirtualHost = RabbitMqStatics.RabbitVirtualHost,
-            Port = RabbitMqStatics.RabbitMqPort,
-            Ssl = RabbitMqStatics.SslOption ?? new SslOption(),
+            HostName = _rabbitMqConfiguration.RabbitMqHost,
+            VirtualHost = _rabbitMqConfiguration.RabbitVirtualHost,
+            Port = _rabbitMqConfiguration.RabbitMqPort,
+            Ssl = _rabbitMqConfiguration.SslOption ?? new SslOption(),
             UserName = userName,
             Password = password,
             // Enable automatic recovery
@@ -57,7 +68,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
         await _channel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false,
             autoDelete: false, arguments: null, cancellationToken: cancellationToken);
 
-        var distributedKeyTypes = FxMapStatics.DistributedKeyMapHandlers.Value.Keys.ToList();
+        var distributedKeyTypes = _mapperConfiguration.DistributedKeyMapHandlers.Keys.ToList();
         if (distributedKeyTypes is not { Count: > 0 }) return;
 
         foreach (var exchangeName in distributedKeyTypes.Select(distributedKeyType => distributedKeyType.GetExchangeName()))
@@ -101,7 +112,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             ActivityContext.TryParse(Encoding.UTF8.GetString((byte[])traceparent!), null, out parentContext);
 
         // Parse message to get attribute name
-        var message = JsonSerializer.Deserialize<FxMapRequest>(Encoding.UTF8.GetString(body));
+        var message = JsonSerializer.Deserialize<DistributedMapRequest>(Encoding.UTF8.GetString(body));
         var distributedKeyName = props.Type?.Split(',')[0].Split('.').Last() ?? "Unknown";
 
         // Start server-side activity
@@ -110,7 +121,7 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+        cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
         var cancellationToken = cts.Token;
 
         try
@@ -125,13 +136,13 @@ internal class RabbitMqServer(IServiceProvider serviceProvider) : IRabbitMqServe
             var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(props.Type, distributedKeyAssembly =>
             {
                 var distributedKeyType = Type.GetType(distributedKeyAssembly)!;
-                if (!FxMapStatics.DistributedKeyMapHandlers.Value.TryGetValue(distributedKeyType, out var handlerType))
-                    throw new FxMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
+                if (!_mapperConfiguration.DistributedKeyMapHandlers.TryGetValue(distributedKeyType, out var handlerType))
+                    throw new DistributedMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
                 var modelType = handlerType.GetGenericArguments()[0];
                 return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, distributedKeyType);
             });
 
-            using var scope = serviceProvider.CreateScope();
+            using var scope = _serviceProvider.CreateScope();
             var server = scope.ServiceProvider
                 .GetService(receivedPipelineOrchestrator) as ReceivedPipelinesOrchestrator;
             ArgumentNullException.ThrowIfNull(server);

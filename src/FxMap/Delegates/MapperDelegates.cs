@@ -1,4 +1,6 @@
 using FxMap.Abstractions;
+using FxMap.Accessors.TypeAccessors;
+using FxMap.Fluent;
 
 namespace FxMap.Delegates;
 
@@ -10,4 +12,10 @@ namespace FxMap.Delegates;
 /// <returns>
 /// The <see cref="MapEntityConfig"/> containing the ID and default property configuration.
 /// </returns>
-public delegate MapEntityConfig GetFxMapConfiguration(Type modelType, Type distributedKeyType);
+public delegate MapEntityConfig MapperDelegates(Type modelType, Type distributedKeyType);
+
+public delegate IFluentProfileConfig GetProfileConfig(Type profileType);
+
+public delegate IFluentEntityConfig GetEntityConfig(Type entityType);
+
+public delegate ITypeAccessor GetTypeAccessor(Type type);

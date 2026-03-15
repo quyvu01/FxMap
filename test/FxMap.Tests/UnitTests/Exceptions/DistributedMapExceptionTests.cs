@@ -12,7 +12,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
     /// <summary>
     /// Tests for FxMapException classes - validating exception messages and behavior.
     /// </summary>
-    public class FxMapExceptionTests
+    public class DistributedMapExceptionTests
     {
         #region Test Attributes
 
@@ -52,7 +52,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             var entityTypes = new[] { typeof(Province), typeof(Country) };
 
             // Act
-            var exception = new FxMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
+            var exception = new DistributedMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
 
             // Assert
             exception.Message.ShouldContain(attributeType.FullName!);
@@ -66,7 +66,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             var entityTypes = new[] { typeof(Province), typeof(Country) };
 
             // Act
-            var exception = new FxMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
+            var exception = new DistributedMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
 
             // Assert
             exception.Message.ShouldContain(typeof(Province).FullName!);
@@ -81,7 +81,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             var entityTypes = new[] { typeof(Province), typeof(Country), typeof(City) };
 
             // Act
-            var exception = new FxMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
+            var exception = new DistributedMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
 
             // Assert
             exception.Message.ShouldContain(typeof(Province).FullName!);
@@ -98,7 +98,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             var entityTypes = new[] { typeof(Province), typeof(Country) };
 
             // Act
-            var exception = new FxMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
+            var exception = new DistributedMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
 
             // Assert
             exception.ShouldBeAssignableTo<Exception>();
@@ -112,7 +112,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             var entityTypes = new[] { typeof(Province), typeof(Country) };
 
             // Act
-            var exception = new FxMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
+            var exception = new DistributedMapException.DistributedKeyAssignedToMultipleEntities(attributeType, entityTypes);
 
             // Assert
             // Message should indicate that one attribute is assigned to multiple entities
@@ -137,7 +137,7 @@ namespace FxMap.Tests.UnitTests.Exceptions
             });
 
             // Assert
-            var exception = act.ShouldThrow<FxMapException.DistributedKeyAssignedToMultipleEntities>();
+            var exception = act.ShouldThrow<DistributedMapException.DistributedKeyAssignedToMultipleEntities>();
             exception.Message.ShouldContain(nameof(DuplicateTestOfAttribute));
             exception.Message.ShouldContain(nameof(EntityA));
             exception.Message.ShouldContain(nameof(EntityB));

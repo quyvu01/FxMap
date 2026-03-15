@@ -1,4 +1,5 @@
 using System.Reflection;
+using FxMap.Fluent;
 using FxMap.Helpers;
 using FxMap.PropertyMappingContexts;
 
@@ -53,4 +54,7 @@ public static class Extensions
         if (dependencies.Length < 2) return 0;
         return dependencies.Length - 1;
     }
+
+    public static Type GetDistributedKeyType(this IFluentEntityConfig entityConfig) =>
+        DistributedKeyTypeFactory.Resolve(entityConfig.DistributedKeyType, entityConfig.DistributedKey);
 }

@@ -38,7 +38,7 @@ public sealed class SendPipeline(IServiceCollection serviceCollection) : IPipeli
             .ToList();
 
         if (signatureInterfaceTypes is not { Count: > 0 })
-            throw new FxMapException.TypeIsNotSendPipelineBehavior(runtimePipelineType);
+            throw new DistributedMapException.TypeIsNotSendPipelineBehavior(runtimePipelineType);
         if (runtimePipelineType.IsGenericType && runtimePipelineType.ContainsGenericParameters)
         {
             var serviceDescriptor = new ServiceDescriptor(SendPipelineInterface, runtimePipelineType, serviceLifetime);

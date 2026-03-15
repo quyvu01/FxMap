@@ -10,11 +10,8 @@ using FxMap.Models;
 using FxMap.Implementations;
 using FxMap.Kafka.Abstractions;
 using FxMap.Kafka.Constants;
-using FxMap.Kafka.Extensions;
-using FxMap.Kafka.Statics;
 using FxMap.Kafka.Wrappers;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Kafka.Implementations;
@@ -28,32 +25,38 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
     private readonly IProducer<string, string> _producer;
     private readonly string _requestTopic;
     private readonly ILogger<KafkaServer<TModel, TDistributedKey>> _logger;
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly string _kafkaBootstrapServers;
     private const string TransportName = "kafka";
 
     // Backpressure: limit concurrent processing (configurable via FxMapConfigurator.SetMaxConcurrentProcessing)
-    private readonly SemaphoreSlim _semaphore = new(FxMapStatics.MaxConcurrentProcessing,
-        FxMapStatics.MaxConcurrentProcessing);
+    private readonly SemaphoreSlim _semaphore;
 
     private bool _topicsCreated;
 
     public KafkaServer(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
-        var kafkaBootstrapServers = KafkaStatics.KafkaHost;
+        _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+        var kafkaConfiguration = serviceProvider.GetRequiredService<IKafkaConfiguration>();
+        _semaphore = new SemaphoreSlim(_mapperConfiguration.MaxConcurrentProcessing,
+            _mapperConfiguration.MaxConcurrentProcessing);
+
+        _kafkaBootstrapServers = kafkaConfiguration.KafkaHost;
         var consumerConfig = new ConsumerConfig
         {
             GroupId = KafkaConstants.ServerGroupId,
-            BootstrapServers = kafkaBootstrapServers,
+            BootstrapServers = _kafkaBootstrapServers,
             AutoOffsetReset = AutoOffsetReset.Earliest,
             EnableAutoCommit = false
         };
 
-        var producerConfig = new ProducerConfig { BootstrapServers = kafkaBootstrapServers };
+        var producerConfig = new ProducerConfig { BootstrapServers = _kafkaBootstrapServers };
 
-        if (KafkaStatics.KafkaSslOptions != null)
+        if (kafkaConfiguration.KafkaSslOptions != null)
         {
-            KafkaStatics.SettingUpKafkaSsl(producerConfig);
-            KafkaStatics.SettingUpKafkaSsl(consumerConfig);
+            kafkaConfiguration.ApplySsl(producerConfig);
+            kafkaConfiguration.ApplySsl(consumerConfig);
         }
 
         _consumer = new ConsumerBuilder<string, string>(consumerConfig)
@@ -65,7 +68,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             .SetKeySerializer(Serializers.Utf8)
             .SetValueSerializer(Serializers.Utf8)
             .Build();
-        _requestTopic = typeof(TDistributedKey).RequestTopic();
+        _requestTopic = kafkaConfiguration.GetRequestTopic(typeof(TDistributedKey));
         _logger = serviceProvider.GetService<ILogger<KafkaServer<TModel, TDistributedKey>>>();
     }
 
@@ -133,7 +136,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
     private async Task ProcessMessageAsync(ConsumeResult<string, string> consumeResult, CancellationToken stoppingToken)
     {
         var messageUnWrapped = JsonSerializer
-            .Deserialize<KafkaMessageWrapped<FxMapRequest>>(consumeResult.Message.Value);
+            .Deserialize<KafkaMessageWrapped<DistributedMapRequest>>(consumeResult.Message.Value);
 
         // Extract parent trace context
         ActivityContext parentContext = default;
@@ -153,7 +156,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+        cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
         var cancellationToken = cts.Token;
 
         // Properly dispose the service scope
@@ -294,7 +297,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         const int numPartitions = 1;
         const short replicationFactor = 1;
 
-        var config = new AdminClientConfig { BootstrapServers = KafkaStatics.KafkaHost };
+        var config = new AdminClientConfig { BootstrapServers = _kafkaBootstrapServers };
 
         using var adminClient = new AdminClientBuilder(config).Build();
 

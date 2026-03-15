@@ -1,8 +1,8 @@
+using FxMap.Delegates;
 using FxMap.Extensions;
 using FxMap.Helpers;
 using FxMap.HotChocolate.Implementations;
 using FxMap.HotChocolate.Resolvers;
-using FxMap.MetadataCache;
 using HotChocolate.Execution;
 using HotChocolate.Execution.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -33,8 +33,7 @@ public sealed class HotChocolateConfigurator
     public void AddRequestExecutorBuilder(IRequestExecutorBuilder builder)
     {
         ArgumentNullException.ThrowIfNull(builder);
-        builder
-            .AddDataLoader<DataMappingLoader>();
+        builder.AddDataLoader<DataMappingLoader>();
 
         // Note: BuildSchemaAsync().Result is used here because HotChocolate's builder API
         // requires synchronous registration during startup. This is a known limitation.
@@ -42,6 +41,7 @@ public sealed class HotChocolateConfigurator
         // risk is minimal in typical ASP.NET Core hosting scenarios.
         var schema = builder.BuildSchemaAsync().GetAwaiter().GetResult();
         var types = schema.Types;
+        var getProfileConfig = schema.Services.GetRequiredService<GetProfileConfig>();
         types.ForEach(a =>
         {
             var dataType = a.GetType();
@@ -51,7 +51,7 @@ public sealed class HotChocolateConfigurator
             var objectType = dataType.GetGenericArguments().FirstOrDefault();
             if (objectType is null) return;
             if (!objectType.IsClass || objectType.IsAbstract || GeneralHelpers.IsPrimitiveType(objectType)) return;
-            var profileConfig = FluentConfigStore.ProfileConfigs.GetValueOrDefault(objectType);
+            var profileConfig = getProfileConfig.Invoke(objectType);
             if (profileConfig?.DependencyGraphs is not { Count: > 0 }) return;
             builder
                 .AddType(typeof(FxMapObjectTypeExtension<>).MakeGenericType(objectType))

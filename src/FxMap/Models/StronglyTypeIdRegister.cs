@@ -35,14 +35,14 @@ public sealed class StronglyTypeIdRegister(IServiceCollection serviceCollection)
     /// Must be a non-generic concrete type.
     /// </typeparam>
     /// <returns>The current instance for fluent chaining.</returns>
-    /// <exception cref="FxMapException.StronglyTypeConfigurationImplementationMustNotBeGeneric">
+    /// <exception cref="DistributedMapException.StronglyTypeConfigurationImplementationMustNotBeGeneric">
     /// Thrown when the specified type is a generic type definition.
     /// </exception>
     public StronglyTypeIdRegister OfType<T>() where T : IStronglyTypeConverter
     {
         var implementedType = typeof(T);
         if (implementedType.IsGenericType)
-            throw new FxMapException.StronglyTypeConfigurationImplementationMustNotBeGeneric(implementedType);
+            throw new DistributedMapException.StronglyTypeConfigurationImplementationMustNotBeGeneric(implementedType);
         implementedType.GetInterfaces().Where(t =>
                 t.IsGenericType && t.GetGenericTypeDefinition() == _stronglyTypeConverterType)
             .ForEach(serviceType => serviceCollection.TryAddSingleton(serviceType, implementedType));
