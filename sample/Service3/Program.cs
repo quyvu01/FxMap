@@ -10,7 +10,6 @@ using OpenTelemetry.Metrics;
 using Serilog;
 using Service3Api;
 using Service3Api.Contexts;
-using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
@@ -67,7 +66,7 @@ builder.Services.AddGrpc();
 
 builder.Services.AddDbContextPool<Service3Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestService3", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestService3", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);

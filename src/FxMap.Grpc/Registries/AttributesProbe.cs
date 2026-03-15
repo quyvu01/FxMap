@@ -1,3 +1,3 @@
 namespace FxMap.Grpc.Registries;
 
-public sealed record AttributesProbe(bool IsProbed, Type[] FxMapAttributeTypes);
+public sealed record DistributedKeysProbe(bool IsProbed, Type[] DistributedKeyTypes);

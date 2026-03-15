@@ -1,8 +1,7 @@
 using System.Collections;
 using System.Linq.Expressions;
 using System.Reflection;
-using FxMap.Accessors.TypeAccessors;
-using FxMap.MetadataCache;
+using FxMap.Delegates;
 using FxMap.Expressions.Nodes;
 
 namespace FxMap.Expressions.Building;
@@ -32,10 +31,10 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
     /// <param name="typeAccessorProvider">Optional custom type accessor provider.</param>
     /// <returns>The built expression and result type.</returns>
     public static ExpressionBuildResult Build<TModel>(ExpressionNode node,
-        Func<Type, ITypeAccessor> typeAccessorProvider = null)
+        GetTypeAccessor typeAccessorProvider = null)
     {
         var parameter = Expression.Parameter(typeof(TModel), "x");
-        var provider = typeAccessorProvider ?? TypeCaching.GetTypeAccessor;
+        var provider = typeAccessorProvider;
         var context = new ExpressionBuildContext(typeof(TModel), parameter, parameter, provider);
 
         var builder = new LinqExpressionBuilder();
@@ -47,11 +46,11 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
     /// </summary>
     public static Expression<Func<TModel, TResult>> BuildLambda<TModel, TResult>(
         ExpressionNode node,
-        Func<Type, ITypeAccessor> typeAccessorProvider = null)
+        GetTypeAccessor typeAccessorProvider = null)
     {
         // Re-build with proper parameter access
         var parameter2 = Expression.Parameter(typeof(TModel), "x");
-        var provider = typeAccessorProvider ?? TypeCaching.GetTypeAccessor;
+        var provider = typeAccessorProvider;
         var context = new ExpressionBuildContext(typeof(TModel), parameter2, parameter2, provider);
 
         var builder = new LinqExpressionBuilder();

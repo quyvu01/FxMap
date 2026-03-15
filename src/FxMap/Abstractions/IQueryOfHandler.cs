@@ -39,7 +39,7 @@ public interface IQueryOfHandler<TModel, TDistributedKey> where TModel : class w
 /// <remarks>
 /// This type is primarily used for type resolution and should not be used directly.
 /// </remarks>
-internal class NoOpQueryOfHandler;
+public class NoOpQueryOfHandler;
 
 /// <summary>
 /// Provides a default no-op implementation of <see cref="IQueryOfHandler{TModel, TDistributedKey}"/>.
@@ -54,7 +54,7 @@ internal class NoOpQueryOfHandler;
 /// This default implementation always returns an empty <see cref="ItemsResponse{FxMapDataResponse}"/>.
 /// It is typically used as a fallback when no specific query handler is registered.
 /// </remarks>
-internal sealed class NoOpQueryOfHandler<TModel, TDistributedKey>
+public sealed class NoOpQueryOfHandler<TModel, TDistributedKey>
     : NoOpQueryOfHandler, IQueryOfHandler<TModel, TDistributedKey>
     where TModel : class
     where TDistributedKey : IDistributedKey

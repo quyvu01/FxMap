@@ -1,9 +1,9 @@
+using FxMap.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using FxMap.Abstractions.Transporting;
 using FxMap.Nats.Abstractions;
-using FxMap.Configuration;
 using FxMap.Supervision;
 
 namespace FxMap.Nats.BackgroundServices;
@@ -27,19 +27,20 @@ internal sealed class NatsSupervisorWorker(
         try
         {
             // Register all NATS servers
-            foreach (var (attributeType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
+            var fxConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+            foreach (var (distributedKeyType, handlerType) in fxConfiguration.DistributedKeyMapHandlers)
             {
                 var modelArg = handlerType.GetGenericArguments()[0];
-                var serverType = typeof(INatsServer<,>).MakeGenericType(modelArg, attributeType);
+                var serverType = typeof(INatsServer<,>).MakeGenericType(modelArg, distributedKeyType);
                 var server = serviceProvider.GetService(serverType);
 
                 if (server is not IRequestServer requestServer)
                 {
-                    logger.LogWarning("Failed to resolve NATS server for {Attribute}", attributeType.Name);
+                    logger.LogWarning("Failed to resolve NATS server for {DistributedKey}", distributedKeyType.Name);
                     continue;
                 }
 
-                var serverId = $"NatsServer<{modelArg.Name},{attributeType.Name}>";
+                var serverId = $"NatsServer<{modelArg.Name},{distributedKeyType.Name}>";
                 _supervisor.RegisterServer(serverId, requestServer);
             }
 

@@ -2,7 +2,7 @@
 
 name: Build FxMap and Publish
 env:
-  VERSION: 1.0.1
+  VERSION: 1.0.3
 
 on:
   push:
@@ -121,7 +121,11 @@ jobs:
       - name: Publish NuGets
         working-directory: artifacts
         run: |
-          for file in FxMap*.nupkg; do
-            echo "Pushing $file"
-            dotnet nuget push "$file" -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate --no-symbols
+          for file in *.nupkg; do
+            if [[ "$file" =~ ^(FxMap|FxMap\.(Analyzers|EntityFrameworkCore|MongoDb|HotChocolate|Aws\.Sqs|Azure\.ServiceBus|Grpc|Kafka|Nats|RabbitMq))\.[0-9] ]]; then
+              echo "Pushing $file"
+              dotnet nuget push "$file" -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate --no-symbols
+            else
+              echo "Skipping $file (not in allowed list)"
+            fi
           done

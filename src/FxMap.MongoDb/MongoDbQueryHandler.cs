@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using FxMap.Abstractions;
-using FxMap.MetadataCache;
 using FxMap.Delegates;
 using FxMap.MongoDb.Abstractions;
 using FxMap.MongoDb.Extensions;
@@ -41,7 +40,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     where TDistributedKey : IDistributedKey
 {
     private readonly MapEntityConfig _fxMapEntityConfig = serviceProvider
-        .GetRequiredService<GetFxMapConfiguration>()
+        .GetRequiredService<MapperDelegates>()
         .Invoke(typeof(TModel), typeof(TDistributedKey));
 
     private readonly IMongoCollectionInternal<TModel> _collectionInternal =
@@ -263,7 +262,8 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
                 if (_isInitialized) return;
 
                 // Get Id property info - use GetPropertyInfoDirect to bypass ExposedName
-                var typeAccessor = TypeCaching.GetTypeAccessor(typeof(TModel));
+                var getTypeAccessor = serviceProvider.GetRequiredService<GetTypeAccessor>();
+                var typeAccessor = getTypeAccessor.Invoke(typeof(TModel));
                 IdPropertyInfo = typeAccessor.GetPropertyInfoDirect(idPropertyName)
                                  ?? throw new InvalidOperationException(
                                      $"Id property '{idPropertyName}' not found on type '{typeof(TModel).Name}'");

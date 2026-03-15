@@ -2,7 +2,6 @@ using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
 using FxMap.Models;
 using FxMap.Responses;
-using FxMap.Configuration;
 
 namespace FxMap.Implementations;
 
@@ -21,7 +20,7 @@ internal abstract class SendPipelinesOrchestrator
     /// <param name="message">The FxMap request containing selector IDs and expressions.</param>
     /// <param name="context">Optional context containing headers and parameters.</param>
     /// <returns>The items response containing the fetched data.</returns>
-    internal abstract Task<ItemsResponse<DataResponse>> ExecuteAsync(FxMapRequest message, IContext context);
+    internal abstract Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message, IContext context);
 }
 
 /// <summary>
@@ -41,12 +40,13 @@ internal abstract class SendPipelinesOrchestrator
 internal sealed class SendPipelinesOrchestrator<TDistributedKey>(IServiceProvider serviceProvider) :
     SendPipelinesOrchestrator where TDistributedKey : IDistributedKey
 {
-    internal override async Task<ItemsResponse<DataResponse>> ExecuteAsync(FxMapRequest message, IContext context)
+    internal override async Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message, IContext context)
     {
         var handler = serviceProvider.GetRequiredService<IClientRequestHandler<TDistributedKey>>();
         var cancellationToken = context?.CancellationToken ?? CancellationToken.None;
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+        var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+        cts.CancelAfter(fxMapConfiguration.DefaultRequestTimeout);
 
         var request = new MapRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
         var requestContext = new RequestContextImpl<TDistributedKey>(request, context?.Headers ?? [], cts.Token);

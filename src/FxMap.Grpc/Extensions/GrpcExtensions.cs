@@ -13,7 +13,6 @@ using FxMap.Grpc.Delegates;
 using FxMap.Grpc.Implementations;
 using FxMap.Registries;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Grpc.Registries;
 
 namespace FxMap.Grpc.Extensions;
@@ -58,35 +57,36 @@ public static class GrpcExtensions
         var clientsRegister = new GrpcClientsConfigurator();
         options.Invoke(clientsRegister);
         if (clientsRegister.ServiceHosts is not { Count: > 0 } serviceHosts) return;
-        ConcurrentDictionary<HostProbe, Type[]> hostMapAttributes = [];
-        serviceHosts.ForEach(h => hostMapAttributes.TryAdd(new HostProbe(h, false), []));
+        ConcurrentDictionary<HostProbe, Type[]> hostMapDistributedKeys = [];
+        serviceHosts.ForEach(h => hostMapDistributedKeys.TryAdd(new HostProbe(h, false), []));
         var semaphore = new SemaphoreSlim(1, 1);
-        var services = mapRegister.ServiceCollection;
-        services.TryAddTransient<GetFxMapResponseFunc>(_ => attributeType => async (query, context) =>
+        var throwIfExceptions = mapRegister.ThrowIfExceptions;
+        var services = mapRegister.Services;
+        services.TryAddTransient<GetFxMapResponseFunc>(_ => distributedKeyType => async (query, context) =>
         {
-            if (!hostMapAttributes.Any(a => a.Value.Contains(attributeType)))
+            if (!hostMapDistributedKeys.Any(a => a.Value.Contains(distributedKeyType)))
             {
                 await semaphore.WaitAsync().ConfigureAwait(false);
                 try
                 {
-                    if (hostMapAttributes.Any(a => a.Value.Contains(attributeType))) goto resolveData;
-                    var probeHosts = hostMapAttributes
+                    if (hostMapDistributedKeys.Any(a => a.Value.Contains(distributedKeyType))) goto resolveData;
+                    var probeHosts = hostMapDistributedKeys
                         .Where(a => !a.Key.IsProbed)
                         .Select(a => a.Key.ServiceHost);
-                    var missingTypes = await GetHostMapAttributesAsync(probeHosts, context);
+                    var missingTypes = await GetHostMapAttributesAsync(probeHosts, context, throwIfExceptions);
                     missingTypes.Where(a => a.Key.IsProbed)
                         .ForEach(x =>
                         {
-                            if (hostMapAttributes.Any(a => a.Key.ServiceHost == x.Key.ServiceHost))
+                            if (hostMapDistributedKeys.Any(a => a.Key.ServiceHost == x.Key.ServiceHost))
                             {
-                                var hostProbeKey = hostMapAttributes
+                                var hostProbeKey = hostMapDistributedKeys
                                     .First(a => a.Key.ServiceHost == x.Key.ServiceHost);
-                                hostMapAttributes.TryRemove(hostProbeKey);
+                                hostMapDistributedKeys.TryRemove(hostProbeKey);
                             }
 
-                            hostMapAttributes.TryAdd(x.Key, x.Value);
+                            hostMapDistributedKeys.TryAdd(x.Key, x.Value);
                         });
-                    if (hostMapAttributes.Any(a => a.Value.Contains(attributeType))) goto resolveData;
+                    if (hostMapDistributedKeys.Any(a => a.Value.Contains(distributedKeyType))) goto resolveData;
                     return new ItemsResponse<DataResponse>([]);
                 }
                 finally
@@ -96,10 +96,10 @@ public static class GrpcExtensions
             }
 
             resolveData:
-            var host = hostMapAttributes
-                .FirstOrDefault(a => a.Value.Contains(attributeType))
+            var host = hostMapDistributedKeys
+                .FirstOrDefault(a => a.Value.Contains(distributedKeyType))
                 .Key;
-            var result = await GetFxMapItemsAsync(host.ServiceHost, context, query, attributeType);
+            var result = await GetFxMapItemsAsync(host.ServiceHost, context, query, distributedKeyType);
             var dataResponse = result.Items.Select(x =>
             {
                 var values = x.FxmapValues
@@ -113,23 +113,23 @@ public static class GrpcExtensions
     }
 
     private static async Task<Dictionary<HostProbe, Type[]>> GetHostMapAttributesAsync(
-        IEnumerable<string> serverHosts, IContext context)
+        IEnumerable<string> serverHosts, IContext context, bool throwIfExceptions)
     {
         var tasks = serverHosts
-            .Select(a => (Host: a, FxMapAttributesTask: GeTDistributedKeysByHost(a, context))).ToList();
-        await Task.WhenAll(tasks.Select(a => a.FxMapAttributesTask));
+            .Select(a => (Host: a, DistributedKeysTask: GeTDistributedKeysByHost(a, context, throwIfExceptions))).ToList();
+        await Task.WhenAll(tasks.Select(t => t.DistributedKeysTask));
         var result = new Dictionary<HostProbe, Type[]>();
         tasks.ForEach(a =>
         {
-            var isProbed = a.FxMapAttributesTask.Result.IsProbed;
-            var fxMapAttributes = a.FxMapAttributesTask.Result.FxMapAttributeTypes;
-            result.TryAdd(new HostProbe(a.Host, isProbed), fxMapAttributes);
+            var isProbed = a.DistributedKeysTask.Result.IsProbed;
+            var distributedKeyTypes = a.DistributedKeysTask.Result.DistributedKeyTypes;
+            result.TryAdd(new HostProbe(a.Host, isProbed), distributedKeyTypes);
         });
         return result;
     }
 
     private static async Task<FxMapItemsGrpcResponse> GetFxMapItemsAsync(string serverHost, IContext context,
-        FxMapRequest query, Type attributeType)
+        DistributedMapRequest query, Type distributedKeyType)
     {
         var channel = GetOrCreateChannel(serverHost);
         var client = new FxMapTransportService.FxMapTransportServiceClient(channel);
@@ -141,27 +141,28 @@ public static class GrpcExtensions
         cancellationTokenSource.CancelAfter(DefaultRequestTimeout);
         grpcQuery.SelectorIds.AddRange(query.SelectorIds ?? []);
         grpcQuery.Expression = JsonSerializer.Serialize(query.Expressions);
-        grpcQuery.AttributeAssemblyType = attributeType.GetAssemblyName();
+        grpcQuery.DistributedKeyAssemblyType = distributedKeyType.GetAssemblyName();
         return await client.GetItemsAsync(grpcQuery, metadata, cancellationToken: cancellationTokenSource.Token);
     }
 
-    private static async Task<AttributesProbe> GeTDistributedKeysByHost(string serverHost, IContext context)
+    private static async Task<DistributedKeysProbe> GeTDistributedKeysByHost(string serverHost, IContext context,
+        bool throwIfExceptions)
     {
         try
         {
             var channel = GetOrCreateChannel(serverHost);
             var client = new FxMapTransportService.FxMapTransportServiceClient(channel);
-            var query = new GeTDistributedKeysQuery();
+            var query = new GetDistributedKeysQuery();
             using var cancellationTokenSource = CancellationTokenSource
                 .CreateLinkedTokenSource(context?.CancellationToken ?? CancellationToken.None);
             cancellationTokenSource.CancelAfter(DefaultRequestTimeout);
-            var response = await client.GeTDistributedKeysAsync(query, cancellationToken: cancellationTokenSource.Token);
-            return new AttributesProbe(true, [..response.AttributeTypes.Select(Type.GetType)]);
+            var response = await client.GetDistributedKeysAsync(query, cancellationToken: cancellationTokenSource.Token);
+            return new DistributedKeysProbe(true, [..response.DistributedKeyTypes.Select(Type.GetType)]);
         }
         catch (Exception)
         {
-            if (FxMapStatics.ThrowIfExceptions) throw;
-            return new AttributesProbe(false, []);
+            if (throwIfExceptions) throw;
+            return new DistributedKeysProbe(false, []);
         }
     }
 

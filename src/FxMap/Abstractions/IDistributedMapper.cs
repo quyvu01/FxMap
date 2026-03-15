@@ -1,4 +1,4 @@
-using FxMap.Queries;
+using FxMap.Models;
 using FxMap.Responses;
 
 namespace FxMap.Abstractions;
@@ -10,8 +10,8 @@ namespace FxMap.Abstractions;
 /// This service acts as the entry point for mapping objects and retrieving data using
 /// FxMap distributed key-based models configured via <c>ProfileOf&lt;T&gt;</c>.
 /// Use <see cref="MapDataAsync(object, CancellationToken)"/> to map arbitrary objects,
-/// or <see cref="FetchDataAsync{TDistributedKey}(DataFetchQuery, IContext)"/> /
-/// <see cref="FetchDataAsync(Type, DataFetchQuery, IContext)"/> to retrieve strongly-typed data.
+/// or <see cref="FetchDataAsync{TDistributedKey}(DistributedMapRequest, IContext)"/> /
+/// <see cref="FetchDataAsync(Type, DistributedMapRequest, IContext)"/> to retrieve strongly-typed data.
 /// </remarks>
 public interface IDistributedMapper
 {
@@ -45,7 +45,8 @@ public interface IDistributedMapper
     /// <returns>
     /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing the fetched data.
     /// </returns>
-    Task<ItemsResponse<DataResponse>> FetchDataAsync<TDistributedKey>(DataFetchQuery query, IContext context = null)
+    Task<ItemsResponse<DataResponse>> FetchDataAsync<TDistributedKey>(DistributedMapRequest query,
+        IContext context = null)
         where TDistributedKey : IDistributedKey;
 
     /// <summary>
@@ -64,5 +65,5 @@ public interface IDistributedMapper
     /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing the fetched data.
     /// </returns>
     Task<ItemsResponse<DataResponse>>
-        FetchDataAsync(Type runtimeType, DataFetchQuery query, IContext context = null);
+        FetchDataAsync(Type runtimeType, DistributedMapRequest query, IContext context = null);
 }

@@ -30,11 +30,11 @@ public static partial class ExpressionHelpers
     /// <param name="currentExpression">The current expression representing the source object.</param>
     /// <param name="segment">The collection segment expression (e.g., "Orders[0 asc CreatedAt]").</param>
     /// <returns>Data containing the target type and built expression.</returns>
-    /// <exception cref="FxMapException.CollectionFormatNotCorrected">Thrown when the segment format is invalid.</exception>
+    /// <exception cref="DistributedMapException.CollectionFormatNotCorrected">Thrown when the segment format is invalid.</exception>
     public static ExpressionQueryableData GetCollectionQueryableData(Expression currentExpression, string segment)
     {
         var match = ArrayPattern.Match(segment);
-        if (!match.Success) throw new FxMapException.CollectionFormatNotCorrected(segment);
+        if (!match.Success) throw new DistributedMapException.CollectionFormatNotCorrected(segment);
         var arrayName = match.Groups["name"].Value;
         var orderBy = match.Groups["orderBy"].Value;
         var orderDirection = match.Groups["orderDirection"].Value.ToLower();
@@ -43,7 +43,7 @@ public static partial class ExpressionHelpers
         if (offset is null == limit is null)
             return GetManyExpression(currentExpression, arrayName, orderDirection, orderBy, offset, limit);
         if (offset is not { } index)
-            throw new FxMapException.CollectionIndexIncorrect(segment);
+            throw new DistributedMapException.CollectionIndexIncorrect(segment);
         return GetOneExpression(currentExpression, arrayName, orderDirection, orderBy, index);
     }
 
@@ -61,7 +61,7 @@ public static partial class ExpressionHelpers
     {
         var orderDirectionNormalized = orderDirection.ToLower();
         if (!OrderDirections.Contains(orderDirectionNormalized))
-            throw new FxMapException.CollectionOrderDirectionIncorrect(orderDirection);
+            throw new DistributedMapException.CollectionOrderDirectionIncorrect(orderDirection);
 
         // Create the expression to navigate to the collection
         var parameter = currentExpression;
@@ -70,7 +70,7 @@ public static partial class ExpressionHelpers
         // Determine the item type of the collection
         var collectionType = navigatorExpression.Type;
         if (collectionType == null)
-            throw new FxMapException.NavigatorIncorrect(navigator, collectionType.FullName);
+            throw new DistributedMapException.NavigatorIncorrect(navigator, collectionType.FullName);
         var itemType = collectionType.GetGenericArguments()[0];
         var parameterOrder = Expression.Parameter(itemType, "a");
         var orderPropertyExpression = BuildPropertyAccessExpression(parameterOrder, orderBy);
@@ -104,13 +104,13 @@ public static partial class ExpressionHelpers
     {
         var orderDirectionNormalized = orderDirection.ToLower();
         if (!OrderDirections.Contains(orderDirectionNormalized))
-            throw new FxMapException.CollectionOrderDirectionIncorrect(orderDirection);
+            throw new DistributedMapException.CollectionOrderDirectionIncorrect(orderDirection);
 
         // Create the expression to navigate to the collection
         var collectionExpression = BuildPropertyAccessExpression(currentExpr, navigator);
         var collectionType = collectionExpression.Type;
         if (collectionType == null)
-            throw new FxMapException.NavigatorIncorrect(navigator, collectionType.FullName);
+            throw new DistributedMapException.NavigatorIncorrect(navigator, collectionType.FullName);
         var itemType = collectionType.GetGenericArguments()[0];
         var parameterOrder = Expression.Parameter(itemType, "a");
         var orderPropertyExpression = BuildPropertyAccessExpression(parameterOrder, orderBy);

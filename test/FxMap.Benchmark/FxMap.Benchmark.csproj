@@ -16,9 +16,5 @@
       <ProjectReference Include="..\..\src\FxMap\FxMap.csproj" />
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="FxMapBenchmarks\Objects\" />
-    </ItemGroup>
-
 
 </Project>

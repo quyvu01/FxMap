@@ -8,12 +8,10 @@ using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
 using FxMap.Models;
 using FxMap.Exceptions;
+using FxMap.Kafka.Abstractions;
 using FxMap.Kafka.Constants;
-using FxMap.Kafka.Extensions;
-using FxMap.Kafka.Statics;
 using FxMap.Kafka.Wrappers;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Kafka.Implementations;
@@ -23,6 +21,8 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
     private readonly IProducer<string, string> _producer;
     private readonly IConsumer<string, string> _consumer;
     private readonly ILogger<KafkaClient> _logger;
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly IKafkaConfiguration _kafkaConfiguration;
     private readonly string _replyTo;
     private readonly CancellationTokenSource _consumerCts = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
@@ -33,23 +33,28 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
     private readonly ConcurrentDictionary<string, TaskCompletionSource<Result>>
         _pendingRequests = new();
 
-    public KafkaClient(ILogger<KafkaClient> logger)
+    private readonly string _kafkaBootstrapServers;
+
+    public KafkaClient(ILogger<KafkaClient> logger, IMapperConfiguration mapperConfiguration,
+        IKafkaConfiguration kafkaConfiguration)
     {
         _logger = logger;
-        var kafkaBootstrapServers = KafkaStatics.KafkaHost;
-        var producerConfig = new ProducerConfig { BootstrapServers = kafkaBootstrapServers };
+        _mapperConfiguration = mapperConfiguration;
+        _kafkaConfiguration = kafkaConfiguration;
+        _kafkaBootstrapServers = kafkaConfiguration.KafkaHost;
+        var producerConfig = new ProducerConfig { BootstrapServers = _kafkaBootstrapServers };
         var consumerConfig = new ConsumerConfig
         {
             GroupId = $"{KafkaConstants.ClientGroupId}-{Guid.NewGuid():N}",
-            BootstrapServers = kafkaBootstrapServers,
+            BootstrapServers = _kafkaBootstrapServers,
             AutoOffsetReset = AutoOffsetReset.Latest,
             EnableAutoCommit = true
         };
 
-        if (KafkaStatics.KafkaSslOptions != null)
+        if (kafkaConfiguration.KafkaSslOptions != null)
         {
-            KafkaStatics.SettingUpKafkaSsl(producerConfig);
-            KafkaStatics.SettingUpKafkaSsl(consumerConfig);
+            kafkaConfiguration.ApplySsl(producerConfig);
+            kafkaConfiguration.ApplySsl(consumerConfig);
         }
 
         _producer = new ProducerBuilder<string, string>(producerConfig)
@@ -77,12 +82,12 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             await EnsureInitializedAsync(requestContext.CancellationToken);
 
             var correlationId = Guid.NewGuid().ToString();
-            var topic = typeof(TDistributedKey).RequestTopic();
+            var topic = _kafkaConfiguration.GetRequestTopic(typeof(TDistributedKey));
 
             // Propagate W3C trace context
-            var message = new KafkaMessageWrapped<FxMapRequest>
+            var message = new KafkaMessageWrapped<DistributedMapRequest>
             {
-                Message = new FxMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
+                Message = new DistributedMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
                 ReplyTo = _replyTo
             };
 
@@ -122,18 +127,18 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
 
                 // Wait for response with timeout
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(requestContext.CancellationToken);
-                cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+                cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
 
                 try
                 {
                     var response = await tcs.Task.WaitAsync(cts.Token);
 
                     if (response is null)
-                        throw new FxMapException.ReceivedException("Received null response from server");
+                        throw new DistributedMapException.ReceivedException("Received null response from server");
 
                     if (!response.IsSuccess)
                         throw response.Fault?.ToException()
-                              ?? new FxMapException.ReceivedException("Unknown error from server");
+                              ?? new DistributedMapException.ReceivedException("Unknown error from server");
 
                     // Record success metrics
                     stopwatch.Stop();
@@ -237,7 +242,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
         const int numPartitions = 1;
         const short replicationFactor = 1;
 
-        var config = new AdminClientConfig { BootstrapServers = KafkaStatics.KafkaHost };
+        var config = new AdminClientConfig { BootstrapServers = _kafkaBootstrapServers };
 
         using var adminClient = new AdminClientBuilder(config).Build();
 

@@ -29,7 +29,7 @@ public interface IContext
 /// <typeparam name="TDistributedKey">
 /// The type of <see cref="IDistributedKey"/> that describes the request.
 /// </typeparam>
-public interface RequestContext<TDistributedKey> : IFxMapBase<TDistributedKey>, IContext where TDistributedKey : IDistributedKey
+public interface RequestContext<TDistributedKey> : IMapperBase<TDistributedKey>, IContext where TDistributedKey : IDistributedKey
 {
     /// <summary>
     /// The request payload and metadata for the given <typeparamref name="TDistributedKey"/>.

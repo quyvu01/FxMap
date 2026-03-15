@@ -7,13 +7,11 @@ using Amazon.SQS;
 using Amazon.SQS.Model;
 using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
+using FxMap.Aws.Sqs.Abstractions;
 using FxMap.Aws.Sqs.Constants;
-using FxMap.Aws.Sqs.Extensions;
-using FxMap.Aws.Sqs.Statics;
 using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Aws.Sqs.Implementations;
@@ -22,11 +20,19 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _eventArgsMapper = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly ISqsConfiguration _sqsConfiguration;
     private AmazonSQSClient _sqsClient;
     private string _responseQueueUrl;
     private bool _initialized;
     private CancellationTokenSource _receiverCts;
     private const string TransportName = "sqs";
+
+    public SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsConfiguration sqsConfiguration)
+    {
+        _mapperConfiguration = mapperConfiguration;
+        _sqsConfiguration = sqsConfiguration;
+    }
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
         RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
@@ -42,7 +48,7 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
 
             if (_sqsClient is null) throw new InvalidOperationException("SQS client is not initialized");
 
-            var queueName = typeof(TDistributedKey).GetQueueName();
+            var queueName = _sqsConfiguration.GetQueueName(typeof(TDistributedKey));
             var cancellationToken = requestContext.CancellationToken;
             var correlationId = Guid.NewGuid().ToString();
 
@@ -111,7 +117,7 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
 
                 // Wait with timeout
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+                cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
 
                 await using var _ = cts.Token.Register(() => tcs.TrySetCanceled());
 
@@ -119,11 +125,11 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
                 var response = JsonSerializer.Deserialize<Result>(responseMessage.Body);
 
                 if (response is null)
-                    throw new FxMapException.ReceivedException("Received null response from server");
+                    throw new DistributedMapException.ReceivedException("Received null response from server");
 
                 if (!response.IsSuccess)
                     throw response.Fault?.ToException()
-                          ?? new FxMapException.ReceivedException("Unknown error from server");
+                          ?? new DistributedMapException.ReceivedException("Unknown error from server");
 
                 // Record success metrics
                 stopwatch.Stop();
@@ -187,21 +193,21 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
     {
         // Configure AWS credentials
         AWSCredentials credentials = null;
-        if (!string.IsNullOrEmpty(SqsStatics.AwsAccessKeyId) && !string.IsNullOrEmpty(SqsStatics.AwsSecretAccessKey))
+        if (!string.IsNullOrEmpty(_sqsConfiguration.AwsAccessKeyId) && !string.IsNullOrEmpty(_sqsConfiguration.AwsSecretAccessKey))
         {
-            credentials = new BasicAWSCredentials(SqsStatics.AwsAccessKeyId, SqsStatics.AwsSecretAccessKey);
+            credentials = new BasicAWSCredentials(_sqsConfiguration.AwsAccessKeyId, _sqsConfiguration.AwsSecretAccessKey);
         }
 
         // Create SQS client
         var config = new AmazonSQSConfig
         {
-            RegionEndpoint = SqsStatics.AwsRegion ?? RegionEndpoint.USEast1
+            RegionEndpoint = _sqsConfiguration.AwsRegion ?? RegionEndpoint.USEast1
         };
 
         // Support LocalStack for testing
-        if (!string.IsNullOrEmpty(SqsStatics.ServiceUrl))
+        if (!string.IsNullOrEmpty(_sqsConfiguration.ServiceUrl))
         {
-            config.ServiceURL = SqsStatics.ServiceUrl;
+            config.ServiceURL = _sqsConfiguration.ServiceUrl;
         }
 
         _sqsClient = credentials != null
@@ -312,7 +318,7 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
         catch (QueueDoesNotExistException)
         {
             // Queue doesn't exist yet, will be created by server
-            throw new FxMapException.ReceivedException(
+            throw new DistributedMapException.ReceivedException(
                 $"SQS queue '{queueName}' does not exist. Ensure the server is running.");
         }
     }

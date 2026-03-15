@@ -16,4 +16,4 @@ namespace FxMap.Abstractions;
 /// will typically implement this interface to indicate its association with a specific distributed key type.
 /// </para>
 /// </remarks>
-public interface IFxMapBase<TDistributedKey> where TDistributedKey : IDistributedKey;
+public interface IMapperBase<TDistributedKey> where TDistributedKey : IDistributedKey;

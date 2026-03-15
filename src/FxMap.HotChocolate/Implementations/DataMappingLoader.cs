@@ -2,8 +2,8 @@ using System.Text.Json;
 using FxMap.Abstractions;
 using FxMap.Extensions;
 using FxMap.HotChocolate.Registries;
+using FxMap.Models;
 using FxMap.PublicContracts;
-using FxMap.Queries;
 
 namespace FxMap.HotChocolate.Implementations;
 
@@ -66,7 +66,7 @@ internal class DataMappingLoader(
                     var context = new RequestContext([], cancellationToken);
 
                     var result = await distributedMapper
-                        .FetchDataAsync(gr.Key, new DataFetchQuery([..ids], [..expressions]), context);
+                        .FetchDataAsync(gr.Key, new DistributedMapRequest([..ids], [..expressions]), context);
 
                     var res = result.Items.Join(gr, a => a.Id, k => k.SelectorId, (a, k) => (a, k))
                         .ToDictionary(x => x.k,

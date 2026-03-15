@@ -1,8 +1,6 @@
-using FxMap.Configuration;
 using FxMap.EntityFrameworkCore.Abstractions;
 using FxMap.EntityFrameworkCore.Exceptions;
 using FxMap.EntityFrameworkCore.Implementations;
-using FxMap.Exceptions;
 using FxMap.Extensions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -46,10 +44,7 @@ public sealed class EfCoreConfigurator(IServiceCollection serviceCollection)
         List<Type> dbContextTypes = [dbContextType, ..otherDbContextTypes ?? []];
         if (dbContextTypes.Count == 0)
             throw new FxMapEntityFrameworkException.DbContextsMustNotBeEmpty();
-
-        if (!FxMapStatics.HasModelConfigurations)
-            throw new FxMapException.AddProfilesFromAssemblyContaining();
-
+        
         dbContextTypes.Distinct().ForEach(type =>
         {
             ArgumentNullException.ThrowIfNull(type);

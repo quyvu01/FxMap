@@ -4,7 +4,6 @@ using FxMap.Accessors.PropertyAccessors;
 using FxMap.Extensions;
 using FxMap.Fluent.Builders;
 using FxMap.Fluent.Rules;
-using FxMap.MetadataCache;
 using FxMap.PropertyMappingContexts;
 
 namespace FxMap.Fluent;
@@ -95,9 +94,9 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
 
         foreach (var group in ruleGroups)
         {
-            var attributeType = FluentConfigStore.ResolveDistributedKeyType(group);
+            var distributedKeyType = group.GetDistributedKeyType();
             var selectorProperty = properties.FirstOrDefault(p => p.Name == group.SelectorPropertyName);
-            if (selectorProperty is null || attributeType is null) continue;
+            if (selectorProperty is null || distributedKeyType is null) continue;
 
             foreach (var rule in group.Rules)
             {
@@ -109,7 +108,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
                     TargetPropertyInfo = targetProperty,
                     Expression = rule.Expression,
                     SelectorPropertyName = selectorProperty.Name,
-                    RuntimeDistributedKeyType = attributeType,
+                    RuntimeDistributedKeyType = distributedKeyType,
                     RequiredPropertyInfo = selectorProperty,
                     ConditionalExpression = rule.ConditionalExpression
                 };

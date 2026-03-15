@@ -6,34 +6,41 @@ using FxMap.Abstractions;
 using FxMap.Models;
 using FxMap.Implementations;
 using FxMap.Nats.Abstractions;
-using FxMap.Nats.Extensions;
 using FxMap.Nats.Wrappers;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 
 namespace FxMap.Nats.Implementations;
 
-internal sealed class NatsServer<TModel, TDistributedKey>(IServiceProvider serviceProvider)
-    : INatsServer<TModel, TDistributedKey>
+internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, TDistributedKey>
     where TDistributedKey : IDistributedKey where TModel : class
 {
     private const string TransportName = "nats";
 
-    private readonly ILogger<NatsServer<TModel, TDistributedKey>> _logger =
-        serviceProvider.GetService<ILogger<NatsServer<TModel, TDistributedKey>>>();
-
-    private readonly NatsClientWrapper _natsClientWrapped = serviceProvider
-        .GetRequiredService<NatsClientWrapper>();
+    private readonly ILogger<NatsServer<TModel, TDistributedKey>> _logger;
+    private readonly NatsClientWrapper _natsClientWrapped;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly INatsConfiguration _natsConfiguration;
 
     // Backpressure: limit concurrent processing (configurable via FxMapConfigurator.SetMaxConcurrentProcessing)
-    private readonly SemaphoreSlim _semaphore = new(FxMapStatics.MaxConcurrentProcessing,
-        FxMapStatics.MaxConcurrentProcessing);
+    private readonly SemaphoreSlim _semaphore;
+
+    public NatsServer(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+        _logger = serviceProvider.GetService<ILogger<NatsServer<TModel, TDistributedKey>>>();
+        _natsClientWrapped = serviceProvider.GetRequiredService<NatsClientWrapper>();
+        _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+        _natsConfiguration = serviceProvider.GetRequiredService<INatsConfiguration>();
+        _semaphore = new SemaphoreSlim(_mapperConfiguration.MaxConcurrentProcessing,
+            _mapperConfiguration.MaxConcurrentProcessing);
+    }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         var natsScribeAsync = _natsClientWrapped.NatsClient
-            .SubscribeAsync<FxMapRequest>(typeof(TDistributedKey).GetNatsSubject(), cancellationToken: cancellationToken);
+            .SubscribeAsync<DistributedMapRequest>(_natsConfiguration.GetSubject(typeof(TDistributedKey)), cancellationToken: cancellationToken);
 
         await foreach (var message in natsScribeAsync)
         {
@@ -52,7 +59,7 @@ internal sealed class NatsServer<TModel, TDistributedKey>(IServiceProvider servi
         }
     }
 
-    private async Task ProcessMessageWithReleaseAsync(NatsMsg<FxMapRequest> message, CancellationToken stoppingToken)
+    private async Task ProcessMessageWithReleaseAsync(NatsMsg<DistributedMapRequest> message, CancellationToken stoppingToken)
     {
         try
         {
@@ -65,7 +72,7 @@ internal sealed class NatsServer<TModel, TDistributedKey>(IServiceProvider servi
         }
     }
 
-    private async Task ProcessMessageAsync(NatsMsg<FxMapRequest> message, CancellationToken stoppingToken)
+    private async Task ProcessMessageAsync(NatsMsg<DistributedMapRequest> message, CancellationToken stoppingToken)
     {
         if (message.Data is null) return;
 
@@ -80,23 +87,25 @@ internal sealed class NatsServer<TModel, TDistributedKey>(IServiceProvider servi
         var stopwatch = Stopwatch.StartNew();
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
-        cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+        cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
         var cancellationToken = cts.Token;
         try
         {
+            var subject = _natsConfiguration.GetSubject(typeof(TDistributedKey));
+
             // Add messaging tags to activity
             activity?.SetMessagingTags(
                 system: TransportName,
-                destination: typeof(TDistributedKey).GetNatsSubject(),
+                destination: subject,
                 operation: "process");
 
             // Emit diagnostic event
             FxMapDiagnostics.MessageReceive(
                 TransportName,
-                typeof(TDistributedKey).GetNatsSubject(),
+                subject,
                 message.Subject);
 
-            using var serviceScope = serviceProvider.CreateScope();
+            using var serviceScope = _serviceProvider.CreateScope();
             var pipeline = serviceScope.ServiceProvider
                 .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TDistributedKey>>();
             var headers = message.Headers?
@@ -165,7 +174,7 @@ internal sealed class NatsServer<TModel, TDistributedKey>(IServiceProvider servi
         }
     }
 
-    private async Task TrySendErrorResponseAsync(NatsMsg<FxMapRequest> message, Result response)
+    private async Task TrySendErrorResponseAsync(NatsMsg<DistributedMapRequest> message, Result response)
     {
         try
         {

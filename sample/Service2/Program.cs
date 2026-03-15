@@ -10,7 +10,6 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using Service2;
 using Service2.Contexts;
-using Shared;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -61,7 +60,7 @@ builder.Services.AddFxMap(cfg =>
 
 builder.Services.AddDbContextPool<Service2Context>(options =>
 {
-    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=OfXTestService2", b =>
+    options.UseNpgsql("Host=localhost;Username=postgres;Password=Abcd@2021;Database=FxMapTestService2", b =>
     {
         b.MigrationsAssembly(Assembly.GetExecutingAssembly().GetName().Name);
         b.UseQuerySplittingBehavior(QuerySplittingBehavior.SingleQuery);

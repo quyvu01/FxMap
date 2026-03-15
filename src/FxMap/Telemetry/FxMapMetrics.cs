@@ -181,15 +181,15 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a successful request with common tags.
     /// </summary>
-    /// <param name="attributeName">The FxMap distributed key name.</param>
+    /// <param name="distributedKeyName">The FxMap distributed key name.</param>
     /// <param name="transport">The transport mechanism.</param>
     /// <param name="durationMs">The request duration in milliseconds.</param>
     /// <param name="itemCount">The number of items returned.</param>
-    public static void RecordRequest(string attributeName, string transport, double durationMs, int itemCount)
+    public static void RecordRequest(string distributedKeyName, string transport, double durationMs, int itemCount)
     {
         var tags = new TagList
         {
-            { Constants.Telemetry.LabelFxMapAttribute, attributeName },
+            { Constants.Telemetry.LabelFxMapDistributedKey, distributedKeyName },
             { Constants.Telemetry.LabelFxMapTransport, transport },
             { Constants.Telemetry.LabelFxMapStatus, Constants.Telemetry.StatusSuccess }
         };
@@ -203,19 +203,19 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a failed request with common tags.
     /// </summary>
-    /// <param name="attributeName">The FxMap distributed key name.</param>
+    /// <param name="distributedKeyName">The FxMap distributed key name.</param>
     /// <param name="transport">The transport mechanism.</param>
     /// <param name="durationMs">The request duration in milliseconds.</param>
     /// <param name="errorType">The type of error that occurred.</param>
     public static void RecordError(
-        string attributeName,
+        string distributedKeyName,
         string transport,
         double durationMs,
         string errorType)
     {
         var tags = new TagList
         {
-            { Constants.Telemetry.LabelFxMapAttribute, attributeName },
+            { Constants.Telemetry.LabelFxMapDistributedKey, distributedKeyName },
             { Constants.Telemetry.LabelFxMapTransport, transport },
             { Constants.Telemetry.LabelFxMapStatus, Constants.Telemetry.StatusError },
             { Constants.Telemetry.LabelFxMapErrorType, errorType }
@@ -229,15 +229,15 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a successful database query.
     /// </summary>
-    /// <param name="attributeName">The FxMap distributed key name.</param>
+    /// <param name="distributedKeyName">The FxMap distributed key name.</param>
     /// <param name="dbSystem">The database system (e.g., "efcore", "mongodb").</param>
     /// <param name="durationMs">The query duration in milliseconds.</param>
     /// <param name="itemCount">The number of items returned.</param>
-    public static void RecordDatabaseQuery(string attributeName, string dbSystem, double durationMs, int itemCount)
+    public static void RecordDatabaseQuery(string distributedKeyName, string dbSystem, double durationMs, int itemCount)
     {
         var tags = new TagList
         {
-            { Constants.Telemetry.LabelFxMapAttribute, attributeName },
+            { Constants.Telemetry.LabelFxMapDistributedKey, distributedKeyName },
             { Constants.Telemetry.LabelFxMapDbSystem, dbSystem },
             { Constants.Telemetry.LabelFxMapStatus, Constants.Telemetry.StatusSuccess }
         };
@@ -249,15 +249,15 @@ public static class FxMapMetrics
     /// <summary>
     /// Records a failed database query.
     /// </summary>
-    /// <param name="attributeName">The FxMap distributed key name.</param>
+    /// <param name="distributedKeyName">The FxMap distributed key name.</param>
     /// <param name="dbSystem">The database system (e.g., "efcore", "mongodb").</param>
     /// <param name="durationMs">The query duration in milliseconds.</param>
     /// <param name="errorType">The type of error that occurred.</param>
-    public static void RecordDatabaseError(string attributeName, string dbSystem, double durationMs, string errorType)
+    public static void RecordDatabaseError(string distributedKeyName, string dbSystem, double durationMs, string errorType)
     {
         var tags = new TagList
         {
-            { Constants.Telemetry.LabelFxMapAttribute, attributeName },
+            { Constants.Telemetry.LabelFxMapDistributedKey, distributedKeyName },
             { Constants.Telemetry.LabelFxMapDbSystem, dbSystem },
             { Constants.Telemetry.LabelFxMapStatus, Constants.Telemetry.StatusError },
             { Constants.Telemetry.LabelFxMapErrorType, errorType }

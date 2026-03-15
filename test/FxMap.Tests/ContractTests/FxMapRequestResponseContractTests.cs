@@ -16,14 +16,14 @@ public class FxMapRequestResponseContractTests
     public void FxMapRequest_Should_Serialize_And_Deserialize_Correctly()
     {
         // Arrange
-        var request = new FxMapRequest(
+        var request = new DistributedMapRequest(
             SelectorIds: ["id1", "id2", "id3"],
             Expressions: ["Name", "Email"]
         );
 
         // Act
         var json = JsonSerializer.Serialize(request);
-        var deserialized = JsonSerializer.Deserialize<FxMapRequest>(json);
+        var deserialized = JsonSerializer.Deserialize<DistributedMapRequest>(json);
 
         // Assert
         deserialized.ShouldNotBeNull();
@@ -87,14 +87,14 @@ public class FxMapRequestResponseContractTests
     public void FxMapRequest_Should_Handle_Empty_Arrays()
     {
         // Arrange
-        var request = new FxMapRequest(
+        var request = new DistributedMapRequest(
             SelectorIds: [],
             Expressions: []
         );
 
         // Act
         var json = JsonSerializer.Serialize(request);
-        var deserialized = JsonSerializer.Deserialize<FxMapRequest>(json);
+        var deserialized = JsonSerializer.Deserialize<DistributedMapRequest>(json);
 
         // Assert
         deserialized.ShouldNotBeNull();
@@ -158,7 +158,7 @@ public class FxMapRequestResponseContractTests
         // Breaking this would break compatibility with existing services
 
         // Arrange
-        var request = new FxMapRequest(
+        var request = new DistributedMapRequest(
             SelectorIds: ["id1"],
             Expressions: ["Field1"]
         );

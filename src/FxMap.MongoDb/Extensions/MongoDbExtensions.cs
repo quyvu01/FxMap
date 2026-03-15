@@ -1,7 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
+using FxMap.Abstractions;
 using FxMap.Exceptions;
 using FxMap.Extensions;
-using FxMap.Configuration;
 using FxMap.MongoDb.Registries;
 using FxMap.Wrappers;
 
@@ -20,7 +20,7 @@ public static class MongoDbExtensions
     /// <param name="serviceInjector">The FxMap registration wrapper.</param>
     /// <param name="registrarAction">Configuration action for registering MongoDB collections.</param>
     /// <returns>The FxMap registration wrapper for method chaining.</returns>
-    /// <exception cref="FxMapException.AddProfilesFromAssemblyContaining">
+    /// <exception cref="DistributedMapException.AddProfilesFromAssemblyContaining">
     /// Thrown when model configurations have not been set up before calling this method.
     /// </exception>
     /// <example>
@@ -39,19 +39,22 @@ public static class MongoDbExtensions
     public static ConfiguratorWrapped AddMongoDb(this ConfiguratorWrapped serviceInjector,
         Action<MongoDbConfigurator> registrarAction)
     {
-        if (!FxMapStatics.HasModelConfigurations) throw new FxMapException.AddProfilesFromAssemblyContaining();
-        var registrar = new MongoDbConfigurator(serviceInjector.MapConfigurator.ServiceCollection);
+        var entityConfig = serviceInjector.MapConfigurator.EntityConfigs;
+        if (entityConfig is not { Count: > 0 })
+            throw new DistributedMapException.AddProfilesFromAssemblyContaining(); // Todo: update Exception again!
+        var registrar = new MongoDbConfigurator(serviceInjector.MapConfigurator.Services);
         registrarAction.Invoke(registrar);
         var mongoModelTypes = registrar.MongoModelTypes;
-        var serviceCollection = serviceInjector.MapConfigurator.ServiceCollection;
-        FxMapStatics.EntitiesConfigurations.Value
-            .Where(m => mongoModelTypes.Contains(m.ModelType))
+        var serviceCollection = serviceInjector.MapConfigurator.Services;
+        entityConfig
+            .Select(a => a.Value)
+            .Where(m => mongoModelTypes.Contains(m.EntityType))
             .ForEach(m =>
             {
-                var modelType = m.ModelType;
-                var attributeType = m.DistributedKeyType;
-                var serviceType = FxMapStatics.QueryOfHandlerType.MakeGenericType(modelType, attributeType);
-                var implementedType = MongoDbQueryOfHandlerType.MakeGenericType(modelType, attributeType);
+                var modelType = m.EntityType;
+                var distributedKeyType = m.GetDistributedKeyType();
+                var serviceType = typeof(IQueryOfHandler<,>).MakeGenericType(modelType, distributedKeyType);
+                var implementedType = MongoDbQueryOfHandlerType.MakeGenericType(modelType, distributedKeyType);
                 serviceCollection.AddTransient(serviceType, implementedType);
             });
         return serviceInjector;

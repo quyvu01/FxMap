@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using FxMap.Abstractions;
-using FxMap.Queries;
+using FxMap.Models;
 using Service1.Contexts;
 using Service1.Contract.Responses;
 using Service1.Models;
@@ -56,7 +56,7 @@ public sealed class TestController : ControllerBase
         string expression)
     {
         var result = await distributedMapper
-            .FetchDataAsync<UserOfAttribute>(new DataFetchQuery(["user-001"], [expression]));
+            .FetchDataAsync<UserOfAttribute>(new DistributedMapRequest(["user-001"], [expression]));
         return Ok(result);
     }
 
@@ -65,7 +65,7 @@ public sealed class TestController : ControllerBase
         string expression)
     {
         var result = await distributedMapper
-            .FetchDataAsync<MemberSocialOfAttribute>(new DataFetchQuery(["1"], [expression]));
+            .FetchDataAsync<MemberSocialOfAttribute>(new DistributedMapRequest(["1"], [expression]));
         return Ok(result);
     }
 
@@ -147,7 +147,7 @@ public sealed class TestController : ControllerBase
     public async Task<IActionResult> FetchUsers([FromServices] IDistributedMapper distributedMapper)
     {
         var result = await distributedMapper
-            .FetchDataAsync<UserOfAttribute>(new DataFetchQuery(["user-001", "user-013", "user-019"],
+            .FetchDataAsync<UserOfAttribute>(new DistributedMapRequest(["user-001", "user-013", "user-019"],
                 [null, "Name", "Email"]));
         return Ok(result);
     }

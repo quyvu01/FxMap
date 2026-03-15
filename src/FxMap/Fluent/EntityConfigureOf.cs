@@ -31,7 +31,7 @@ public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TMod
     protected void ExposedName<TProp>(Expression<Func<TModel, TProp>> selector, string exposedName)
     {
         if (!_exposedPropertyNames.Add(exposedName))
-            throw new FxMapException.DuplicatedNameByExposedName(typeof(TModel), exposedName);
+            throw new DistributedMapException.DuplicatedNameByExposedName(typeof(TModel), exposedName);
         _exposedNameStores.Add(new ExposedNameStore(selector.GetPropertyInfo(), exposedName));
     }
 

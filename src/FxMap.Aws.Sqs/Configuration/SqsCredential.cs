@@ -1,10 +1,12 @@
-using FxMap.Aws.Sqs.Statics;
-
 namespace FxMap.Aws.Sqs.Configuration;
 
 public sealed class SqsCredential
 {
-    public void AccessKeyId(string accessKeyId) => SqsStatics.AwsAccessKeyId = accessKeyId;
-    public void SecretAccessKey(string secretAccessKey) => SqsStatics.AwsSecretAccessKey = secretAccessKey;
-    public void ServiceUrl(string serviceUrl) => SqsStatics.ServiceUrl = serviceUrl;
+    internal string AccessKeyIdValue { get; private set; }
+    internal string SecretAccessKeyValue { get; private set; }
+    internal string ServiceUrlValue { get; private set; }
+
+    public void AccessKeyId(string accessKeyId) => AccessKeyIdValue = accessKeyId;
+    public void SecretAccessKey(string secretAccessKey) => SecretAccessKeyValue = secretAccessKey;
+    public void ServiceUrl(string serviceUrl) => ServiceUrlValue = serviceUrl;
 }

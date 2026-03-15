@@ -23,7 +23,7 @@ public static class PipelineExtensions
         /// </remarks>
         public void AddReceivedPipelines(Action<ReceivedPipeline> options)
         {
-            var receivedPipeline = new ReceivedPipeline(mapRegister.ServiceCollection);
+            var receivedPipeline = new ReceivedPipeline(mapRegister.Services);
             options.Invoke(receivedPipeline);
         }
 
@@ -37,7 +37,7 @@ public static class PipelineExtensions
         /// </remarks>
         public void AddSendPipelines(Action<SendPipeline> options)
         {
-            var receivedPipeline = new SendPipeline(mapRegister.ServiceCollection);
+            var receivedPipeline = new SendPipeline(mapRegister.Services);
             options.Invoke(receivedPipeline);
         }
 
@@ -51,7 +51,7 @@ public static class PipelineExtensions
         /// </remarks>
         public void AddCustomExpressionPipelines(Action<CustomExpressionPipeline> options)
         {
-            var customExpressionPipeline = new CustomExpressionPipeline(mapRegister.ServiceCollection);
+            var customExpressionPipeline = new CustomExpressionPipeline(mapRegister.Services);
             options.Invoke(customExpressionPipeline);
         }
     }

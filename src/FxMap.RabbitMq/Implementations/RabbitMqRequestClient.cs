@@ -6,11 +6,10 @@ using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
 using FxMap.Exceptions;
 using FxMap.Extensions;
+using FxMap.RabbitMq.Abstractions;
 using FxMap.RabbitMq.Constants;
 using FxMap.RabbitMq.Extensions;
-using FxMap.RabbitMq.Statics;
 using FxMap.Responses;
-using FxMap.Configuration;
 using FxMap.Telemetry;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -21,6 +20,8 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<BasicDeliverEventArgs>> _eventArgsMapper = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
+    private readonly IMapperConfiguration _mapperConfiguration;
+    private readonly IRabbitMqConfiguration _rabbitMqConfiguration;
     private IConnection _connection;
     private IChannel _channel;
     private AsyncEventingBasicConsumer _consumer;
@@ -28,6 +29,12 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
     private bool _initialized;
     private const string RoutingKey = FxMapRabbitMqConstants.RoutingKey;
     private const string TransportName = "rabbitmq";
+
+    public RabbitMqRequestClient(IMapperConfiguration mapperConfiguration, IRabbitMqConfiguration rabbitMqConfiguration)
+    {
+        _mapperConfiguration = mapperConfiguration;
+        _rabbitMqConfiguration = rabbitMqConfiguration;
+    }
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
         RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
@@ -89,7 +96,7 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
 
                 // Wait with timeout
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(FxMapStatics.DefaultRequestTimeout);
+                cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
 
                 await using var _ = cts.Token.Register(() => tcs.TrySetCanceled());
 
@@ -98,11 +105,11 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
                 var response = JsonSerializer.Deserialize<Result>(resultAsString);
 
                 if (response is null)
-                    throw new FxMapException.ReceivedException("Received null response from server");
+                    throw new DistributedMapException.ReceivedException("Received null response from server");
 
                 if (!response.IsSuccess)
                     throw response.Fault?.ToException()
-                          ?? new FxMapException.ReceivedException("Unknown error from server");
+                          ?? new DistributedMapException.ReceivedException("Unknown error from server");
 
                 // Record success metrics
                 stopwatch.Stop();
@@ -164,14 +171,14 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        var userName = RabbitMqStatics.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
-        var password = RabbitMqStatics.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
+        var userName = _rabbitMqConfiguration.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
+        var password = _rabbitMqConfiguration.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
         var connectionFactory = new ConnectionFactory
         {
-            HostName = RabbitMqStatics.RabbitMqHost,
-            VirtualHost = RabbitMqStatics.RabbitVirtualHost,
-            Port = RabbitMqStatics.RabbitMqPort,
-            Ssl = RabbitMqStatics.SslOption ?? new SslOption(),
+            HostName = _rabbitMqConfiguration.RabbitMqHost,
+            VirtualHost = _rabbitMqConfiguration.RabbitVirtualHost,
+            Port = _rabbitMqConfiguration.RabbitMqPort,
+            Ssl = _rabbitMqConfiguration.SslOption ?? new SslOption(),
             UserName = userName,
             Password = password,
             // Enable automatic recovery

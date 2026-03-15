@@ -21,7 +21,7 @@ namespace FxMap.Abstractions;
 /// After completing custom logic, you should call the <paramref name="next"/> delegate 
 /// to continue to the next pipeline behavior or to the final <see cref="IQueryOfHandler{TModel, TDistributedKey}"/>.
 /// </remarks>
-public interface IReceivedPipelineBehavior<TDistributedKey> : IFxMapBase<TDistributedKey> 
+public interface IReceivedPipelineBehavior<TDistributedKey> : IMapperBase<TDistributedKey> 
     where TDistributedKey : IDistributedKey
 {
     /// <summary>

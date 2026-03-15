@@ -8,5 +8,8 @@ namespace FxMap.Models;
 /// </summary>
 /// <param name="PropertyInfo">The reflection metadata for the property.</param>
 /// <param name="Model">The object instance containing the property.</param>
-/// <param name="PropertyInformation">The FxMap mapping information for the property.</param>
-internal sealed record PropertyDescriptor(PropertyInfo PropertyInfo, object Model, PropertyInformation PropertyInformation);
+/// <param name="Property">The FxMap mapping information for the property.</param>
+internal sealed record PropertyDescriptor(PropertyInfo PropertyInfo, object Model, PropertyInformation Property)
+{
+    internal string EffectiveExpression { get; set; }
+}

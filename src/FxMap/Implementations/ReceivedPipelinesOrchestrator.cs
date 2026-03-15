@@ -23,7 +23,7 @@ public abstract class ReceivedPipelinesOrchestrator
     /// <param name="headers">Request headers that may contain context information.</param>
     /// <param name="cancellationToken">Token to cancel the operation.</param>
     /// <returns>The items response containing the fetched data.</returns>
-    public abstract Task<ItemsResponse<DataResponse>> ExecuteAsync(FxMapRequest message,
+    public abstract Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message,
         Dictionary<string, string> headers, CancellationToken cancellationToken);
 }
 
@@ -59,9 +59,9 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
             .ToArray();
         var handler = executableHandlers.Length switch
         {
-            0 => throw new FxMapException.CannotFindHandlerForOfAttribute(typeof(TDistributedKey)),
+            0 => throw new DistributedMapException.CannotFindHandlerForDistributedKey(typeof(TDistributedKey)),
             1 => executableHandlers.First(),
-            _ => throw new FxMapException.AttributeHasBeenConfiguredForModel(typeof(TModel), typeof(TDistributedKey)),
+            _ => throw new DistributedMapException.DistributedKeyHasBeenConfiguredForModel(typeof(TModel), typeof(TDistributedKey)),
         };
 
         // Deserialize expressions from Expression, we handle the custom expressions and original expression as well
@@ -111,7 +111,7 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
         return result;
     }
 
-    public override Task<ItemsResponse<DataResponse>> ExecuteAsync(FxMapRequest message,
+    public override Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message,
         Dictionary<string, string> headers, CancellationToken cancellationToken)
     {
         var requestOf = new MapRequest<TDistributedKey>(message.SelectorIds, message.Expressions);

@@ -48,7 +48,7 @@ public sealed class GrpcRequestClient(GetFxMapResponseFunc fxMapResponseFunc) : 
 
             var func = fxMapResponseFunc.Invoke(typeof(TDistributedKey));
             var result = await func.Invoke(
-                new FxMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
+                new DistributedMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
                 new GrpcClientContext(requestContext.Headers, requestContext.CancellationToken));
 
             // Record success metrics

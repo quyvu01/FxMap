@@ -1,12 +1,11 @@
 using Azure.Messaging.ServiceBus.Administration;
+using FxMap.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using FxMap.Abstractions.Transporting;
 using FxMap.Azure.ServiceBus.Abstractions;
-using FxMap.Azure.ServiceBus.Extensions;
 using FxMap.Azure.ServiceBus.Wrappers;
-using FxMap.Configuration;
 using FxMap.Supervision;
 
 namespace FxMap.Azure.ServiceBus.BackgroundServices;
@@ -22,6 +21,9 @@ internal sealed class AzureServiceBusSupervisorWorker(
     private readonly AzureServiceBusClientWrapper _clientWrapper =
         serviceProvider.GetService<AzureServiceBusClientWrapper>();
 
+    private readonly IAzureServiceBusConfiguration _azureServiceBusConfiguration =
+        serviceProvider.GetRequiredService<IAzureServiceBusConfiguration>();
+
     private ServerSupervisor _supervisor;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -34,25 +36,26 @@ internal sealed class AzureServiceBusSupervisorWorker(
         try
         {
             // Create queues and register all Azure Service Bus servers
-            foreach (var (attributeType, handlerType) in FxMapStatics.DistributedKeyMapHandlers.Value)
+            var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+            foreach (var (distributedKeyType, handlerType) in fxMapConfiguration.DistributedKeyMapHandlers)
             {
                 // Create queues first
-                var requestQueue = attributeType.GetAzureServiceBusRequestQueue();
-                var replyQueue = attributeType.GetAzureServiceBusReplyQueue();
+                var requestQueue = _azureServiceBusConfiguration.GetRequestQueue(distributedKeyType);
+                var replyQueue = _azureServiceBusConfiguration.GetReplyQueue(distributedKeyType);
                 await CreateQueueIfNotExistedAsync(requestQueue, stoppingToken);
                 await CreateQueueIfNotExistedAsync(replyQueue, stoppingToken);
 
                 var modelArg = handlerType.GetGenericArguments()[0];
-                var serverType = typeof(IAzureServiceBusServer<,>).MakeGenericType(modelArg, attributeType);
+                var serverType = typeof(IAzureServiceBusServer<,>).MakeGenericType(modelArg, distributedKeyType);
                 var server = serviceProvider.GetService(serverType);
 
                 if (server is not IRequestServer requestServer)
                 {
-                    logger.LogWarning("Failed to resolve Azure Service Bus server for {Attribute}", attributeType.Name);
+                    logger.LogWarning("Failed to resolve Azure Service Bus server for {DistributedKey}", distributedKeyType.Name);
                     continue;
                 }
 
-                var serverId = $"AzureServiceBusServer<{modelArg.Name},{attributeType.Name}>";
+                var serverId = $"AzureServiceBusServer<{modelArg.Name},{distributedKeyType.Name}>";
                 _supervisor.RegisterServer(serverId, requestServer);
             }
 

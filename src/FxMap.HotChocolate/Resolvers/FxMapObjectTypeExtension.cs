@@ -1,7 +1,7 @@
+using FxMap.Delegates;
 using FxMap.Extensions;
 using FxMap.HotChocolate.Constants;
 using FxMap.HotChocolate.GraphQlContext;
-using FxMap.MetadataCache;
 
 namespace FxMap.HotChocolate.Resolvers;
 
@@ -17,11 +17,11 @@ namespace FxMap.HotChocolate.Resolvers;
 ///   <item><description>Configures resolvers to use the <see cref="DataResolvers{TResponse}"/></description></item>
 /// </list>
 /// </remarks>
-internal class FxMapObjectTypeExtension<T> : ObjectTypeExtension<T> where T : class
+internal class FxMapObjectTypeExtension<T>(GetProfileConfig getProfileConfig) : ObjectTypeExtension<T> where T : class
 {
     protected override void Configure(IObjectTypeDescriptor<T> descriptor)
     {
-        var profileConfig = FluentConfigStore.ProfileConfigs.GetValueOrDefault(typeof(T));
+        var profileConfig = getProfileConfig.Invoke(typeof(T));
         profileConfig?.DependencyGraphs
             .SelectMany(a => a.Value)
             .Select(x => new

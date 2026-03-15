@@ -7,7 +7,6 @@ using FxMap.Nats.BackgroundServices;
 using FxMap.Nats.Implementations;
 using FxMap.Nats.Wrappers;
 using FxMap.Registries;
-using FxMap.Configuration;
 using FxMap.Supervision;
 
 namespace FxMap.Nats.Extensions;
@@ -18,8 +17,9 @@ public static class NatsExtensions
     {
         var natsSetting = new NatsClientSetting();
         options.Invoke(natsSetting);
-        var services = mapRegister.ServiceCollection;
+        var services = mapRegister.Services;
         var defaultNatsUrl = natsSetting.DefaultNatsUrl;
+        services.AddSingleton<INatsConfiguration>(new NatsConfiguration(natsSetting.TopicPrefixValue));
         services.AddSingleton(_ =>
         {
             if (natsSetting.NatsOption is not { } natsOption)
@@ -31,7 +31,7 @@ public static class NatsExtensions
         services.AddSingleton(typeof(INatsServer<,>), typeof(NatsServer<,>));
 
         // Register supervisor options: global > default
-        var supervisorOptions = FxMapStatics.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use NatsSupervisorWorker with supervisor pattern

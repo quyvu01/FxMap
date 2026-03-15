@@ -8,25 +8,25 @@ package FxMapTransport;
 
 service FxMapTransportService {
   rpc GetItems (GetFxMapGrpcQuery) returns (FxMapItemsGrpcResponse);
-  rpc GeTDistributedKeys (GeTDistributedKeysQuery) returns (AttributeTypeResponse);
+  rpc GetDistributedKeys (GetDistributedKeysQuery) returns (DistributedKeyTypeResponse);
 }
 
 message GetFxMapGrpcQuery {
   repeated string selector_ids = 1;
   google.protobuf.StringValue expression = 2;
-  google.protobuf.StringValue attribute_assembly_type = 3;
+  google.protobuf.StringValue distributed_key_assembly_type = 3;
 }
 
 message FxMapItemsGrpcResponse {
   repeated ItemGrpc items = 1;
 }
 
-message GeTDistributedKeysQuery {
+message GetDistributedKeysQuery {
 
 }
 
-message AttributeTypeResponse {
-  repeated string attribute_types = 1;
+message DistributedKeyTypeResponse {
+  repeated string distributed_key_types = 1;
 }
 
 message ItemGrpc {
