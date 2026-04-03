@@ -1,6 +1,8 @@
 version: '3.8'
 
 services:
+  # ─── Message Brokers ──────────────────────────────────────────────────────
+
   # NATS Message Broker
   nats:
     image: nats:latest
@@ -13,21 +15,135 @@ services:
     networks:
       - fxmap-network
 
-  # Jaeger All-in-One (Tracing Backend)
+  # RabbitMQ
+  rabbitmq:
+    image: masstransit/rabbitmq:latest
+    container_name: fxmap-rabbitmq
+    ports:
+      - "5672:5672"   # AMQP
+      - "15672:15672" # Management UI (guest/guest)
+    networks:
+      - fxmap-network
+
+  # Kafka (KRaft mode — no Zookeeper)
+  kafka:
+    image: confluentinc/cp-kafka:7.6.1
+    container_name: fxmap-kafka
+    ports:
+      - "9092:9092"   # External client access
+      - "9093:9093"   # Controller
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      CLUSTER_ID: fxmap-kafka-cluster-01
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - fxmap-network
+
+  # AWS SQS — LocalStack
+  localstack:
+    image: localstack/localstack:latest
+    container_name: fxmap-localstack
+    ports:
+      - "4566:4566"   # All AWS services (SQS, S3, etc.)
+    environment:
+      SERVICES: sqs
+      DEFAULT_REGION: us-east-1
+      DEBUG: 0
+      PERSISTENCE: 0
+    volumes:
+      - localstack-data:/var/lib/localstack
+    networks:
+      - fxmap-network
+
+  # Azure Service Bus — Microsoft Emulator
+  azureservicebus-emulator:
+    image: mcr.microsoft.com/azure-messaging/servicebus-emulator:latest
+    container_name: fxmap-azure-servicebus
+    ports:
+      - "5300:5300"   # AMQP
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Abcd@2021!"
+    depends_on:
+      - azureservicebus-sql
+    networks:
+      - fxmap-network
+
+  # SQL Server — required by Azure Service Bus Emulator (ARM64-compatible)
+  azureservicebus-sql:
+    image: mcr.microsoft.com/azure-sql-edge:latest
+    container_name: fxmap-azure-servicebus-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Abcd@2021!"
+      MSSQL_PID: Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - azureservicebus-sql-data:/var/opt/mssql
+    networks:
+      - fxmap-network
+
+  # ─── Databases ────────────────────────────────────────────────────────────
+
+  # PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: fxmap-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Abcd@2021
+      - POSTGRES_MULTIPLE_DATABASES=FxMapTestService1,FxMapTestOtherService1,FxMapTestService2,FxMapTestService3
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
+    networks:
+      - fxmap-network
+
+  # MongoDB
+  mongodb:
+    image: mongo:latest
+    container_name: fxmap-mongodb
+    environment:
+      - MONGO_INITDB_DATABASE=Service1MongoDb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - fxmap-network
+
+  # ─── Observability ────────────────────────────────────────────────────────
+
+  # Jaeger — Distributed Tracing
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.53
     container_name: fxmap-jaeger
     environment:
       - COLLECTOR_OTLP_ENABLED=true
     ports:
       - "16686:16686"  # Jaeger UI
-      - "4317:4317"    # OTLP gRPC receiver
-      - "4318:4318"    # OTLP HTTP receiver
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
       - "14268:14268"  # Jaeger collector HTTP
     networks:
       - fxmap-network
 
-  # Prometheus (Metrics Backend)
+  # Prometheus — Metrics
   prometheus:
     image: prom/prometheus:latest
     container_name: fxmap-prometheus
@@ -44,7 +160,7 @@ services:
     networks:
       - fxmap-network
 
-  # Grafana (Visualization)
+  # Grafana — Dashboards
   grafana:
     image: grafana/grafana:latest
     container_name: fxmap-grafana
@@ -57,38 +173,9 @@ services:
     volumes:
       - grafana-data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
-    networks:
-      - fxmap-network
     depends_on:
       - prometheus
       - jaeger
-
-  # PostgreSQL (Database)
-  postgres:
-    image: postgres:16-alpine
-    container_name: fxmap-postgres
-    environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=Abcd@2021
-      - POSTGRES_MULTIPLE_DATABASES=FxMapTestService1,FxMapTestOtherService1,FxMapTestService2,FxMapTestService3
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
-      - ./postgres-init:/docker-entrypoint-initdb.d
-    networks:
-      - fxmap-network
-
-  # MongoDB (NoSQL Database)
-  mongodb:
-    image: mongo:latest
-    container_name: fxmap-mongodb
-    environment:
-      - MONGO_INITDB_DATABASE=Service1MongoDb
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb-data:/data/db
     networks:
       - fxmap-network
 
@@ -97,6 +184,9 @@ networks:
     driver: bridge
 
 volumes:
+  kafka-data:
+  localstack-data:
+  azureservicebus-sql-data:
   prometheus-data:
   grafana-data:
   postgres-data:
