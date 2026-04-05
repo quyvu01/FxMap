@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="0.8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Dark rounded background -->
+  <rect width="32" height="32" rx="7" fill="#020617"/>
+
+  <!-- Fan — source (7,16), dest (25, 8/16/24) -->
+  <path d="M 7,16 C 15,16 17,8  25,8"  stroke="url(#grad)" stroke-width="2.2" stroke-linecap="round" fill="none" filter="url(#glow)" opacity="0.95"/>
+  <path d="M 7,16 C 15,16 17,16 25,16" stroke="url(#grad)" stroke-width="2.2" stroke-linecap="round" fill="none" filter="url(#glow)" opacity="0.75"/>
+  <path d="M 7,16 C 15,16 17,24 25,24" stroke="url(#grad)" stroke-width="2.2" stroke-linecap="round" fill="none" filter="url(#glow)" opacity="0.55"/>
+
+  <!-- Source dot -->
+  <circle cx="7"  cy="16" r="2.5" fill="#2563eb" filter="url(#glow)"/>
+  <!-- Destination dots -->
+  <circle cx="25" cy="8"  r="2"   fill="#22c55e" filter="url(#glow)" opacity="0.95"/>
+  <circle cx="25" cy="16" r="2"   fill="#22c55e" filter="url(#glow)" opacity="0.75"/>
+  <circle cx="25" cy="24" r="2"   fill="#22c55e" filter="url(#glow)" opacity="0.55"/>
+</svg>

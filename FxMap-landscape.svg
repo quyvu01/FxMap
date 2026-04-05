@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 100" width="400" height="100">
+  <defs>
+    <!-- Icon gradient (userSpaceOnUse so it spans the icon area) -->
+    <linearGradient id="icon-grad" x1="22" y1="0" x2="84" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <!-- Text gradient -->
+    <linearGradient id="text-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#2563eb"/>
+      <stop offset="50%"  stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dot-glow" x="-120%" y="-120%" width="340%" height="340%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="text-glow" x="-10%" y="-60%" width="120%" height="220%">
+      <feGaussianBlur stdDeviation="2.5" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fan icon — source at (22,50), three curves to x=84 -->
+  <path d="M 22,50 C 50,50 60,20 84,20" stroke="url(#icon-grad)" stroke-width="4" stroke-linecap="round" fill="none" filter="url(#glow)" opacity="0.95"/>
+  <path d="M 22,50 C 50,50 60,50 84,50" stroke="url(#icon-grad)" stroke-width="4" stroke-linecap="round" fill="none" filter="url(#glow)" opacity="0.75"/>
+  <path d="M 22,50 C 50,50 60,80 84,80" stroke="url(#icon-grad)" stroke-width="4" stroke-linecap="round" fill="none" filter="url(#glow)" opacity="0.5"/>
+
+  <!-- Source dot -->
+  <circle cx="22" cy="50" r="6" fill="#2563eb" filter="url(#dot-glow)"/>
+  <!-- Destination dots -->
+  <circle cx="84" cy="20" r="5" fill="#22c55e" filter="url(#dot-glow)" opacity="0.95"/>
+  <circle cx="84" cy="50" r="5" fill="#22c55e" filter="url(#dot-glow)" opacity="0.75"/>
+  <circle cx="84" cy="80" r="5" fill="#22c55e" filter="url(#dot-glow)" opacity="0.55"/>
+
+  <!-- Wordmark -->
+  <text
+    x="106" y="66"
+    font-family="'Inter', 'Segoe UI', -apple-system, system-ui, sans-serif"
+    font-size="50"
+    font-weight="800"
+    letter-spacing="-1"
+    fill="url(#text-grad)"
+    filter="url(#text-glow)">FxMap</text>
+</svg>

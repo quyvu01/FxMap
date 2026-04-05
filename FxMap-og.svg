@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#020617"/>
+      <stop offset="100%" stop-color="#0a0a14"/>
+    </linearGradient>
+
+    <!-- Radial glow behind icon -->
+    <radialGradient id="glow-bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#2563eb" stop-opacity="0.15"/>
+      <stop offset="50%"  stop-color="#22c55e" stop-opacity="0.07"/>
+      <stop offset="100%" stop-color="#020617" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Icon gradient (userSpaceOnUse across fan x range) -->
+    <linearGradient id="icon-grad" x1="360" y1="0" x2="600" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+
+    <!-- Text gradient -->
+    <linearGradient id="text-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%"   stop-color="#2563eb"/>
+      <stop offset="50%"  stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <filter id="glow-icon" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="dot-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="text-glow" x="-5%" y="-40%" width="110%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="tag-glow" x="-5%" y="-60%" width="110%" height="220%">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bg)"/>
+
+  <!-- Subtle grid lines (like the site's wave-pattern) -->
+  <line x1="0" y1="210" x2="1200" y2="210" stroke="#1e3a8a" stroke-width="1" opacity="0.15"/>
+  <line x1="0" y1="420" x2="1200" y2="420" stroke="#1e3a8a" stroke-width="1" opacity="0.15"/>
+  <line x1="400" y1="0" x2="400" y2="630" stroke="#1e3a8a" stroke-width="1" opacity="0.15"/>
+  <line x1="800" y1="0" x2="800" y2="630" stroke="#1e3a8a" stroke-width="1" opacity="0.15"/>
+
+  <!-- Glow behind the icon -->
+  <ellipse cx="480" cy="280" rx="260" ry="220" fill="url(#glow-bg)"/>
+
+  <!-- ── Fan icon (large, left-center) ─────────────────── -->
+  <!-- Source at (360, 285), fan to (600, 165/285/405) -->
+  <path d="M 360,285 C 460,285 500,165 600,165" stroke="url(#icon-grad)" stroke-width="10" stroke-linecap="round" fill="none" filter="url(#glow-icon)" opacity="0.95"/>
+  <path d="M 360,285 C 460,285 500,285 600,285" stroke="url(#icon-grad)" stroke-width="10" stroke-linecap="round" fill="none" filter="url(#glow-icon)" opacity="0.75"/>
+  <path d="M 360,285 C 460,285 500,405 600,405" stroke="url(#icon-grad)" stroke-width="10" stroke-linecap="round" fill="none" filter="url(#glow-icon)" opacity="0.5"/>
+
+  <!-- Source dot -->
+  <circle cx="360" cy="285" r="18" fill="#2563eb" filter="url(#dot-glow)"/>
+  <!-- Destination dots -->
+  <circle cx="600" cy="165" r="14" fill="#22c55e" filter="url(#dot-glow)" opacity="0.95"/>
+  <circle cx="600" cy="285" r="14" fill="#22c55e" filter="url(#dot-glow)" opacity="0.75"/>
+  <circle cx="600" cy="405" r="14" fill="#22c55e" filter="url(#dot-glow)" opacity="0.55"/>
+
+  <!-- ── Wordmark + tagline (right side) ───────────────── -->
+  <text
+    x="680" y="310"
+    font-family="'Inter', 'Segoe UI', -apple-system, system-ui, sans-serif"
+    font-size="120"
+    font-weight="800"
+    letter-spacing="-3"
+    fill="url(#text-grad)"
+    filter="url(#text-glow)">FxMap</text>
+
+  <text
+    x="682" y="360"
+    font-family="'Inter', 'Segoe UI', -apple-system, system-ui, sans-serif"
+    font-size="26"
+    font-weight="400"
+    letter-spacing="0.2"
+    fill="#64748b"
+    filter="url(#tag-glow)">Effective distributed data mapping</text>
+
+  <!-- URL badge -->
+  <rect x="682" y="400" width="180" height="36" rx="8" fill="#1e3a8a" opacity="0.4"/>
+  <text
+    x="772" y="423"
+    text-anchor="middle"
+    font-family="'Inter', 'Segoe UI', -apple-system, system-ui, sans-serif"
+    font-size="17"
+    font-weight="500"
+    fill="#93c5fd"
+    opacity="0.9">fxmapper.net</text>
+</svg>
