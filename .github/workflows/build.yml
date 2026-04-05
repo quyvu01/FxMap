@@ -122,7 +122,7 @@ jobs:
         working-directory: artifacts
         run: |
           for file in *.nupkg; do
-            if [[ "$file" =~ ^(FxMap|FxMap\.(Analyzers|EntityFrameworkCore|MongoDb|HotChocolate|Aws\.Sqs|Azure\.ServiceBus|Grpc|Kafka|Nats|RabbitMq))\.[0-9] ]]; then
+            if [[ "$file" =~ ^(FxMap|FxMap\.(Analyzers|EntityFrameworkCore|MongoDb|HotChocolate|Aws\.Sqs|Azure\.ServiceBus|Grpc|gRPC|Kafka|Nats|RabbitMq))\.[0-9] ]]; then
               echo "Pushing $file"
               dotnet nuget push "$file" -s https://api.nuget.org/v3/index.json -k ${{ secrets.NUGET_API_KEY }} --skip-duplicate --no-symbols
             else
