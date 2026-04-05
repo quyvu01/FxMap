@@ -16,23 +16,16 @@ using FxMap.Telemetry;
 
 namespace FxMap.Aws.Sqs.Implementations;
 
-internal class SqsRequestClient : IRequestClient, IAsyncDisposable
+internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsConfiguration sqsConfiguration)
+    : IRequestClient, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _eventArgsMapper = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
-    private readonly IMapperConfiguration _mapperConfiguration;
-    private readonly ISqsConfiguration _sqsConfiguration;
     private AmazonSQSClient _sqsClient;
     private string _responseQueueUrl;
     private bool _initialized;
     private CancellationTokenSource _receiverCts;
     private const string TransportName = "sqs";
-
-    public SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsConfiguration sqsConfiguration)
-    {
-        _mapperConfiguration = mapperConfiguration;
-        _sqsConfiguration = sqsConfiguration;
-    }
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
         RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
@@ -48,7 +41,7 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
 
             if (_sqsClient is null) throw new InvalidOperationException("SQS client is not initialized");
 
-            var queueName = _sqsConfiguration.GetQueueName(typeof(TDistributedKey));
+            var queueName = sqsConfiguration.GetQueueName(typeof(TDistributedKey));
             var cancellationToken = requestContext.CancellationToken;
             var correlationId = Guid.NewGuid().ToString();
 
@@ -117,7 +110,7 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
 
                 // Wait with timeout
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
+                cts.CancelAfter(mapperConfiguration.DefaultRequestTimeout);
 
                 await using var _ = cts.Token.Register(() => tcs.TrySetCanceled());
 
@@ -135,7 +128,8 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
                 stopwatch.Stop();
                 var itemCount = response.Data?.Items?.Length ?? 0;
 
-                FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+                FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName,
+                    stopwatch.Elapsed.TotalMilliseconds,
                     itemCount);
 
                 FxMapDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
@@ -193,21 +187,22 @@ internal class SqsRequestClient : IRequestClient, IAsyncDisposable
     {
         // Configure AWS credentials
         AWSCredentials credentials = null;
-        if (!string.IsNullOrEmpty(_sqsConfiguration.AwsAccessKeyId) && !string.IsNullOrEmpty(_sqsConfiguration.AwsSecretAccessKey))
+        if (!string.IsNullOrEmpty(sqsConfiguration.AwsAccessKeyId) &&
+            !string.IsNullOrEmpty(sqsConfiguration.AwsSecretAccessKey))
         {
-            credentials = new BasicAWSCredentials(_sqsConfiguration.AwsAccessKeyId, _sqsConfiguration.AwsSecretAccessKey);
+            credentials = new BasicAWSCredentials(sqsConfiguration.AwsAccessKeyId, sqsConfiguration.AwsSecretAccessKey);
         }
 
         // Create SQS client
         var config = new AmazonSQSConfig
         {
-            RegionEndpoint = _sqsConfiguration.AwsRegion ?? RegionEndpoint.USEast1
+            RegionEndpoint = sqsConfiguration.AwsRegion ?? RegionEndpoint.USEast1
         };
 
         // Support LocalStack for testing
-        if (!string.IsNullOrEmpty(_sqsConfiguration.ServiceUrl))
+        if (!string.IsNullOrEmpty(sqsConfiguration.ServiceUrl))
         {
-            config.ServiceURL = _sqsConfiguration.ServiceUrl;
+            config.ServiceURL = sqsConfiguration.ServiceUrl;
         }
 
         _sqsClient = credentials != null

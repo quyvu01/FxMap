@@ -11,7 +11,6 @@ using Microsoft.Extensions.Logging;
 using FxMap.Models;
 using FxMap.Aws.Sqs.Abstractions;
 using FxMap.Aws.Sqs.Constants;
-using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Implementations;
 using FxMap.Responses;
@@ -50,9 +49,11 @@ internal class SqsServer : ISqsServer
     {
         // Configure AWS credentials
         AWSCredentials credentials = null;
-        if (!string.IsNullOrEmpty(_sqsConfiguration.AwsAccessKeyId) && !string.IsNullOrEmpty(_sqsConfiguration.AwsSecretAccessKey))
+        if (!string.IsNullOrEmpty(_sqsConfiguration.AwsAccessKeyId) &&
+            !string.IsNullOrEmpty(_sqsConfiguration.AwsSecretAccessKey))
         {
-            credentials = new BasicAWSCredentials(_sqsConfiguration.AwsAccessKeyId, _sqsConfiguration.AwsSecretAccessKey);
+            credentials =
+                new BasicAWSCredentials(_sqsConfiguration.AwsAccessKeyId, _sqsConfiguration.AwsSecretAccessKey);
         }
 
         // Create SQS client
@@ -72,7 +73,8 @@ internal class SqsServer : ISqsServer
         if (distributedKeyTypes is not { Count: > 0 }) return;
 
         // Create request queues for each distributed key type
-        foreach (var queueName in distributedKeyTypes.Select(distributedKeyType => _sqsConfiguration.GetQueueName(distributedKeyType)))
+        foreach (var queueName in distributedKeyTypes.Select(distributedKeyType =>
+                     _sqsConfiguration.GetQueueName(distributedKeyType)))
         {
             try
             {
@@ -208,14 +210,12 @@ internal class SqsServer : ISqsServer
             // Emit diagnostic event
             FxMapDiagnostics.MessageReceive(TransportName, queueUrl, correlationId);
 
-            var fxMapConfiguration = _serviceProvider.GetRequiredService<IMapperConfiguration>();
-            var distributedKeyTypes = fxMapConfiguration.DistributedKeyMapHandlers;
+            var mapperConfiguration = _serviceProvider.GetRequiredService<IMapperConfiguration>();
             var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(distributedKeyTypeString,
                 distributedKeyAssembly =>
                 {
-                    var distributedKeyType = Type.GetType(distributedKeyAssembly)!;
-                    if (!distributedKeyTypes.TryGetValue(distributedKeyType, out var handlerType))
-                        throw new DistributedMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
+                    var (distributedKeyType, handlerType) =
+                        mapperConfiguration.GetDistributedTypeData(distributedKeyAssembly);
                     var modelType = handlerType.GetGenericArguments()[0];
                     return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, distributedKeyType);
                 });

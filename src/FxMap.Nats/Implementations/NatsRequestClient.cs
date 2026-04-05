@@ -11,20 +11,13 @@ using FxMap.Telemetry;
 
 namespace FxMap.Nats.Implementations;
 
-internal sealed class NatsRequestClient : IRequestClient
+internal sealed class NatsRequestClient(
+    NatsClientWrapper natsClientWrapper,
+    IMapperConfiguration mapperConfiguration,
+    INatsConfiguration natsConfiguration)
+    : IRequestClient
 {
-    private readonly NatsClientWrapper _natsClientWrapper;
-    private readonly IMapperConfiguration _mapperConfiguration;
-    private readonly INatsConfiguration _natsConfiguration;
     private const string TransportName = "nats";
-
-    public NatsRequestClient(NatsClientWrapper natsClientWrapper, IMapperConfiguration mapperConfiguration,
-        INatsConfiguration natsConfiguration)
-    {
-        _natsClientWrapper = natsClientWrapper;
-        _mapperConfiguration = mapperConfiguration;
-        _natsConfiguration = natsConfiguration;
-    }
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
         RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
@@ -50,7 +43,7 @@ internal sealed class NatsRequestClient : IRequestClient
                 // Add FxMap-specific tags
                 activity.SetMessagingTags(
                     system: TransportName,
-                    destination: _natsConfiguration.GetSubject(typeof(TDistributedKey)),
+                    destination: natsConfiguration.GetSubject(typeof(TDistributedKey)),
                     operation: "publish");
 
                 activity.SetFxMapTags(requestContext.Query.Expressions,
@@ -67,11 +60,11 @@ internal sealed class NatsRequestClient : IRequestClient
             // Track active requests
             FxMapMetrics.UpdateActiveRequests(1);
 
-            var reply = await _natsClientWrapper.NatsClient
+            var reply = await natsClientWrapper.NatsClient
                 .RequestAsync<MapRequest<TDistributedKey>, Result>(
-                    _natsConfiguration.GetSubject(typeof(TDistributedKey)),
+                    natsConfiguration.GetSubject(typeof(TDistributedKey)),
                     requestContext.Query, natsHeaders,
-                    replyOpts: new NatsSubOpts { Timeout = _mapperConfiguration.DefaultRequestTimeout },
+                    replyOpts: new NatsSubOpts { Timeout = mapperConfiguration.DefaultRequestTimeout },
                     cancellationToken: requestContext.CancellationToken);
 
             var response = reply.Data;

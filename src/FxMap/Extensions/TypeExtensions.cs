@@ -16,14 +16,14 @@ public static class TypeExtensions
     /// <param name="type"></param>
     extension(Type type)
     {
-        public IEnumerable<PropertyInfo> GetAllProperties() => type.GetTypeInfo().GetAllProperties();
+        private IEnumerable<PropertyInfo> GetAllProperties() => type.GetTypeInfo().GetAllProperties();
         internal bool IsPrimitiveType() => GeneralHelpers.IsPrimitiveType(type);
 
         /// <summary>
         /// Gets the assembly-qualified name of a type in the format "FullName,AssemblyName".
         /// </summary>
         /// <returns>A string containing the type's full name and assembly name.</returns>
-        public string GetAssemblyName() => $"{type.FullName},{type.Assembly.GetName().Name}";
+        // public string GetAssemblyName() => $"{type.FullName},{type.Assembly.GetName().Name}";
     }
 
     /// <summary>
@@ -111,13 +111,6 @@ public static class TypeExtensions
         /// <returns>True if the type can be constructed, otherwise false.</returns>
         public bool IsConcrete() => type is { IsAbstract: false, IsInterface: false };
 
-        public bool IsInterfaceOrConcreteClass()
-        {
-            if (type.IsInterface) return true;
-
-            return type is { IsClass: true, IsAbstract: false };
-        }
-
         /// <summary>
         /// Determines if a type can be constructed, and if it can, additionally determines
         /// if the type can be assigned to the specified type.
@@ -198,18 +191,6 @@ public static class TypeExtensions
         public bool IsAnonymousType() =>
             type.FullName != null && type.HasAttribute<CompilerGeneratedAttribute>() &&
             type.FullName.Contains("AnonymousType");
-
-        /// <summary>
-        /// Returns true if the type is an FSharp type (maybe?)
-        /// </summary>
-        /// <returns></returns>
-        public bool IsFSharpType()
-        {
-            var attributes = type.GetCustomAttributes();
-
-            return attributes.Any(attribute =>
-                attribute.GetType().FullName == "Microsoft.FSharp.Core.CompilationMappingAttribute");
-        }
 
         /// <summary>
         /// Returns true if the type is contained within the namespace

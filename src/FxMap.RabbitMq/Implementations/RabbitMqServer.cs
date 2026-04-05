@@ -6,7 +6,7 @@ using FxMap.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FxMap.Models;
-using FxMap.Exceptions;
+using FxMap.Extensions;
 using FxMap.Implementations;
 using FxMap.RabbitMq.Abstractions;
 using FxMap.RabbitMq.Constants;
@@ -70,8 +70,10 @@ internal class RabbitMqServer : IRabbitMqServer
 
         var distributedKeyTypes = _mapperConfiguration.DistributedKeyMapHandlers.Keys.ToList();
         if (distributedKeyTypes is not { Count: > 0 }) return;
+        var exchangeNames = distributedKeyTypes.Select(distributedKeyType =>
+            distributedKeyType.GetExchangeName());
 
-        foreach (var exchangeName in distributedKeyTypes.Select(distributedKeyType => distributedKeyType.GetExchangeName()))
+        foreach (var exchangeName in exchangeNames)
         {
             await _channel.ExchangeDeclareAsync(exchangeName, type: ExchangeType.Direct,
                 cancellationToken: cancellationToken);
@@ -133,14 +135,14 @@ internal class RabbitMqServer : IRabbitMqServer
             // Emit diagnostic event
             FxMapDiagnostics.MessageReceive(TransportName, ea.Exchange, props.CorrelationId);
 
-            var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(props.Type, distributedKeyAssembly =>
-            {
-                var distributedKeyType = Type.GetType(distributedKeyAssembly)!;
-                if (!_mapperConfiguration.DistributedKeyMapHandlers.TryGetValue(distributedKeyType, out var handlerType))
-                    throw new DistributedMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
-                var modelType = handlerType.GetGenericArguments()[0];
-                return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, distributedKeyType);
-            });
+            var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(props.Type,
+                distributedKeyAssembly =>
+                {
+                    var (distributedKeyType, handlerType) = _mapperConfiguration
+                        .GetDistributedTypeData(distributedKeyAssembly);
+                    var modelType = handlerType.GetGenericArguments()[0];
+                    return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelType, distributedKeyType);
+                });
 
             using var scope = _serviceProvider.CreateScope();
             var server = scope.ServiceProvider
@@ -161,7 +163,8 @@ internal class RabbitMqServer : IRabbitMqServer
             stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
 
-            FxMapMetrics.RecordRequest(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds, itemCount);
+            FxMapMetrics.RecordRequest(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+                itemCount);
 
             activity?.SetFxMapTags(message?.Expressions, message?.SelectorIds, itemCount);
 
@@ -190,7 +193,8 @@ internal class RabbitMqServer : IRabbitMqServer
             var response = Result.Failed(e);
 
             // Record error
-            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
+            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+                e.GetType().Name);
 
             FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 

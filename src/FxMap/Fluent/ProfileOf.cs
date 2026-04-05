@@ -1,22 +1,33 @@
 using System.Reflection;
 using FxMap.Abstractions;
 using FxMap.Accessors.PropertyAccessors;
+using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Fluent.Builders;
 using FxMap.Fluent.Rules;
+using FxMap.Helpers;
 using FxMap.PropertyMappingContexts;
 
 namespace FxMap.Fluent;
 
+/// <summary>
+/// Base class for defining how properties of <typeparamref name="TModel"/> are populated
+/// via distributed key lookups using the FxMap mapping engine.
+/// </summary>
+/// <typeparam name="TModel">The DTO or response type being enriched.</typeparam>
 public abstract class ProfileOf<TModel> : IFluentProfileConfig
 {
     private readonly List<KeyRuleGroup> _ruleGroups = [];
 
     /// <summary>
-    /// Gets the CLR type that this model represents.
+    /// Gets the CLR type that this profile maps.
     /// </summary>
     public Type ClrType { get; private set; }
 
+    /// <summary>
+    /// Gets the collection of key rule groups that define all distributed key mappings
+    /// configured in <see cref="Configure"/>.
+    /// </summary>
     public IReadOnlyCollection<KeyRuleGroup> RuleGroups => _ruleGroups;
 
     /// <summary>
@@ -63,13 +74,51 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
     }
 
 
-    protected DistributedKeyRuleBuilder<TModel> UseDistributedKey(string key)
+    /// <summary>
+    /// Begins a mapping rule group using a string-based distributed key, enabling full service
+    /// decoupling without a shared key type reference.
+    /// </summary>
+    /// <param name="key">
+    /// The distributed key name. Must start with a letter or underscore and contain only
+    /// letters, digits, or underscores (e.g., <c>"UserKey"</c>).
+    /// </param>
+    /// <param name="namespace">
+    /// The namespace used to scope the dynamic key type (e.g., <c>"MyApp.Keys"</c>).
+    /// </param>
+    /// <returns>A <see cref="DistributedKeyRuleBuilder{TModel}"/> for chaining <c>.Of()</c> and <c>.For()</c> rules.</returns>
+    /// <exception cref="DistributedMapException.DistributedKeyNullOrEmpty">
+    /// Thrown when <paramref name="key"/> is <c>null</c> or whitespace.
+    /// </exception>
+    /// <exception cref="DistributedMapException.InvalidDistributedKeyName">
+    /// Thrown when <paramref name="key"/> does not match the valid identifier pattern.
+    /// </exception>
+    /// <exception cref="DistributedMapException.DistributedNamespaceNullOrEmpty">
+    /// Thrown when <paramref name="namespace"/> is <c>null</c> or whitespace.
+    /// </exception>
+    /// <exception cref="DistributedMapException.InvalidDistributedNamespace">
+    /// Thrown when <paramref name="namespace"/> is not a valid dot-separated identifier.
+    /// </exception>
+    protected DistributedKeyRuleBuilder<TModel> UseDistributedKey(string key, string @namespace)
     {
-        var group = new KeyRuleGroup { DistributedKey = key };
+        if (string.IsNullOrWhiteSpace(key))
+            throw new DistributedMapException.DistributedKeyNullOrEmpty();
+        DistributedKeyTypeFactory.ValidateKeyName(key);
+        if (string.IsNullOrWhiteSpace(@namespace))
+            throw new DistributedMapException.DistributedNamespaceNullOrEmpty();
+        DistributedKeyTypeFactory.ValidateNamespace(@namespace);
+        var group = new KeyRuleGroup { DistributedKey = key, DistributedNamespace = @namespace };
         _ruleGroups.Add(group);
         return new DistributedKeyRuleBuilder<TModel>(group);
     }
 
+    /// <summary>
+    /// Begins a mapping rule group using a strongly-typed distributed key, providing
+    /// compile-time safety and shared-type coupling between services.
+    /// </summary>
+    /// <typeparam name="TDistributedKey">
+    /// The <see cref="IDistributedKey"/> implementation that identifies the target entity.
+    /// </typeparam>
+    /// <returns>A <see cref="DistributedKeyRuleBuilder{TModel}"/> for chaining <c>.Of()</c> and <c>.For()</c> rules.</returns>
     protected DistributedKeyRuleBuilder<TModel> UseDistributedKey<TDistributedKey>()
         where TDistributedKey : IDistributedKey
     {
@@ -78,14 +127,34 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
         return new DistributedKeyRuleBuilder<TModel>(group);
     }
 
+    /// <summary>
+    /// Override this method to declare all distributed key mapping rules for <typeparamref name="TModel"/>
+    /// using <see cref="UseDistributedKey(string, string)"/> or <see cref="UseDistributedKey{TDistributedKey}"/>.
+    /// </summary>
     protected abstract void Configure();
 
+    /// <summary>
+    /// Creates a compiled property accessor for the given property on <paramref name="type"/>.
+    /// </summary>
+    /// <param name="type">The declaring type.</param>
+    /// <param name="p">The property to create an accessor for.</param>
+    /// <returns>A compiled <see cref="IPropertyAccessor"/> for fast get/set operations.</returns>
     private static IPropertyAccessor CreateAccessor(Type type, PropertyInfo p)
     {
         var accessorType = typeof(PropertyAccessor<,>).MakeGenericType(type, p.PropertyType);
         return (IPropertyAccessor)Activator.CreateInstance(accessorType, p)!;
     }
 
+    /// <summary>
+    /// Builds a dependency graph from the fluent rule groups, mapping each target property
+    /// to the ordered chain of <see cref="PropertyContext"/> entries it depends on.
+    /// </summary>
+    /// <param name="properties">All public instance properties of <typeparamref name="TModel"/>.</param>
+    /// <param name="ruleGroups">The rule groups registered via <see cref="UseDistributedKey(string,string)"/> calls.</param>
+    /// <returns>
+    /// A dictionary keyed by target property, where the value is the dependency chain
+    /// in resolution order (deepest dependency first).
+    /// </returns>
     private Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraphFromFluentRules(
         PropertyInfo[] properties, List<KeyRuleGroup> ruleGroups)
     {
@@ -126,6 +195,17 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
         return graph;
     }
 
+    /// <summary>
+    /// Recursively collects the full dependency chain for a given <paramref name="property"/>,
+    /// following selector properties that are themselves mapped targets.
+    /// </summary>
+    /// <param name="property">The property to resolve dependencies for.</param>
+    /// <param name="directDeps">The flat map of direct property-to-context relationships.</param>
+    /// <param name="visited">Tracks already-visited properties to prevent infinite cycles.</param>
+    /// <returns>
+    /// An ordered array of <see cref="PropertyContext"/> entries representing the full
+    /// resolution chain, starting from the current property down to its root selector.
+    /// </returns>
     private static PropertyContext[] CollectDependencies(
         PropertyInfo property, Dictionary<PropertyInfo, PropertyContext> directDeps,
         HashSet<PropertyInfo> visited)

@@ -140,14 +140,11 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
 
         // Extract parent trace context
         ActivityContext parentContext = default;
-        if (consumeResult.Message.Headers != null)
+        var traceparentHeader = consumeResult.Message.Headers?.FirstOrDefault(h => h.Key == "traceparent");
+        if (traceparentHeader != null)
         {
-            var traceparentHeader = consumeResult.Message.Headers.FirstOrDefault(h => h.Key == "traceparent");
-            if (traceparentHeader != null)
-            {
-                var traceparent = Encoding.UTF8.GetString(traceparentHeader.GetValueBytes());
-                ActivityContext.TryParse(traceparent, null, out parentContext);
-            }
+            var traceparent = Encoding.UTF8.GetString(traceparentHeader.GetValueBytes());
+            ActivityContext.TryParse(traceparent, null, out parentContext);
         }
 
         var distributedKeyName = typeof(TDistributedKey).Name;

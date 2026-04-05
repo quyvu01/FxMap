@@ -47,11 +47,11 @@ public static class FxMapExtensions
 
         var distributedKeyMapHandlers = GetDistributedKeyMapHandlers(newOfRegister.EntityConfigs);
 
-        services.AddSingleton<GetProfileConfig>(_ =>
-            profileType => newOfRegister.ProfileConfigs.GetValueOrDefault(profileType));
+        services.AddSingleton<GetProfileConfig>(profileType =>
+            newOfRegister.ProfileConfigs.GetValueOrDefault(profileType));
 
-        services.AddSingleton<GetEntityConfig>(_ =>
-            entityType => newOfRegister.EntityConfigs.GetValueOrDefault(entityType));
+        services.AddSingleton<GetEntityConfig>(entityType =>
+            newOfRegister.EntityConfigs.GetValueOrDefault(entityType));
 
         services.AddSingleton<GetTypeAccessor>(sp =>
             type => new TypeAccessor(type, sp.GetRequiredService<GetEntityConfig>()));
@@ -61,9 +61,9 @@ public static class FxMapExtensions
             .Select(a => a.GetDistributedKeyType()));
 
         services.AddSingleton<IMapperConfiguration>(new MapperConfiguration(distributedKeyTypes, entitiesInfos,
-            distributedKeyMapHandlers,
-            newOfRegister.MaxNestingDepth, newOfRegister.MaxConcurrentProcessing, newOfRegister.ThrowIfExceptions,
-            newOfRegister.DefaultRequestTimeout, newOfRegister.RetryPolicy, newOfRegister.SupervisorOptions));
+            distributedKeyMapHandlers, newOfRegister.MaxNestingDepth, newOfRegister.MaxConcurrentProcessing,
+            newOfRegister.ThrowIfExceptions, newOfRegister.DefaultRequestTimeout, newOfRegister.RetryPolicy,
+            newOfRegister.SupervisorOptions));
 
         var clientHandlerGenericType = typeof(ClientRequestHandler<>);
         distributedKeyTypes
@@ -94,7 +94,7 @@ public static class FxMapExtensions
 
         services.AddTransient(typeof(NoOpQueryOfHandler<,>));
 
-        services.TryAddSingleton<MapperDelegates>(_ => (mt, at) =>
+        services.TryAddSingleton<MapperDelegates>((mt, at) =>
         {
             var config = entitiesInfos
                 .First(a => a.EntityType == mt && a.DistributedKeyType == at)

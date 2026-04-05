@@ -1,12 +1,8 @@
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using FxMap.Abstractions;
 using FxMap.Models;
-using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Fluent;
-using FxMap.Helpers;
 using FxMap.Supervision;
 
 namespace FxMap.Registries;
@@ -44,42 +40,12 @@ public class MapConfigurator(IServiceCollection services)
     public bool ThrowIfExceptions { get; private set; }
     public TimeSpan DefaultRequestTimeout { get; private set; } = TimeSpan.FromSeconds(30);
     internal RetryPolicy RetryPolicy { get; private set; }
-    public SupervisorOptions SupervisorOptions { get; internal set; }
+    public SupervisorOptions SupervisorOptions { get; private set; }
 
     /// <summary>
     /// Gets the underlying service collection for advanced registration scenarios.
     /// </summary>
     public IServiceCollection Services { get; } = services;
-
-    /// <summary>
-    /// Registers custom client request handlers from the specified assembly.
-    /// </summary>
-    /// <typeparam name="TAssemblyMarker">A type in the assembly to scan for handlers.</typeparam>
-    public void AddHandlersFromNamespaceContaining<TAssemblyMarker>()
-    {
-        var mappableRequestHandlerType = typeof(IClientRequestHandler<>);
-        var deepestClassesWithInterface = LeafImplementationFinder
-            .GetDeepestClassesWithInterface(typeof(TAssemblyMarker).Assembly, mappableRequestHandlerType);
-
-        deepestClassesWithInterface.GroupBy(a => a.ImplementedClosedInterface)
-            .ForEach(it =>
-            {
-                var interfaceType = it.Key;
-                if (it.Count() > 1) throw new DistributedMapException.AmbiguousHandlers(it.Key);
-                var attributeArgument = interfaceType.GetGenericArguments()[0];
-                var serviceType = mappableRequestHandlerType.MakeGenericType(attributeArgument);
-                var existedService = Services.FirstOrDefault(a => a.ServiceType == serviceType);
-                var handlerType = it.First().ClassType;
-                if (existedService is null)
-                {
-                    Services.AddTransient(serviceType, handlerType);
-                    return;
-                }
-
-                Services.Replace(new ServiceDescriptor(serviceType, handlerType,
-                    ServiceLifetime.Transient));
-            });
-    }
 
     /// <summary>
     /// Scans the specified assembly for <see cref="ProfileOf{TModel}"/> and <see cref="ProfileOf{TModel}"/>

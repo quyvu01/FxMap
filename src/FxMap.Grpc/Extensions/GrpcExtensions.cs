@@ -14,6 +14,7 @@ using FxMap.Grpc.Implementations;
 using FxMap.Registries;
 using FxMap.Responses;
 using FxMap.Grpc.Registries;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace FxMap.Grpc.Extensions;
 
@@ -57,12 +58,12 @@ public static class GrpcExtensions
         var clientsRegister = new GrpcClientsConfigurator();
         options.Invoke(clientsRegister);
         if (clientsRegister.ServiceHosts is not { Count: > 0 } serviceHosts) return;
-        ConcurrentDictionary<HostProbe, Type[]> hostMapDistributedKeys = [];
+        ConcurrentDictionary<HostProbe, string[]> hostMapDistributedKeys = [];
         serviceHosts.ForEach(h => hostMapDistributedKeys.TryAdd(new HostProbe(h, false), []));
         var semaphore = new SemaphoreSlim(1, 1);
         var throwIfExceptions = mapRegister.ThrowIfExceptions;
         var services = mapRegister.Services;
-        services.TryAddTransient<GetFxMapResponseFunc>(_ => distributedKeyType => async (query, context) =>
+        services.AddSingleton<GetMapperResponseFunc>(distributedKeyType => async (query, context) =>
         {
             if (!hostMapDistributedKeys.Any(a => a.Value.Contains(distributedKeyType)))
             {
@@ -112,13 +113,14 @@ public static class GrpcExtensions
         services.TryAddTransient<IRequestClient, GrpcRequestClient>();
     }
 
-    private static async Task<Dictionary<HostProbe, Type[]>> GetHostMapAttributesAsync(
+    private static async Task<Dictionary<HostProbe, string[]>> GetHostMapAttributesAsync(
         IEnumerable<string> serverHosts, IContext context, bool throwIfExceptions)
     {
         var tasks = serverHosts
-            .Select(a => (Host: a, DistributedKeysTask: GeTDistributedKeysByHost(a, context, throwIfExceptions))).ToList();
+            .Select(a => (Host: a, DistributedKeysTask: GetDistributedKeysByHost(a, context, throwIfExceptions)))
+            .ToList();
         await Task.WhenAll(tasks.Select(t => t.DistributedKeysTask));
-        var result = new Dictionary<HostProbe, Type[]>();
+        var result = new Dictionary<HostProbe, string[]>();
         tasks.ForEach(a =>
         {
             var isProbed = a.DistributedKeysTask.Result.IsProbed;
@@ -129,7 +131,7 @@ public static class GrpcExtensions
     }
 
     private static async Task<FxMapItemsGrpcResponse> GetFxMapItemsAsync(string serverHost, IContext context,
-        DistributedMapRequest query, Type distributedKeyType)
+        DistributedMapRequest query, string distributedKeyType)
     {
         var channel = GetOrCreateChannel(serverHost);
         var client = new FxMapTransportService.FxMapTransportServiceClient(channel);
@@ -141,11 +143,11 @@ public static class GrpcExtensions
         cancellationTokenSource.CancelAfter(DefaultRequestTimeout);
         grpcQuery.SelectorIds.AddRange(query.SelectorIds ?? []);
         grpcQuery.Expression = JsonSerializer.Serialize(query.Expressions);
-        grpcQuery.DistributedKeyAssemblyType = distributedKeyType.GetAssemblyName();
+        grpcQuery.DistributedKeyAssemblyType = distributedKeyType;
         return await client.GetItemsAsync(grpcQuery, metadata, cancellationToken: cancellationTokenSource.Token);
     }
 
-    private static async Task<DistributedKeysProbe> GeTDistributedKeysByHost(string serverHost, IContext context,
+    private static async Task<DistributedKeysProbe> GetDistributedKeysByHost(string serverHost, IContext context,
         bool throwIfExceptions)
     {
         try
@@ -156,8 +158,9 @@ public static class GrpcExtensions
             using var cancellationTokenSource = CancellationTokenSource
                 .CreateLinkedTokenSource(context?.CancellationToken ?? CancellationToken.None);
             cancellationTokenSource.CancelAfter(DefaultRequestTimeout);
-            var response = await client.GetDistributedKeysAsync(query, cancellationToken: cancellationTokenSource.Token);
-            return new DistributedKeysProbe(true, [..response.DistributedKeyTypes.Select(Type.GetType)]);
+            var response =
+                await client.GetDistributedKeysAsync(query, cancellationToken: cancellationTokenSource.Token);
+            return new DistributedKeysProbe(true, [..response.DistributedKeyTypes]);
         }
         catch (Exception)
         {
@@ -182,5 +185,5 @@ public static class GrpcExtensions
     /// app.MapFxMapGrpcService();
     /// </code>
     /// </example>
-    public static void MapFxMapGrpcService(this IEndpointRouteBuilder builder) => builder.MapGrpcService<GrpcServer>();
+    public static void MapFxMapperGrpc(this IEndpointRouteBuilder builder) => builder.MapGrpcService<GrpcServer>();
 }

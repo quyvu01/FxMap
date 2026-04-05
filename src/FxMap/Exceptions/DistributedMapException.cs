@@ -70,6 +70,9 @@ public static class DistributedMapException
     public sealed class NoHandlerForDistributedKey(Type type)
         : Exception($"There is no handler for '{type.FullName}'!");
 
+    public sealed class NoHandlerForDistributedKeyAssemblyType(string assemblyQualifiedName)
+        : Exception($"There is no registered handler for the distributed key type '{assemblyQualifiedName}'.");
+
 
     public sealed class DuplicatedNameByExposedName(Type type, string exposedName) : Exception(
         $"ExposedName: {exposedName} cannot be duplicated for type '{type.FullName}'.");
@@ -88,4 +91,14 @@ public static class DistributedMapException
     public sealed class InvalidDistributedKeyName(string key)
         : Exception(
             $"DistributedKey \"{key}\" is invalid. Must start with a letter or underscore, and contain only letters, digits, or underscores (e.g., \"UserKey\", \"Order_Key\").");
+
+    public sealed class DistributedKeyNullOrEmpty()
+        : Exception("DistributedKey cannot be null or empty.");
+
+    public sealed class DistributedNamespaceNullOrEmpty()
+        : Exception("DistributedNamespace cannot be null or empty when using a string-based distributed key.");
+
+    public sealed class InvalidDistributedNamespace(string @namespace)
+        : Exception(
+            $"DistributedNamespace \"{@namespace}\" is invalid. Must be a dot-separated identifier (e.g., \"MyApp.Keys\"), where each segment starts with a letter or underscore and contains only letters, digits, or underscores.");
 }

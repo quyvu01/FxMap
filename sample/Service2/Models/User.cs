@@ -17,7 +17,7 @@ public class UserConfig : EntityConfigureOf<User>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey("UserOfAttribute");
+        UseDistributedKey("UserOfAttribute", "Demo.SomeNamespace");
         ExposedName(x => x.Email, "UserEmail");
     }
 }

@@ -16,12 +16,13 @@ using RabbitMQ.Client.Events;
 
 namespace FxMap.RabbitMq.Implementations;
 
-internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
+internal class RabbitMqRequestClient(
+    IMapperConfiguration mapperConfiguration,
+    IRabbitMqConfiguration rabbitMqConfiguration)
+    : IRequestClient, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<BasicDeliverEventArgs>> _eventArgsMapper = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
-    private readonly IMapperConfiguration _mapperConfiguration;
-    private readonly IRabbitMqConfiguration _rabbitMqConfiguration;
     private IConnection _connection;
     private IChannel _channel;
     private AsyncEventingBasicConsumer _consumer;
@@ -29,12 +30,6 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
     private bool _initialized;
     private const string RoutingKey = FxMapRabbitMqConstants.RoutingKey;
     private const string TransportName = "rabbitmq";
-
-    public RabbitMqRequestClient(IMapperConfiguration mapperConfiguration, IRabbitMqConfiguration rabbitMqConfiguration)
-    {
-        _mapperConfiguration = mapperConfiguration;
-        _rabbitMqConfiguration = rabbitMqConfiguration;
-    }
 
     public async Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(
         RequestContext<TDistributedKey> requestContext) where TDistributedKey : IDistributedKey
@@ -57,7 +52,7 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
             {
                 CorrelationId = correlationId,
                 ReplyTo = _replyQueueName,
-                Type = typeof(TDistributedKey).GetAssemblyName()
+                Type = typeof(TDistributedKey).AssemblyQualifiedName
             };
             props.Headers ??= new Dictionary<string, object>();
             requestContext.Headers?.ForEach(h => props.Headers.Add(h.Key, h.Value));
@@ -96,7 +91,7 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
 
                 // Wait with timeout
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-                cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
+                cts.CancelAfter(mapperConfiguration.DefaultRequestTimeout);
 
                 await using var _ = cts.Token.Register(() => tcs.TrySetCanceled());
 
@@ -115,7 +110,8 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
                 stopwatch.Stop();
                 var itemCount = response.Data?.Items?.Length ?? 0;
 
-                FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
+                FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName,
+                    stopwatch.Elapsed.TotalMilliseconds,
                     itemCount);
 
                 FxMapDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
@@ -171,14 +167,14 @@ internal class RabbitMqRequestClient : IRequestClient, IAsyncDisposable
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        var userName = _rabbitMqConfiguration.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
-        var password = _rabbitMqConfiguration.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
+        var userName = rabbitMqConfiguration.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
+        var password = rabbitMqConfiguration.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
         var connectionFactory = new ConnectionFactory
         {
-            HostName = _rabbitMqConfiguration.RabbitMqHost,
-            VirtualHost = _rabbitMqConfiguration.RabbitVirtualHost,
-            Port = _rabbitMqConfiguration.RabbitMqPort,
-            Ssl = _rabbitMqConfiguration.SslOption ?? new SslOption(),
+            HostName = rabbitMqConfiguration.RabbitMqHost,
+            VirtualHost = rabbitMqConfiguration.RabbitVirtualHost,
+            Port = rabbitMqConfiguration.RabbitMqPort,
+            Ssl = rabbitMqConfiguration.SslOption ?? new SslOption(),
             UserName = userName,
             Password = password,
             // Enable automatic recovery

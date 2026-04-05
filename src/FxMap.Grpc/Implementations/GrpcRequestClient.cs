@@ -12,12 +12,12 @@ namespace FxMap.Grpc.Implementations;
 /// <summary>
 /// gRPC implementation of <see cref="IRequestClient"/> for sending FxMap requests over gRPC.
 /// </summary>
-/// <param name="fxMapResponseFunc">The function delegate for making gRPC calls based on distributed key type.</param>
+/// <param name="mapperResponseFunc">The function delegate for making gRPC calls based on distributed key type.</param>
 /// <remarks>
 /// This client is automatically registered when <c>AddGrpcClients</c> is called and handles
 /// the serialization and transport of FxMap requests to remote gRPC servers.
 /// </remarks>
-public sealed class GrpcRequestClient(GetFxMapResponseFunc fxMapResponseFunc) : IRequestClient
+public sealed class GrpcRequestClient(GetMapperResponseFunc mapperResponseFunc) : IRequestClient
 {
     private const string TransportName = "grpc";
 
@@ -46,7 +46,7 @@ public sealed class GrpcRequestClient(GetFxMapResponseFunc fxMapResponseFunc) : 
                 activity.SetFxMapTags(requestContext.Query.Expressions, requestContext.Query.SelectorIds);
             }
 
-            var func = fxMapResponseFunc.Invoke(typeof(TDistributedKey));
+            var func = mapperResponseFunc.Invoke(typeof(TDistributedKey).AssemblyQualifiedName);
             var result = await func.Invoke(
                 new DistributedMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
                 new GrpcClientContext(requestContext.Headers, requestContext.CancellationToken));

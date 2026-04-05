@@ -6,9 +6,7 @@ using Grpc.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FxMap.Models;
-using FxMap.Exceptions;
 using FxMap.Extensions;
-using FxMap.Grpc.Exceptions;
 using FxMap.Implementations;
 using FxMap.Telemetry;
 
@@ -17,7 +15,6 @@ namespace FxMap.Grpc.Implementations;
 /// <summary>
 /// gRPC server implementation that handles incoming FxMap data requests.
 /// </summary>
-/// <param name="serviceProvider">The service provider for resolving handlers and pipelines.</param>
 /// <remarks>
 /// This server exposes two gRPC endpoints:
 /// <list type="bullet">
@@ -25,20 +22,15 @@ namespace FxMap.Grpc.Implementations;
 ///   <item><description><c>GeTDistributedKeys</c> - Returns the list of distributed key types this server can handle (for discovery)</description></item>
 /// </list>
 /// </remarks>
-public sealed class GrpcServer : FxMapTransportService.FxMapTransportServiceBase
+public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTransportService.FxMapTransportServiceBase
 {
     private static readonly Lazy<ConcurrentDictionary<string, Type>> ReceivedPipelineTypes = new(() => []);
-    private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger<GrpcServer> _logger;
-    private readonly IMapperConfiguration _mapperConfiguration;
-    private const string TransportName = "grpc";
+    private readonly ILogger<GrpcServer> _logger = serviceProvider.GetService<ILogger<GrpcServer>>();
 
-    public GrpcServer(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-        _logger = serviceProvider.GetService<ILogger<GrpcServer>>();
-        _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-    }
+    private readonly IMapperConfiguration _mapperConfiguration =
+        serviceProvider.GetRequiredService<IMapperConfiguration>();
+
+    private const string TransportName = "grpc";
 
     public override async Task<FxMapItemsGrpcResponse> GetItems(GetFxMapGrpcQuery request, ServerCallContext context)
     {
@@ -69,20 +61,13 @@ public sealed class GrpcServer : FxMapTransportService.FxMapTransportServiceBase
             var receivedPipelinesType = ReceivedPipelineTypes.Value
                 .GetOrAdd(request.DistributedKeyAssemblyType, typeAssembly =>
                 {
-                    var distributedKeyType = Type.GetType(typeAssembly);
-                    if (distributedKeyType is null)
-                        throw new GrpcExceptions.CannotDeserializeDistributedKeyType(typeAssembly);
-
-                    if (!_mapperConfiguration.DistributedKeyMapHandlers.TryGetValue(distributedKeyType,
-                            out var handlerType))
-                        throw new DistributedMapException.CannotFindHandlerForDistributedKey(distributedKeyType);
-
+                    var (distributedKeyType, handlerType) = _mapperConfiguration.GetDistributedTypeData(typeAssembly);
                     var modelArg = handlerType.GetGenericArguments()[0];
                     return typeof(ReceivedPipelinesOrchestrator<,>).MakeGenericType(modelArg, distributedKeyType);
                 });
 
             // Use scoped service to prevent concurrent issues (e.g., with DbContext)
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var receivedPipelinesOrchestrator = (ReceivedPipelinesOrchestrator)scope.ServiceProvider
                 .GetRequiredService(receivedPipelinesType)!;
 
@@ -161,7 +146,7 @@ public sealed class GrpcServer : FxMapTransportService.FxMapTransportServiceBase
         var entityInfos = _mapperConfiguration.EntityInfos;
         var response = new DistributedKeyTypeResponse();
         var distributedKeyTypes = entityInfos
-            .Select(a => a.DistributedKeyType.GetAssemblyName());
+            .Select(a => a.DistributedKeyType.AssemblyQualifiedName);
         response.DistributedKeyTypes.AddRange(distributedKeyTypes);
         return Task.FromResult(response);
     }

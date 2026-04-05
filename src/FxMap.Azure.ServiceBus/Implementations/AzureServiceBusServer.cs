@@ -22,9 +22,12 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
     where TDistributedKey : IDistributedKey
     where TModel : class
 {
-    private readonly ILogger<AzureServiceBusServer<TModel, TDistributedKey>> _logger = serviceProvider.GetService<ILogger<AzureServiceBusServer<TModel, TDistributedKey>>>();
-    private readonly IMapperConfiguration _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-    private readonly IAzureServiceBusConfiguration _azureServiceBusConfiguration = serviceProvider.GetRequiredService<IAzureServiceBusConfiguration>();
+    private readonly ILogger<AzureServiceBusServer<TModel, TDistributedKey>> _logger = serviceProvider
+        .GetService<ILogger<AzureServiceBusServer<TModel, TDistributedKey>>>();
+    private readonly IMapperConfiguration _mapperConfiguration = serviceProvider
+        .GetRequiredService<IMapperConfiguration>();
+    private readonly IAzureServiceBusConfiguration _azureServiceBusConfiguration = serviceProvider
+        .GetRequiredService<IAzureServiceBusConfiguration>();
 
     private const string TransportName = "azureservicebus";
 

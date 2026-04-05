@@ -36,8 +36,8 @@ internal sealed class AzureServiceBusSupervisorWorker(
         try
         {
             // Create queues and register all Azure Service Bus servers
-            var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-            foreach (var (distributedKeyType, handlerType) in fxMapConfiguration.DistributedKeyMapHandlers)
+            var mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+            foreach (var (distributedKeyType, handlerType) in mapperConfiguration.DistributedKeyMapHandlers)
             {
                 // Create queues first
                 var requestQueue = _azureServiceBusConfiguration.GetRequestQueue(distributedKeyType);

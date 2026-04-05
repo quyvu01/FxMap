@@ -1,11 +1,16 @@
 using System.Reflection;
+using Amazon;
+using FxMap.Aws.Sqs.Extensions;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
+using FxMap.Grpc.Extensions;
 using FxMap.HotChocolate.Extensions;
+using FxMap.Kafka.Extensions;
 using FxMap.MongoDb.Extensions;
 using FxMap.Nats.Extensions;
+using FxMap.RabbitMq.Extensions;
 using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -59,6 +64,9 @@ builder.Services.AddFxMap(cfg =>
     {
         cfg.AddEntitiesFromAssemblyContaining<IAssemblyMarker>();
         cfg.AddProfilesFromAssemblyContaining<IService1ContractAssembly>();
+
+        cfg.AddGrpcClients(c => c
+            .AddGrpcHosts("http://localhost:8012", "http://localhost:8013"));
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -66,7 +74,18 @@ builder.Services.AddFxMap(cfg =>
             opts.EnableCircuitBreaker = true;
             opts.CircuitBreakerThreshold = 3;
         });
-        cfg.AddNats(c => c.Url("nats://localhost:4222"));
+        // cfg.AddNats(c => c.Url("nats://localhost:4222"));
+        // cfg.AddRabbitMq(config => config.Host("localhost", "/"));
+        // cfg.AddKafka(c => c.Host("localhost:9092"));
+        // cfg.AddSqs(c =>
+        // {
+        //     c.Region(RegionEndpoint.USEast1, credential =>
+        //     {
+        //         credential.ServiceUrl("http://localhost:4566");
+        //         credential.AccessKeyId("test");
+        //         credential.SecretAccessKey("test");
+        //     });
+        // });
         cfg.ThrowIfException();
     })
     .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context)))

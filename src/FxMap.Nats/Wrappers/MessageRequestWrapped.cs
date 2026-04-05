@@ -1,7 +1,6 @@
 using System.Text;
 using System.Text.Json;
 using FxMap.Abstractions;
-using FxMap.Extensions;
 using FxMap.Implementations;
 
 namespace FxMap.Nats.Wrappers;
@@ -18,6 +17,4 @@ public class MessageRequestWrapped<TDistributedKey> where TDistributedKey : IDis
         var messageWrapped = JsonSerializer.Deserialize<MessageRequestWrapped<TDistributedKey>>(messageData);
         return new RequestContextImpl<TDistributedKey>(messageWrapped.Query, messageWrapped.Headers, CancellationToken.None);
     }
-
-    public string Subject => typeof(TDistributedKey).GetAssemblyName();
 }

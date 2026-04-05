@@ -1,8 +1,13 @@
 using System.Reflection;
+using Amazon;
+using FxMap.Aws.Sqs.Extensions;
 using Microsoft.EntityFrameworkCore;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
+using FxMap.Grpc.Extensions;
+using FxMap.Kafka.Extensions;
 using FxMap.Nats.Extensions;
+using FxMap.RabbitMq.Extensions;
 using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -47,7 +52,8 @@ builder.Services.AddFxMap(cfg =>
         });
         // cfg.AddRabbitMq(c => c.Host("localhost", "/"));
         // cfg.AddKafka(c => c.Host("localhost:9092"));
-        cfg.AddNats(c => c.Url("nats://localhost:4222"));
+        // cfg.AddRabbitMq(config => config.Host("localhost", "/"));
+        // cfg.AddNats(c => c.Url("nats://localhost:4222"));
         // cfg.AddSqs(c =>
         // {
         //     c.Region(RegionEndpoint.USEast1, credential =>
@@ -80,5 +86,5 @@ var app = builder.Build();
 using var scope = app.Services.CreateScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<Service3Context>();
 await Service3Api.Data.Service3DataSeeder.SeedAsync(dbContext);
-// app.MapFxMapGrpcService();
+app.MapFxMapperGrpc();
 app.Run();

@@ -32,6 +32,10 @@ public static class Extensions
 
     extension(object obj)
     {
+        /// <summary>
+        /// Returns <c>true</c> when the object is <c>null</c> or its runtime type is considered
+        /// a primitive by <see cref="GeneralHelpers.IsPrimitiveType"/>.
+        /// </summary>
         public bool IsNullOrPrimitive()
         {
             if (obj == null) return true;
@@ -55,6 +59,12 @@ public static class Extensions
         return dependencies.Length - 1;
     }
 
+    /// <summary>
+    /// Resolves the effective distributed key CLR type for the given entity configuration,
+    /// generating a dynamic type when a string-based key is used.
+    /// </summary>
+    /// <param name="entityConfig">The entity configuration to resolve the key type from.</param>
+    /// <returns>The resolved <see cref="Type"/> that implements <see cref="IDistributedKey"/>.</returns>
     public static Type GetDistributedKeyType(this IFluentEntityConfig entityConfig) =>
-        DistributedKeyTypeFactory.Resolve(entityConfig.DistributedKeyType, entityConfig.DistributedKey);
+        DistributedKeyTypeFactory.Resolve(entityConfig.DistributedKeyType, entityConfig.DistributedKey, entityConfig.DistributedNamespace);
 }
