@@ -72,7 +72,7 @@ Trace: order-processing
 ├─ [FxMap.Request] Client: OrderAttribute (200ms)
 │  ├─ [kafka.send] Kafka Producer (5ms)
 │  ├─ [FxMap.Process] Server: OrderAttribute (180ms)
-│  │  ├─ [FxMap.EFCore.Query] Database Query (120ms)
+│  │  ├─ [FxMap.EntityFrameworkCore.Query] Database Query (120ms)
 │  │  │  └─ [db.command] SELECT * FROM Orders (118ms)
 │  │  └─ [FxMap.Request] Nested: UserAttribute (50ms)
 │  │     └─ [grpc.call] gRPC GetUser (45ms)

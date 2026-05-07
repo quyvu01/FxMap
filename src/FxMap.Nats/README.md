@@ -40,23 +40,28 @@ Add FxMap.Nats to your service configuration during application startup:
 For Client:
 
 ```csharp
-// Simple way
+// With default settings (connects to nats://localhost:4222)
 builder.Services.AddFxMap(cfg =>
     {
         cfg.AddEntitiesFromAssemblyContaining<SomeEntityAssemblyMarker>();
         cfg.AddProfilesFromAssemblyContaining<SomeProfileAssemblyMarker>();
-        cfg.AddNats(config => config.Url("nats://localhost:4222"));
+        cfg.AddNats(config => config.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
     });
 
-// Or with NatsOpts
+// With full options
 builder.Services.AddFxMap(cfg =>
     {
         cfg.AddEntitiesFromAssemblyContaining<SomeEntityAssemblyMarker>();
         cfg.AddProfilesFromAssemblyContaining<SomeProfileAssemblyMarker>();
-        cfg.AddNats(config => config.NatsOpts(new NatsOpts{...}));
+        cfg.AddNats(config => config.NatsOpts(opts =>
+        {
+            opts.Url = "nats://localhost:4222";
+            opts.MaxReconnectRetry = 5;
+            opts.RequestTimeout = TimeSpan.FromSeconds(10);
+            // ... any other FxNatsOpts properties
+        }));
     });
 
-// Note that the config.NatsOpts is higher priority than config.Url. It means if we have both NatsOpts and Url, the NatsOpts will be affected instead of Url.
 ...
 
 var app = builder.Build();
