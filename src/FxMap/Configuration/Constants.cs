@@ -23,8 +23,6 @@ public static class Constants
         public const string TagFxMapSelectorCount = "fxmap.selector_count";
         public const string TagFxMapSelectorIds = "fxmap.selector_ids";
         public const string TagFxMapItemCount = "fxmap.item_count";
-        public const string TagFxMapStatus = "fxmap.status";
-        public const string TagFxMapErrorType = "fxmap.error_type";
 
         // Messaging tags (OpenTelemetry standard - keep messaging.* prefix)
         public const string TagMessagingSystem = "messaging.system";
@@ -47,70 +45,6 @@ public static class Constants
         // Status description (OpenTelemetry standard)
         public const string TagStatusDescription = "otel.status_description";
 
-        // Metric label/dimension names (following MassTransit pattern: fxmap.*)
-        public const string LabelFxMapDistributedKey = "fxmap.distributed_key";
-        public const string LabelFxMapTransport = "fxmap.transport";
-        public const string LabelFxMapStatus = "fxmap.status";
-        public const string LabelFxMapErrorType = "fxmap.error_type";
-        public const string LabelFxMapDestination = "fxmap.destination";
-        public const string LabelFxMapSource = "fxmap.source";
-        public const string LabelFxMapDirection = "fxmap.direction";
-        public const string LabelFxMapDbSystem = "fxmap.db_system";
-        public const string LabelFxMapOperation = "fxmap.operation";
-        public const string LabelFxMapComplexity = "fxmap.complexity";
-
-        // Metric label values
-        public const string StatusSuccess = "success";
-        public const string StatusError = "error";
-        public const string DirectionSend = "send";
-        public const string DirectionReceive = "receive";
-
-        // Complexity levels
-        public const string ComplexitySimple = "simple";
-        public const string ComplexityMedium = "medium";
-        public const string ComplexityComplex = "complex";
-
-        // DiagnosticSource event names (lowercase following OTel conventions)
-        public const string EventRequestStart = "fxmap.request.start";
-        public const string EventRequestStop = "fxmap.request.stop";
-        public const string EventRequestError = "fxmap.request.error";
-        public const string EventMessageSend = "fxmap.message.send";
-        public const string EventMessageReceive = "fxmap.message.receive";
-        public const string EventDatabaseQueryStart = "fxmap.database.query.start";
-        public const string EventDatabaseQueryStop = "fxmap.database.query.stop";
-        public const string EventDatabaseQueryError = "fxmap.database.query.error";
-        public const string EventExpressionParse = "fxmap.expression.parse";
-        public const string EventCacheLookup = "fxmap.cache.lookup";
         public const string EventException = "exception";
-
-        // Metric names (following MassTransit pattern: fxmap.*)
-        public const string MetricRequestCount = "fxmap.request.count";
-        public const string MetricRequestErrors = "fxmap.request.errors";
-        public const string MetricItemsReturned = "fxmap.items.returned";
-        public const string MetricMessagesSent = "fxmap.messages.sent";
-        public const string MetricMessagesReceived = "fxmap.messages.received";
-        public const string MetricRequestDuration = "fxmap.request.duration";
-        public const string MetricItemsPerRequest = "fxmap.items.per_request";
-        public const string MetricMessageSize = "fxmap.message.size";
-        public const string MetricDatabaseQueryDuration = "fxmap.database.query.duration";
-        public const string MetricExpressionParsingDuration = "fxmap.expression.parsing.duration";
-        public const string MetricRequestsActive = "fxmap.request.active";
-
-        // Metric units
-        public const string UnitMilliseconds = "ms";
-        public const string UnitBytes = "bytes";
-
-        // Metric descriptions
-        public const string DescriptionRequestCount = "Total number of FxMap requests";
-        public const string DescriptionRequestErrors = "Total number of FxMap request errors";
-        public const string DescriptionItemsReturned = "Total number of items returned by FxMap requests";
-        public const string DescriptionMessagesSent = "Total number of messages sent";
-        public const string DescriptionMessagesReceived = "Total number of messages received";
-        public const string DescriptionRequestDuration = "Duration of FxMap requests";
-        public const string DescriptionItemsPerRequest = "Number of items returned per request";
-        public const string DescriptionMessageSize = "Size of messages";
-        public const string DescriptionDatabaseQueryDuration = "Duration of database queries";
-        public const string DescriptionExpressionParsingDuration = "Duration of expression parsing";
-        public const string DescriptionRequestsActive = "Current number of active FxMap requests";
     }
 }

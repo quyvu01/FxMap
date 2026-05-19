@@ -43,7 +43,6 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
         if (traceparentHeader != null) ActivityContext.TryParse(traceparentHeader.Value, null, out parentContext);
 
         using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
-        var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
@@ -55,8 +54,6 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             activity?.SetMessagingTags(system: TransportName, destination: "grpc-endpoint",
                 messageId: Activity.Current?.Id ?? Guid.NewGuid().ToString(),
                 operation: "process");
-
-            FxMapDiagnostics.MessageReceive(TransportName, "grpc-endpoint", Activity.Current?.Id);
 
             var receivedPipelinesType = ReceivedPipelineTypes.Value
                 .GetOrAdd(request.DistributedKeyAssemblyType, typeAssembly =>
@@ -89,16 +86,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
                 res.Items.Add(itemGrpc);
             });
 
-            // Record success metrics
-            stopwatch.Stop();
             var itemCount = response.Items?.Length ?? 0;
-
-            FxMapMetrics.RecordRequest(
-                distributedKeyName,
-                TransportName,
-                stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
-
             activity?.SetFxMapTags(expressions, selectorIds, itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
@@ -107,15 +95,7 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
         catch (OperationCanceledException) when (cts.IsCancellationRequested &&
                                                  !context.CancellationToken.IsCancellationRequested)
         {
-            stopwatch.Stop();
-
             _logger?.LogWarning("Request timeout for gRPC GetItems: {DistributedKeyType}", distributedKeyName);
-
-            FxMapMetrics.RecordError(
-                distributedKeyName,
-                TransportName,
-                stopwatch.Elapsed.TotalMilliseconds,
-                "TimeoutException");
 
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
@@ -124,18 +104,9 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
         }
         catch (Exception e)
         {
-            stopwatch.Stop();
-
-            _logger?.LogError(e, "Error while execute get items: {DistributedKeyType}", distributedKeyName);
-
-            FxMapMetrics.RecordError(distributedKeyName, TransportName,
-                stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
-
-            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
-
+            _logger?.LogError(e, "Error while execute get items: {@DistributedKeyType}", distributedKeyName);
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
-
             throw;
         }
     }

@@ -24,8 +24,10 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
 {
     private readonly ILogger<AzureServiceBusServer<TModel, TDistributedKey>> _logger = serviceProvider
         .GetService<ILogger<AzureServiceBusServer<TModel, TDistributedKey>>>();
+
     private readonly IMapperConfiguration _mapperConfiguration = serviceProvider
         .GetRequiredService<IMapperConfiguration>();
+
     private readonly IAzureServiceBusConfiguration _azureServiceBusConfiguration = serviceProvider
         .GetRequiredService<IAzureServiceBusConfiguration>();
 
@@ -85,7 +87,6 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
         var distributedKeyName = typeof(TDistributedKey).Name;
         var requestQueue = _azureServiceBusConfiguration.GetRequestQueue(typeof(TDistributedKey));
         using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
-        var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
@@ -99,8 +100,6 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
             activity?.SetMessagingTags(system: TransportName, destination: requestQueue,
                 messageId: request.CorrelationId, operation: "process");
 
-            FxMapDiagnostics.MessageReceive(TransportName, requestQueue, request.CorrelationId);
-
             var requestDeserialize = JsonSerializer.Deserialize<DistributedMapRequest>(request.Body);
 
             using var serviceScope = serviceProvider.CreateScope();
@@ -109,7 +108,8 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
 
             var headers = request.ApplicationProperties?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
-            var requestOf = new MapRequest<TDistributedKey>(requestDeserialize.SelectorIds, requestDeserialize.Expressions);
+            var requestOf =
+                new MapRequest<TDistributedKey>(requestDeserialize.SelectorIds, requestDeserialize.Expressions);
             var requestContext = new RequestContextImpl<TDistributedKey>(requestOf, headers, cancellationToken);
             var data = await pipeline.ExecuteAsync(requestContext);
             var response = Result.Success(data);
@@ -121,24 +121,15 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
             await SendResponseAsync(request, sender, response, cancellationToken);
             await args.CompleteMessageAsync(request, cancellationToken);
 
-            // Record success metrics
-            stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
-
-            FxMapMetrics.RecordRequest(distributedKeyName, TransportName,
-                stopwatch.Elapsed.TotalMilliseconds, itemCount);
 
             activity?.SetFxMapTags(requestDeserialize.Expressions, requestDeserialize.SelectorIds, itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            stopwatch.Stop();
-
             _logger?.LogWarning("Request timeout for <{DistributedKey}>", distributedKeyName);
 
-            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                "TimeoutException");
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
             var response = Result.Failed(new TimeoutException($"Request timeout for {distributedKeyName}"));
@@ -147,13 +138,7 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
         }
         catch (Exception e)
         {
-            stopwatch.Stop();
-
             _logger?.LogError(e, "Error while responding <{DistributedKey}>", distributedKeyName);
-
-            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds, e.GetType().Name);
-
-            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);

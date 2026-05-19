@@ -56,7 +56,6 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     {
         // Start database activity for distributed tracing
         using var activity = FxMapActivitySource.StartDatabaseActivity<TDistributedKey>(DbSystem);
-        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -66,7 +65,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
             var filter = BuildFilter(context.Query);
 
             // Build projection
-            var (projection, expressionMap) = BuildProjection(expressions);
+            var projection = BuildProjection(expressions);
 
             // Add database tags to activity
             if (activity != null)
@@ -79,9 +78,6 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
                     operation: "find");
             }
 
-            // Emit diagnostic event
-            FxMapDiagnostics.DatabaseQueryStart(typeof(TDistributedKey).Name, DbSystem, context.Query.Expressions);
-
             // Execute query
             var rawResults = await _collectionInternal.Collection
                 .Find(filter)
@@ -89,17 +85,9 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
                 .ToListAsync(context.CancellationToken);
 
             // Transform to FxMapDataResponse
-            var data = TransformResults(rawResults, expressions, expressionMap);
+            var data = TransformResults(rawResults, expressions);
 
-            // Record success metrics
-            stopwatch.Stop();
             var itemCount = data.Length;
-
-            FxMapMetrics.RecordDatabaseQuery(typeof(TDistributedKey).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
-
-            FxMapDiagnostics.DatabaseQueryStop(typeof(TDistributedKey).Name, DbSystem, itemCount, stopwatch.Elapsed);
-
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
@@ -107,18 +95,8 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-
-            // Record error metrics
-            FxMapMetrics.RecordDatabaseError(typeof(TDistributedKey).Name, DbSystem,
-                stopwatch.Elapsed.TotalMilliseconds,
-                ex.GetType().Name);
-
-            FxMapDiagnostics.DatabaseQueryError(typeof(TDistributedKey).Name, DbSystem, ex, stopwatch.Elapsed);
-
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-
             throw;
         }
     }
@@ -140,8 +118,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     /// <summary>
     /// Builds MongoDB BSON projection document.
     /// </summary>
-    private (BsonDocument Projection, Dictionary<string, string> ExpressionMap) BuildProjection(
-        string[] expressions)
+    private BsonDocument BuildProjection(string[] expressions)
     {
         // Create unique field names for each expression
         // For null expressions, use defaultProperty (actual property name, not ExposedName)
@@ -155,7 +132,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         // Check cache
         var cacheKey = ComputeCacheKey(expressions);
         if (ProjectionCache.TryGetValue(cacheKey, out var cached))
-            return (cached, expressionMap);
+            return cached;
 
         // Build projection using new BsonProjectionBuilder
         // Note: For MongoDB, we use actual property names (not ExposedName)
@@ -168,7 +145,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         // Cache it
         ProjectionCache.TryAdd(cacheKey, projection);
 
-        return (projection, expressionMap);
+        return projection;
     }
 
     /// <summary>
@@ -176,8 +153,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     /// </summary>
     private static DataResponse[] TransformResults(
         List<BsonDocument> rawResults,
-        string[] originalExpressions,
-        Dictionary<string, string> expressionMap)
+        string[] originalExpressions)
     {
         var result = new DataResponse[rawResults.Count];
 

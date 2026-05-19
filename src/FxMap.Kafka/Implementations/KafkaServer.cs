@@ -111,11 +111,13 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             }
             catch (ConsumeException ex)
             {
-                _logger?.LogError(ex, "Error consuming Kafka message for <{DistributedKey}>", typeof(TDistributedKey).Name);
+                _logger?.LogError(ex, "Error consuming Kafka message for <{DistributedKey}>",
+                    typeof(TDistributedKey).Name);
             }
             catch (Exception ex)
             {
-                _logger?.LogError(ex, "Error processing Kafka message for <{DistributedKey}>", typeof(TDistributedKey).Name);
+                _logger?.LogError(ex, "Error processing Kafka message for <{DistributedKey}>",
+                    typeof(TDistributedKey).Name);
             }
         }
     }
@@ -149,7 +151,6 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
 
         var distributedKeyName = typeof(TDistributedKey).Name;
         using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
-        var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
@@ -167,8 +168,6 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
                 messageId: consumeResult.Message.Key,
                 operation: "process");
 
-            FxMapDiagnostics.MessageReceive(TransportName, _requestTopic, consumeResult.Message.Key);
-
             var pipeline = serviceScope.ServiceProvider
                 .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TDistributedKey>>();
 
@@ -183,30 +182,14 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             var response = Result.Success(data);
             await SendResponseAsync(consumeResult, messageUnWrapped.ReplyTo, response, cancellationToken);
 
-            // Record success metrics
-            stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
-
-            FxMapMetrics.RecordRequest(
-                distributedKeyName,
-                TransportName,
-                stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
 
             activity?.SetFxMapTags(message.Expressions, message.SelectorIds, itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            stopwatch.Stop();
-
             _logger?.LogWarning("Request timeout for <{DistributedKey}>", distributedKeyName);
-
-            FxMapMetrics.RecordError(
-                distributedKeyName,
-                TransportName,
-                stopwatch.Elapsed.TotalMilliseconds,
-                "TimeoutException");
 
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
@@ -216,18 +199,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         }
         catch (Exception e)
         {
-            stopwatch.Stop();
-
             _logger?.LogError(e, "Error while responding <{DistributedKey}>", distributedKeyName);
-
-            FxMapMetrics.RecordError(
-                distributedKeyName,
-                TransportName,
-                stopwatch.Elapsed.TotalMilliseconds,
-                e.GetType().Name);
-
-            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
-
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
 

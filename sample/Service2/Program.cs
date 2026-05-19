@@ -47,18 +47,7 @@ builder.Services.AddFxMap(cfg =>
             opts.EnableCircuitBreaker = true;
             opts.CircuitBreakerThreshold = 3;
         });
-        // cfg.AddRabbitMq(config => config.Host("localhost", "/"));
-        // cfg.AddNats(c => c.Url("nats://localhost:4222"));
-        // cfg.AddKafka(c => c.Host("localhost:9092"));
-        // cfg.AddSqs(c =>
-        // {
-        //     c.Region(RegionEndpoint.USEast1, credential =>
-        //     {
-        //         credential.ServiceUrl("http://localhost:4566");
-        //         credential.AccessKeyId("test");
-        //         credential.SecretAccessKey("test");
-        //     });
-        // });
+        // cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
         cfg.ThrowIfException();
     })
     .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service2Context)));

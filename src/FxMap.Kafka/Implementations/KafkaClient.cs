@@ -74,7 +74,6 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
     {
         // Start client-side activity for distributed tracing
         using var activity = FxMapActivitySource.StartClientActivity<TDistributedKey>(TransportName);
-        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -105,13 +104,6 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
                 activity.SetFxMapTags(requestContext.Query.Expressions, requestContext.Query.SelectorIds);
             }
 
-            // Emit diagnostic event
-            FxMapDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
-                requestContext.Query.Expressions);
-
-            // Track active requests
-            FxMapMetrics.UpdateActiveRequests(1);
-
             var tcs = new TaskCompletionSource<Result>(TaskCreationOptions.RunContinuationsAsynchronously);
             _pendingRequests.TryAdd(correlationId, tcs);
 
@@ -140,14 +132,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
                         throw response.Fault?.ToException()
                               ?? new DistributedMapException.ReceivedException("Unknown error from server");
 
-                    // Record success metrics
-                    stopwatch.Stop();
                     var itemCount = response.Data?.Items?.Length ?? 0;
-
-                    FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName,
-                        stopwatch.Elapsed.TotalMilliseconds, itemCount);
-
-                    FxMapDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
                     activity?.SetFxMapTags(itemCount: itemCount);
                     activity?.SetStatus(ActivityStatusCode.Ok);
@@ -168,22 +153,10 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-
-            // Record error metrics
-            FxMapMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                ex.GetType().Name);
-
-            FxMapDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
-
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
 
             throw;
-        }
-        finally
-        {
-            FxMapMetrics.UpdateActiveRequests(-1);
         }
     }
 

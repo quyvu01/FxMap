@@ -194,7 +194,6 @@ internal class SqsServer : ISqsServer
 
         // Start server-side activity
         using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
-        var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
@@ -206,9 +205,6 @@ internal class SqsServer : ISqsServer
             // Add messaging tags to activity
             activity?.SetMessagingTags(system: TransportName, destination: queueUrl, messageId: correlationId,
                 operation: "process");
-
-            // Emit diagnostic event
-            FxMapDiagnostics.MessageReceive(TransportName, queueUrl, correlationId);
 
             var mapperConfiguration = _serviceProvider.GetRequiredService<IMapperConfiguration>();
             var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(distributedKeyTypeString,
@@ -247,12 +243,7 @@ internal class SqsServer : ISqsServer
                 }, cancellationToken);
             }
 
-            // Record success
-            stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
-
-            FxMapMetrics.RecordRequest(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
 
             activity?.SetFxMapTags(fxmapRequest?.Expressions, fxmapRequest?.SelectorIds, itemCount);
 
@@ -260,14 +251,8 @@ internal class SqsServer : ISqsServer
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            stopwatch.Stop();
-
             _logger?.LogWarning("Request timeout for <{DistributedKey}>", distributedKeyTypeString);
             var response = Result.Failed(new TimeoutException($"Request timeout for {distributedKeyTypeString}"));
-
-            // Record timeout as error
-            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                "TimeoutException");
 
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
@@ -276,16 +261,8 @@ internal class SqsServer : ISqsServer
         }
         catch (Exception e)
         {
-            stopwatch.Stop();
-
             _logger?.LogError(e, "Error while responding <{DistributedKey}>", distributedKeyTypeString);
             var response = Result.Failed(e);
-
-            // Record error
-            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                e.GetType().Name);
-
-            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
 
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);

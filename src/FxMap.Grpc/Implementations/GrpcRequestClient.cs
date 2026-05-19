@@ -26,17 +26,8 @@ public sealed class GrpcRequestClient(GetMapperResponseFunc mapperResponseFunc) 
     {
         // Start client-side activity for distributed tracing
         using var activity = FxMapActivitySource.StartClientActivity<TDistributedKey>(TransportName);
-        var stopwatch = Stopwatch.StartNew();
-
         try
         {
-            // Emit diagnostic event
-            FxMapDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
-                requestContext.Query.Expressions);
-
-            // Track active requests
-            FxMapMetrics.UpdateActiveRequests(1);
-
             // Note: W3C trace context propagation will be handled by gRPC infrastructure
             if (activity != null)
             {
@@ -51,14 +42,7 @@ public sealed class GrpcRequestClient(GetMapperResponseFunc mapperResponseFunc) 
                 new DistributedMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
                 new GrpcClientContext(requestContext.Headers, requestContext.CancellationToken));
 
-            // Record success metrics
-            stopwatch.Stop();
             var itemCount = result?.Items?.Length ?? 0;
-
-            FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
-
-            FxMapDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
@@ -67,22 +51,10 @@ public sealed class GrpcRequestClient(GetMapperResponseFunc mapperResponseFunc) 
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-
-            // Record error metrics
-            FxMapMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                ex.GetType().Name);
-
-            FxMapDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
-
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
 
             throw;
-        }
-        finally
-        {
-            FxMapMetrics.UpdateActiveRequests(-1);
         }
     }
 }

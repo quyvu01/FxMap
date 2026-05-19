@@ -119,7 +119,6 @@ internal class RabbitMqServer : IRabbitMqServer
 
         // Start server-side activity
         using var activity = FxMapActivitySource.StartServerActivity(distributedKeyName, parentContext);
-        var stopwatch = Stopwatch.StartNew();
 
         // Create timeout CTS
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
@@ -131,9 +130,6 @@ internal class RabbitMqServer : IRabbitMqServer
             // Add messaging tags to activity
             activity?.SetMessagingTags(system: TransportName, destination: ea.Exchange, messageId: props.CorrelationId,
                 operation: "process");
-
-            // Emit diagnostic event
-            FxMapDiagnostics.MessageReceive(TransportName, ea.Exchange, props.CorrelationId);
 
             var receivedPipelineOrchestrator = DistributedKeyAssemblyCached.GetOrAdd(props.Type,
                 distributedKeyAssembly =>
@@ -159,12 +155,7 @@ internal class RabbitMqServer : IRabbitMqServer
                 mandatory: true, basicProperties: replyProps, body: responseBytes,
                 cancellationToken: cancellationToken);
 
-            // Record success
-            stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
-
-            FxMapMetrics.RecordRequest(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
 
             activity?.SetFxMapTags(message?.Expressions, message?.SelectorIds, itemCount);
 
@@ -172,32 +163,15 @@ internal class RabbitMqServer : IRabbitMqServer
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            stopwatch.Stop();
-
             _logger?.LogWarning("Request timeout for <{DistributedKey}>", props.Type);
             var response = Result.Failed(new TimeoutException($"Request timeout for {props.Type}"));
-
-            // Record timeout as error
-            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                "TimeoutException");
-
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
-
             await SendResponseAsync(ch, props.ReplyTo, replyProps, response, cancellationToken);
         }
         catch (Exception e)
         {
-            stopwatch.Stop();
-
             _logger?.LogError(e, "Error while responding <{DistributedKey}>", props.Type);
             var response = Result.Failed(e);
-
-            // Record error
-            FxMapMetrics.RecordError(distributedKeyName, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                e.GetType().Name);
-
-            FxMapDiagnostics.RequestError(distributedKeyName, TransportName, e, stopwatch.Elapsed);
-
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
 

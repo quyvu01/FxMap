@@ -40,7 +40,8 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
         var natsScribeAsync = _natsClientWrapped.NatsClient
-            .SubscribeAsync<DistributedMapRequest>(_natsConfiguration.GetSubject(typeof(TDistributedKey)), cancellationToken: cancellationToken);
+            .SubscribeAsync<DistributedMapRequest>(_natsConfiguration.GetSubject(typeof(TDistributedKey)),
+                cancellationToken: cancellationToken);
 
         await foreach (var message in natsScribeAsync)
         {
@@ -59,7 +60,8 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
         }
     }
 
-    private async Task ProcessMessageWithReleaseAsync(NatsMsg<DistributedMapRequest> message, CancellationToken stoppingToken)
+    private async Task ProcessMessageWithReleaseAsync(NatsMsg<DistributedMapRequest> message,
+        CancellationToken stoppingToken)
     {
         try
         {
@@ -84,8 +86,6 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
         // Start server-side activity
         using var activity = FxMapActivitySource.StartServerActivity(typeof(TDistributedKey).Name, parentContext);
 
-        var stopwatch = Stopwatch.StartNew();
-
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         cts.CancelAfter(_mapperConfiguration.DefaultRequestTimeout);
         var cancellationToken = cts.Token;
@@ -98,12 +98,6 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
                 system: TransportName,
                 destination: subject,
                 operation: "process");
-
-            // Emit diagnostic event
-            FxMapDiagnostics.MessageReceive(
-                TransportName,
-                subject,
-                message.Subject);
 
             using var serviceScope = _serviceProvider.CreateScope();
             var pipeline = serviceScope.ServiceProvider
@@ -118,12 +112,7 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
 
             await message.ReplyAsync(response, cancellationToken: cancellationToken);
 
-            // Record success
-            stopwatch.Stop();
             var itemCount = data?.Items?.Length ?? 0;
-
-            FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
 
             activity?.SetFxMapTags(message.Data.Expressions, message.Data.SelectorIds, itemCount);
 
@@ -131,17 +120,8 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            stopwatch.Stop();
-
             _logger?.LogWarning("Request timeout for <{Attribute}>", typeof(TDistributedKey).Name);
             var response = Result.Failed(new TimeoutException($"Request timeout for {typeof(TDistributedKey).Name}"));
-
-            // Record timeout as error
-            FxMapMetrics.RecordError(
-                typeof(TDistributedKey).Name,
-                TransportName,
-                stopwatch.Elapsed.TotalMilliseconds,
-                "TimeoutException");
 
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
 
@@ -149,24 +129,8 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
         }
         catch (Exception e)
         {
-            stopwatch.Stop();
-
             _logger?.LogError(e, "Error while responding <{Attribute}>", typeof(TDistributedKey).Name);
             var response = Result.Failed(e);
-
-            // Record error
-            FxMapMetrics.RecordError(
-                typeof(TDistributedKey).Name,
-                TransportName,
-                stopwatch.Elapsed.TotalMilliseconds,
-                e.GetType().Name);
-
-            FxMapDiagnostics.RequestError(
-                typeof(TDistributedKey).Name,
-                TransportName,
-                e,
-                stopwatch.Elapsed);
-
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
 

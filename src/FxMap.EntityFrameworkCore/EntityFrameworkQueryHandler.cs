@@ -45,7 +45,6 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
     {
         // Start database activity for distributed tracing
         using var activity = FxMapActivitySource.StartDatabaseActivity<TDistributedKey>(DbSystem);
-        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -67,9 +66,6 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
                     operation: "query");
             }
 
-            // Emit diagnostic event
-            FxMapDiagnostics.DatabaseQueryStart(typeof(TDistributedKey).Name, DbSystem, context.Query.Expressions);
-
             // Step 1: Execute database query with object[] projection
             var rawResults = await dbContextResolver.Set
                 .AsNoTracking()
@@ -79,16 +75,7 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
 
             // Step 2: Transform to FxMapDataResponse in memory
             var data = ProjectionTransformer.TransformToArray(rawResults, expressions);
-
-            // Record success metrics
-            stopwatch.Stop();
             var itemCount = data.Length;
-
-            FxMapMetrics.RecordDatabaseQuery(typeof(TDistributedKey).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
-                itemCount);
-
-            FxMapDiagnostics.DatabaseQueryStop(typeof(TDistributedKey).Name, DbSystem, itemCount, stopwatch.Elapsed);
-
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
@@ -96,17 +83,8 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-
-            // Record error metrics
-            FxMapMetrics.RecordDatabaseError(typeof(TDistributedKey).Name, DbSystem, stopwatch.Elapsed.TotalMilliseconds,
-                ex.GetType().Name);
-
-            FxMapDiagnostics.DatabaseQueryError(typeof(TDistributedKey).Name, DbSystem, ex, stopwatch.Elapsed);
-
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-
             throw;
         }
     }

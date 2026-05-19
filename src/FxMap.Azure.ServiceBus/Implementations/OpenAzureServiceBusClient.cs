@@ -14,7 +14,8 @@ using FxMap.Telemetry;
 
 namespace FxMap.Azure.ServiceBus.Implementations;
 
-internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposable where TDistributedKey : IDistributedKey
+internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposable
+    where TDistributedKey : IDistributedKey
 {
     private readonly ServiceBusSender _serviceBusSender;
     private readonly ServiceBusSessionProcessor _replyProcessor;
@@ -77,7 +78,6 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
     {
         // Start client-side activity for distributed tracing
         using var activity = FxMapActivitySource.StartClientActivity<TDistributedKey>(TransportName);
-        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -112,13 +112,6 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
                 activity.SetFxMapTags(requestContext.Query.Expressions, requestContext.Query.SelectorIds);
             }
 
-            // Emit diagnostic event
-            FxMapDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
-                requestContext.Query.Expressions);
-
-            // Track active requests
-            FxMapMetrics.UpdateActiveRequests(1);
-
             var tcs = new TaskCompletionSource<BinaryData>(TaskCreationOptions.RunContinuationsAsynchronously);
             _pendingReplies[correlationId] = tcs;
 
@@ -142,14 +135,7 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
                         throw response.Fault?.ToException()
                               ?? new DistributedMapException.ReceivedException("Unknown error from server");
 
-                    // Record success metrics
-                    stopwatch.Stop();
                     var itemCount = response.Data?.Items?.Length ?? 0;
-
-                    FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName,
-                        stopwatch.Elapsed.TotalMilliseconds, itemCount);
-
-                    FxMapDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
 
                     activity?.SetFxMapTags(itemCount: itemCount);
                     activity?.SetStatus(ActivityStatusCode.Ok);
@@ -171,22 +157,10 @@ internal sealed class OpenAzureServiceBusClient<TDistributedKey> : IAsyncDisposa
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-
-            // Record error metrics
-            FxMapMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                ex.GetType().Name);
-
-            FxMapDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
-
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
 
             throw;
-        }
-        finally
-        {
-            FxMapMetrics.UpdateActiveRequests(-1);
         }
     }
 

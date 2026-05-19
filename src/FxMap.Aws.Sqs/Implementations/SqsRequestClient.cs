@@ -32,7 +32,6 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
     {
         // Start client-side activity for distributed tracing
         using var activity = FxMapActivitySource.StartClientActivity<TDistributedKey>(TransportName);
-        var stopwatch = Stopwatch.StartNew();
 
         try
         {
@@ -82,13 +81,6 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
             requestContext.Headers?.ForEach(h => messageAttributes.TryAdd(h.Key,
                 new MessageAttributeValue { DataType = "String", StringValue = h.Value }));
 
-            // Emit diagnostic event
-            FxMapDiagnostics.RequestStart(typeof(TDistributedKey).Name, TransportName, requestContext.Query.SelectorIds,
-                requestContext.Query.Expressions);
-
-            // Track active requests
-            FxMapMetrics.UpdateActiveRequests(1);
-
             var tcs = new TaskCompletionSource<Message>(
                 TaskCreationOptions.RunContinuationsAsynchronously);
             _eventArgsMapper.TryAdd(correlationId, tcs);
@@ -125,15 +117,8 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
                           ?? new DistributedMapException.ReceivedException("Unknown error from server");
 
                 // Record success metrics
-                stopwatch.Stop();
                 var itemCount = response.Data?.Items?.Length ?? 0;
-
-                FxMapMetrics.RecordRequest(typeof(TDistributedKey).Name, TransportName,
-                    stopwatch.Elapsed.TotalMilliseconds,
-                    itemCount);
-
-                FxMapDiagnostics.RequestStop(typeof(TDistributedKey).Name, TransportName, itemCount, stopwatch.Elapsed);
-
+                
                 activity?.SetFxMapTags(itemCount: itemCount);
                 activity?.SetStatus(ActivityStatusCode.Ok);
 
@@ -147,22 +132,9 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
         }
         catch (Exception ex)
         {
-            stopwatch.Stop();
-
-            // Record error metrics
-            FxMapMetrics.RecordError(typeof(TDistributedKey).Name, TransportName, stopwatch.Elapsed.TotalMilliseconds,
-                ex.GetType().Name);
-
-            FxMapDiagnostics.RequestError(typeof(TDistributedKey).Name, TransportName, ex, stopwatch.Elapsed);
-
             activity?.RecordException(ex);
             activity?.SetStatus(ActivityStatusCode.Error, ex.Message);
-
             throw;
-        }
-        finally
-        {
-            FxMapMetrics.UpdateActiveRequests(-1);
         }
     }
 

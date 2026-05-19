@@ -18,12 +18,6 @@ public static class TypeExtensions
     {
         private IEnumerable<PropertyInfo> GetAllProperties() => type.GetTypeInfo().GetAllProperties();
         internal bool IsPrimitiveType() => GeneralHelpers.IsPrimitiveType(type);
-
-        /// <summary>
-        /// Gets the assembly-qualified name of a type in the format "FullName,AssemblyName".
-        /// </summary>
-        /// <returns>A string containing the type's full name and assembly name.</returns>
-        // public string GetAssemblyName() => $"{type.FullName},{type.Assembly.GetName().Name}";
     }
 
     /// <summary>
@@ -70,8 +64,7 @@ public static class TypeExtensions
     {
         public IEnumerable<Type> GetAllInterfaces()
         {
-            if (type.IsInterface)
-                yield return type;
+            if (type.IsInterface) yield return type;
 
             foreach (var interfaceType in type.GetInterfaces())
                 yield return interfaceType;
@@ -95,70 +88,6 @@ public static class TypeExtensions
                 if (propertyInfo != null)
                     yield return propertyInfo;
         }
-
-        public IEnumerable<PropertyInfo> GetStaticProperties()
-        {
-            var info = type.GetTypeInfo();
-
-            return info.DeclaredMethods
-                .Where(x => x.IsSpecialName && x.Name.StartsWith("get_") && x.IsStatic)
-                .Select(x => info.GetDeclaredProperty(x.Name["get_".Length..]));
-        }
-
-        /// <summary>
-        /// Determines if a type is neither abstract nor an interface and can be constructed.
-        /// </summary>
-        /// <returns>True if the type can be constructed, otherwise false.</returns>
-        public bool IsConcrete() => type is { IsAbstract: false, IsInterface: false };
-
-        /// <summary>
-        /// Determines if a type can be constructed, and if it can, additionally determines
-        /// if the type can be assigned to the specified type.
-        /// </summary>
-        /// <param name="assignableType">The type to which the subject type should be checked against</param>
-        /// <returns>
-        /// True if the type is concrete and can be assigned to the assignableType, otherwise false.
-        /// </returns>
-        public bool IsConcreteAndAssignableTo(Type assignableType) =>
-            type.IsConcrete() && assignableType.IsAssignableFrom(type);
-
-        /// <summary>
-        /// Determines if a type can be constructed, and if it can, additionally determines
-        /// if the type can be assigned to the specified type.
-        /// </summary>
-        /// <typeparam name="T">The type to which the subject type should be checked against</typeparam>
-        /// <returns>
-        /// True if the type is concrete and can be assigned to the assignableType, otherwise false.
-        /// </returns>
-        public bool IsConcreteAndAssignableTo<T>() => type.IsConcrete() && typeof(T).IsAssignableFrom(type);
-
-        /// <summary>
-        /// Determines if the type is a nullable type
-        /// </summary>
-        /// <param name="underlyingType">The underlying type of the nullable</param>
-        /// <returns>True if the type can be null</returns>
-        public bool IsNullable(out Type underlyingType)
-        {
-            var isNullable = type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
-
-            underlyingType = isNullable ? Nullable.GetUnderlyingType(type) : null;
-            return isNullable;
-        }
-
-        /// <summary>
-        /// Determines if the type is an open generic with at least one unspecified generic argument
-        /// </summary>
-        /// <returns>True if the type is an open generic</returns>
-        public bool IsOpenGeneric() => type.IsGenericTypeDefinition || type.ContainsGenericParameters;
-
-        /// <summary>
-        /// Determines if a type can be null
-        /// </summary>
-        /// <returns>True if the type can be null</returns>
-        public bool CanBeNull() =>
-            !type.IsValueType
-            || type == typeof(string)
-            || (type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>));
     }
 
     /// <param name="provider">An attribute provider, which can be a MethodInfo, PropertyInfo, Type, etc.</param>
@@ -179,40 +108,5 @@ public static class TypeExtensions
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public bool HasAttribute<T>() where T : Attribute => provider.GeTDistributedKey<T>().Any();
-    }
-
-    /// <param name="type"></param>
-    extension(Type type)
-    {
-        /// <summary>
-        /// Returns true if the type is an anonymous type
-        /// </summary>
-        /// <returns></returns>
-        public bool IsAnonymousType() =>
-            type.FullName != null && type.HasAttribute<CompilerGeneratedAttribute>() &&
-            type.FullName.Contains("AnonymousType");
-
-        /// <summary>
-        /// Returns true if the type is contained within the namespace
-        /// </summary>
-        /// <param name="nameSpace"></param>
-        /// <returns></returns>
-        public bool IsInNamespace(string nameSpace)
-        {
-            var subNameSpace = nameSpace + ".";
-            return type.Namespace != null &&
-                   (type.Namespace.Equals(nameSpace) || type.Namespace.StartsWith(subNameSpace));
-        }
-
-        /// <summary>
-        /// True if the type is a value type, or an object type that is treated as a value by MassTransit
-        /// </summary>
-        /// <returns></returns>
-        public bool IsValueTypeOrObject() =>
-            type.IsValueType
-            || type == typeof(string)
-            || type == typeof(Uri)
-            || type == typeof(Version)
-            || typeof(Exception).IsAssignableFrom(type);
     }
 }
