@@ -1,5 +1,3 @@
-using FxMap.Kafka.Registries;
-
 namespace FxMap.Kafka.Registries;
 
 public sealed class KafkaConfigurator

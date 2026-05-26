@@ -21,7 +21,7 @@ public static class EntityFrameworkExtensions
     /// <param name="serviceInjector">The FxMap registration wrapper.</param>
     /// <param name="registrarAction">Configuration action for registering DbContexts.</param>
     /// <returns>The FxMap registration wrapper for method chaining.</returns>
-    /// <exception cref="DistributedMapException.AddProfilesFromAssemblyContaining">
+    /// <exception cref="DistributedMapException.AddEntitiesFromAssemblyContaining">
     /// Thrown when model configurations have not been set up before calling this method.
     /// </exception>
     /// <example>
@@ -42,7 +42,7 @@ public static class EntityFrameworkExtensions
     {
         var entityConfig = serviceInjector.MapConfigurator.EntityConfigs;
         if (entityConfig is not { Count: > 0 })
-            throw new DistributedMapException.AddProfilesFromAssemblyContaining(); // Todo: update Exception again!
+            throw new DistributedMapException.AddEntitiesFromAssemblyContaining();
 
         var serviceCollection = serviceInjector.MapConfigurator.Services;
         var newFxMapEfCoreRegistrar = new EfCoreConfigurator(serviceCollection);

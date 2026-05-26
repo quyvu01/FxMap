@@ -40,9 +40,9 @@ public static class DistributedMapException
         : Exception(
             "FxMap mapping engine has reached the maximum nesting depth! Use `SetMaxNestingDepth` to increase the limit.");
 
-    public sealed class AddProfilesFromAssemblyContaining()
+    public sealed class AddEntitiesFromAssemblyContaining()
         : Exception(
-            "You have to call the method: `AddProfilesFromAssemblyContaining<TAssembly>` to register entity configurations!");
+            "You have to call the method: `AddEntitiesFromAssemblyContaining<TAssembly>` to register entity configurations!");
 
     public sealed class ReceivedException(string message)
         : Exception($"{AppDomain.CurrentDomain.FriendlyName} : {message}");

@@ -1,14 +1,9 @@
 using System.Reflection;
-using Amazon;
-using FxMap.Aws.Sqs.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
 using FxMap.Grpc.Extensions;
-using FxMap.Kafka.Extensions;
-using FxMap.Nats.Extensions;
-using FxMap.RabbitMq.Extensions;
 using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;

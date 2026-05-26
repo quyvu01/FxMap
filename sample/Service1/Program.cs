@@ -1,16 +1,11 @@
 using System.Reflection;
-using Amazon;
-using FxMap.Aws.Sqs.Extensions;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
 using FxMap.Grpc.Extensions;
 using FxMap.HotChocolate.Extensions;
-using FxMap.Kafka.Extensions;
 using FxMap.MongoDb.Extensions;
-using FxMap.Nats.Extensions;
-using FxMap.RabbitMq.Extensions;
 using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
