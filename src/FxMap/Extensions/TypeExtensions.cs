@@ -15,7 +15,7 @@ public static class TypeExtensions
     /// <param name="type"></param>
     extension(Type type)
     {
-        private IEnumerable<PropertyInfo> GetAllProperties() => type.GetTypeInfo().GetAllProperties();
+        public IEnumerable<PropertyInfo> GetAllProperties() => type.GetTypeInfo().GetAllProperties();
         internal bool IsPrimitiveType() => GeneralHelpers.IsPrimitiveType(type);
     }
 

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Reflection;
 using FxMap.Abstractions;
 using FxMap.Models;
 using FxMap.Exceptions;
@@ -149,7 +150,14 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         var objType = obj.GetType();
         var getProfileConfig = serviceProvider.GetRequiredService<GetProfileConfig>();
         var profileConfig = getProfileConfig.Invoke(objType);
-        if (profileConfig is null) yield break;
+        if (profileConfig is null)
+        {
+            // It means that we don't have the config for this object, may be, the child will have.
+            foreach (var propertyDescriptor in GetDescriptorsFromNestedProperties(obj, visited))
+                yield return propertyDescriptor;
+            yield break;
+        }
+
         foreach (var (propertyInfo, accessor) in profileConfig.Accessors)
         {
             var propertyInformation = profileConfig.GetInformation(propertyInfo);
@@ -162,6 +170,20 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             var propValue = accessor.Get(obj);
             foreach (var value in GetResolvablePropertiesRecursive(propValue, visited))
                 yield return value;
+        }
+    }
+
+    private IEnumerable<PropertyDescriptor> GetDescriptorsFromNestedProperties(object rootObject, HashSet<object> visited)
+    {
+        if (rootObject is null) yield break;
+        foreach (var propertyInfo in rootObject.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            if (propertyInfo.GetIndexParameters().Length > 0) continue;
+            if (propertyInfo.PropertyType.IsPrimitiveType()) continue;
+            var propValue = propertyInfo.GetValue(rootObject);
+            if (propValue is null) continue;
+            foreach (var propertyDescriptor in GetResolvablePropertiesRecursive(propValue, visited))
+                yield return propertyDescriptor;
         }
     }
 
