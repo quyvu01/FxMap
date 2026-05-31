@@ -47,8 +47,7 @@ public static class FxMapExtensions
 
         var distributedKeyMapHandlers = GetDistributedKeyMapHandlers(newOfRegister.EntityConfigs);
 
-        services.AddSingleton<GetProfileConfig>(profileType =>
-            newOfRegister.ProfileConfigs.GetValueOrDefault(profileType));
+        services.AddSingleton<GetProfileConfig>(newOfRegister.GetProfileConfig);
 
         services.AddSingleton<GetEntityConfig>(entityType =>
             newOfRegister.EntityConfigs.GetValueOrDefault(entityType));

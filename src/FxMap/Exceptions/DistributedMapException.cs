@@ -101,4 +101,14 @@ public static class DistributedMapException
     public sealed class InvalidDistributedNamespace(string @namespace)
         : Exception(
             $"DistributedNamespace \"{@namespace}\" is invalid. Must be a dot-separated identifier (e.g., \"MyApp.Keys\"), where each segment starts with a letter or underscore and contains only letters, digits, or underscores.");
+
+    public sealed class AmbiguousProfileConfiguration(Type existingProfileType, Type duplicateProfileType, Type modelType)
+        : Exception(
+            $"Ambiguous profile configuration: both '{existingProfileType.FullName}' and '{duplicateProfileType.FullName}' " +
+            $"configure the same model type '{modelType.FullName}'. Only one profile per model type is allowed.");
+
+    public sealed class AmbiguousEntityConfiguration(Type existingEntityConfigType, Type duplicateEntityConfigType, Type entityType)
+        : Exception(
+            $"Ambiguous entity configuration: both '{existingEntityConfigType.FullName}' and '{duplicateEntityConfigType.FullName}' " +
+            $"configure the same entity type '{entityType.FullName}'. Only one entity configuration per type is allowed.");
 }

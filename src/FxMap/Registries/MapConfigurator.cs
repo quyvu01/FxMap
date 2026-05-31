@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
+using FxMap.Exceptions;
 using FxMap.Models;
 using FxMap.Extensions;
 using FxMap.Fluent;
@@ -31,9 +33,9 @@ public class MapConfigurator(IServiceCollection services)
 {
     private readonly HashSet<Type> _knownEntityTypes = [];
     private readonly HashSet<Type> _knownProfileTypes = [];
-    private readonly Dictionary<Type, IFluentProfileConfig> _profileConfigs = [];
-    private readonly Dictionary<Type, IFluentEntityConfig> _entityConfigs = [];
-    public IReadOnlyDictionary<Type, IFluentProfileConfig> ProfileConfigs => _profileConfigs;
+    private readonly ConcurrentDictionary<Type, IFluentProfileConfig> _profileConfigs = [];
+    private readonly ConcurrentDictionary<Type, IFluentEntityConfig> _entityConfigs = [];
+    public IReadOnlyDictionary<Type, IFluentProfileConfig> ProfileConfigs => _profileConfigs.AsReadOnly();
     public IReadOnlyDictionary<Type, IFluentEntityConfig> EntityConfigs => _entityConfigs;
     public int MaxNestingDepth { get; private set; } = 128;
     public int MaxConcurrentProcessing { get; private set; } = 128;
@@ -79,28 +81,55 @@ public class MapConfigurator(IServiceCollection services)
             ScanEntityConfigs(assembly);
     }
 
-    private void ScanEntityConfigs(Assembly assembly) =>
-        assembly.ExportedTypes
-            .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsAssignableTo(typeof(IFluentEntityConfig)) &&
-                        _knownEntityTypes.Add(t))
-            .ForEach(type =>
-            {
-                var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
-                _entityConfigs.TryAdd(config.EntityType, config);
-            });
+    private void ScanEntityConfigs(Assembly assembly)
+    {
+        var candidates = assembly.ExportedTypes
+            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false }
+                        && t.IsAssignableTo(typeof(IFluentEntityConfig))
+                        && _knownEntityTypes.Add(t))
+            .ToList();
+
+        var leafTypes = candidates
+            .Where(t => !candidates.Any(other => other != t && other.IsSubclassOf(t)));
+
+        leafTypes.ForEach(type =>
+        {
+            var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
+            if (!_entityConfigs.TryAdd(config.EntityType, config))
+                throw new DistributedMapException.AmbiguousEntityConfiguration(
+                    _entityConfigs[config.EntityType].GetType(), type, config.EntityType);
+        });
+    }
 
     private void ScanProfileConfigs(Assembly assembly)
     {
-        assembly.ExportedTypes
-            .Where(t => t is { IsClass: true, IsAbstract: false } && t.IsAssignableTo(typeof(IFluentProfileConfig)) &&
-                        _knownProfileTypes.Add(t))
-            .ForEach(type =>
-            {
-                var profile = (IFluentProfileConfig)Activator.CreateInstance(type)!;
-                profile.Build();
-                _profileConfigs.TryAdd(profile.ModelType, profile);
-            });
+        var candidates = assembly.ExportedTypes
+            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false }
+                        && t.IsAssignableTo(typeof(IFluentProfileConfig))
+                        && _knownProfileTypes.Add(t))
+            .ToList();
+
+        var leafTypes = candidates
+            .Where(t => !candidates.Any(other => other != t && other.IsSubclassOf(t)));
+
+        leafTypes.ForEach(type =>
+        {
+            var profile = (IFluentProfileConfig)Activator.CreateInstance(type)!;
+            profile.Build();
+            if (!_profileConfigs.TryAdd(profile.ModelType, profile))
+                throw new DistributedMapException.AmbiguousProfileConfiguration(
+                    _profileConfigs[profile.ModelType].GetType(), type, profile.ModelType);
+        });
     }
+
+    internal IFluentProfileConfig GetProfileConfig(Type modelType) => _profileConfigs
+        .GetOrAdd(modelType, static mt =>
+        {
+            var profile = (IFluentProfileConfig)Activator
+                .CreateInstance(typeof(VirtualProfileOf<>).MakeGenericType(mt))!;
+            profile.Build();
+            return profile;
+        });
 
     /// <summary>
     /// Enables throwing exceptions during mapping operations instead of silently failing.
