@@ -6,6 +6,7 @@ using FxMap.Extensions;
 using FxMap.Tests.Infrastructure;
 using FxMap.Tests.TestData.Builders;
 using FxMap.Tests.TestData.Dtos;
+using FxMap.Tests.TestData.Models;
 using Shouldly;
 using Xunit;
 
@@ -56,7 +57,7 @@ public class BasicMappingTests : TestDbContextBase<BasicMappingTestDbContext>
         DbContext.SaveChanges();
     }
 
-    [Fact(Skip = "Disabled due to static DbContext registry limitation - passes when run individually")]
+    [Fact]
     public async Task MapDataAsync_Should_Map_Simple_Property()
     {
         // Arrange
@@ -73,7 +74,7 @@ public class BasicMappingTests : TestDbContextBase<BasicMappingTestDbContext>
         response.UserName.ShouldBe("John Doe");
     }
 
-    [Fact(Skip = "Disabled due to static DbContext registry limitation - passes when run individually")]
+    [Fact]
     public async Task MapDataAsync_Should_Map_Property_With_Expression()
     {
         // Arrange

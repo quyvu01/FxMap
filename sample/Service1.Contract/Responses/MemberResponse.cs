@@ -43,13 +43,10 @@ public class MemberResponseProfile : ProfileOf<MemberResponse>
         UseDistributedKey<MemberSocialOfAttribute>()
             .Of(x => x.MemberSocialId)
             .For(x => x.MemberSocialName);
-
+        
         UseDistributedKey<UserOfAttribute>()
             .Of(x => x.UserId)
-            .For(x => x.UserName, c => c
-                .If(_ => true)
-                .Expression("UserEmail:upper")
-                .Else("Name"))
+            .For(x => x.UserName)
             .For(x => x.UserEmail, "UserEmail")
             .For(x => x.ProvinceId, "ProvinceId");
 

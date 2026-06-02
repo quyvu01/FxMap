@@ -1,14 +1,20 @@
+using FxMap.EntityFrameworkCore.Extensions;
+using Microsoft.EntityFrameworkCore;
+
 namespace FxMap.EntityFrameworkCore.Exceptions;
 
 /// <summary>
 /// Contains exception types specific to the FxMap Entity Framework Core integration.
 /// </summary>
-public static class FxMapEntityFrameworkException
+public static class EntityFrameworkCoreException
 {
     /// <summary>
     /// Thrown when attempting to resolve a DbContext that has not been registered with the DI container.
     /// </summary>
     public class EntityFrameworkDbContextNotRegister() : Exception("DbContext must be registered first!");
+
+    public class InputTypeIsNotDbContextType(Type type)
+        : Exception($"The input type: {type.FullName} is not {nameof(DbContext)} type!");
 
     /// <summary>
     /// Thrown when no registered DbContext contains the requested entity model type.
@@ -21,12 +27,6 @@ public static class FxMapEntityFrameworkException
     /// Thrown when AddFxMapEFCore is called without providing any DbContext types.
     /// </summary>
     public class DbContextsMustNotBeEmpty()
-        : Exception("There are no any db contexts on AddFxMapEFCore() method");
-
-    /// <summary>
-    /// Thrown when the same DbContext type is registered more than once.
-    /// </summary>
-    /// <param name="dbContextType">The DbContext type that was already registered.</param>
-    public class DbContextTypeHasBeenRegisterBefore(Type dbContextType) : Exception(
-        $"DbContext type {dbContextType.Name} already registered!");
+        : Exception(
+            $"There are no any db contexts on {nameof(EntityFrameworkExtensions.AddEntityFrameworkCore)}() method");
 }

@@ -34,8 +34,8 @@ public sealed class TestController : ControllerBase
             // new() { Id = "5", UserId = "user-019", MemberAdditionalId = "member-010", MemberAddressId = "addr-022", MemberSocialId = "7" }
         ];
         var test = new PagedResult<MemberResponse> { Items = [new MemberResponse{UserId = "user-001"}] };
-        await distributedMapper.MapDataAsync(test);
-        return Ok(test);
+        await distributedMapper.MapDataAsync(members);
+        return Ok(members);
     }
 
     [HttpGet]

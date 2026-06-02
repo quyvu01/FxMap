@@ -56,25 +56,24 @@ public static class EntityFrameworkExtensions
         var efQueryHandler = typeof(EntityFrameworkQueryHandler<,>);
         serviceCollection.AddScoped(efQueryHandler);
 
-        entityConfig
-            .ForEach(m =>
+        entityConfig.ForEach(m =>
+        {
+            var config = m.Value;
+            var modelType = config.EntityType;
+            var distributedKeyType = config.GetDistributedKeyType();
+            var serviceType = typeof(IQueryOfHandler<,>).MakeGenericType(modelType, distributedKeyType);
+            var implementedType = efQueryHandler.MakeGenericType(modelType, distributedKeyType);
+            var defaultHandlerType = typeof(NoOpQueryOfHandler<,>).MakeGenericType(modelType, distributedKeyType);
+            serviceCollection.AddScoped(serviceType, sp =>
             {
-                var config = m.Value;
-                var modelType = config.EntityType;
-                var distributedKeyType = config.GetDistributedKeyType();
-                var serviceType = typeof(IQueryOfHandler<,>).MakeGenericType(modelType, distributedKeyType);
-                var implementedType = efQueryHandler.MakeGenericType(modelType, distributedKeyType);
-                var defaultHandlerType = typeof(NoOpQueryOfHandler<,>).MakeGenericType(modelType, distributedKeyType);
-                serviceCollection.AddScoped(serviceType, sp =>
+                var modelCached = modelCacheLookup.GetOrAdd(modelType, mt =>
                 {
-                    var modelCached = modelCacheLookup.GetOrAdd(modelType, mt =>
-                    {
-                        var fxMapDbContexts = sp.GetServices<IDbContext>();
-                        return fxMapDbContexts.Any(x => x.HasCollection(mt));
-                    });
-                    return sp.GetService(modelCached ? implementedType : defaultHandlerType);
+                    var fxMapDbContexts = sp.GetServices<IDbContext>();
+                    return fxMapDbContexts.Any(x => x.HasCollection(mt));
                 });
+                return sp.GetService(modelCached ? implementedType : defaultHandlerType);
             });
+        });
 
 
         return serviceInjector;

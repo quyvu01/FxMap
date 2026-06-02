@@ -17,6 +17,8 @@ public static class TypeExtensions
     {
         public IEnumerable<PropertyInfo> GetAllProperties() => type.GetTypeInfo().GetAllProperties();
         internal bool IsPrimitiveType() => GeneralHelpers.IsPrimitiveType(type);
+        internal bool IsClosedConcreteType() =>
+            type is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false };
     }
 
     /// <summary>

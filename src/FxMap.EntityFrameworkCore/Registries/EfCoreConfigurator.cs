@@ -18,18 +18,13 @@ namespace FxMap.EntityFrameworkCore.Registries;
 /// </remarks>
 public sealed class EfCoreConfigurator(IServiceCollection serviceCollection)
 {
-    private static readonly Dictionary<Type, string> DbContextMapFunction = [];
-
     /// <summary>
     /// Registers one or more DbContext types for use with FxMap queries.
     /// </summary>
     /// <param name="dbContextType">The primary DbContext type to register.</param>
     /// <param name="otherDbContextTypes">Additional DbContext types to register.</param>
-    /// <exception cref="FxMapEntityFrameworkException.DbContextsMustNotBeEmpty">
+    /// <exception cref="EntityFrameworkCoreException.DbContextsMustNotBeEmpty">
     /// Thrown when no DbContext types are provided.
-    /// </exception>
-    /// <exception cref="FxMapEntityFrameworkException.DbContextTypeHasBeenRegisterBefore">
-    /// Thrown when a DbContext type has already been registered.
     /// </exception>
     /// <example>
     /// <code>
@@ -41,18 +36,18 @@ public sealed class EfCoreConfigurator(IServiceCollection serviceCollection)
     /// </example>
     public void AddDbContexts(Type dbContextType, params Type[] otherDbContextTypes)
     {
-        List<Type> dbContextTypes = [dbContextType, ..otherDbContextTypes ?? []];
+        var dbContextTypes = new HashSet<Type>([dbContextType, ..otherDbContextTypes ?? []]);
         if (dbContextTypes.Count == 0)
-            throw new FxMapEntityFrameworkException.DbContextsMustNotBeEmpty();
-        
-        dbContextTypes.Distinct().ForEach(type =>
+            throw new EntityFrameworkCoreException.DbContextsMustNotBeEmpty();
+
+        dbContextTypes.ForEach(runtimeType =>
         {
-            ArgumentNullException.ThrowIfNull(type);
-            if (!DbContextMapFunction.TryAdd(type, nameof(AddDbContexts)))
-                throw new FxMapEntityFrameworkException.DbContextTypeHasBeenRegisterBefore(type);
-            serviceCollection.AddScoped<IDbContext>(sp => sp.GetService(type) is DbContext context
+            ArgumentNullException.ThrowIfNull(runtimeType);
+            if (!typeof(DbContext).IsAssignableFrom(runtimeType))
+                throw new EntityFrameworkCoreException.InputTypeIsNotDbContextType(runtimeType);
+            serviceCollection.AddScoped<IDbContext>(sp => sp.GetService(runtimeType) is DbContext context
                 ? new DbContextInternal(context)
-                : throw new FxMapEntityFrameworkException.EntityFrameworkDbContextNotRegister());
+                : throw new EntityFrameworkCoreException.EntityFrameworkDbContextNotRegister());
         });
     }
 }

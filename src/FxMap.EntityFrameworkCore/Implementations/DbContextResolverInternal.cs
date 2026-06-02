@@ -32,7 +32,7 @@ internal class DbContextResolverInternal<TModel>(IEnumerable<IDbContext> dbConte
         var matchingServiceType = dbContextList
             .SingleOrDefault(a => a.HasCollection(typeof(TModel)));
         if (matchingServiceType is null)
-            throw new FxMapEntityFrameworkException.ThereAreNoDbContextHasModel(typeof(TModel));
+            throw new EntityFrameworkCoreException.ThereAreNoDbContextHasModel(typeof(TModel));
         ModelTypeMapContext.TryAdd(typeof(TModel), dbContextList.IndexOf(matchingServiceType));
         return matchingServiceType.DbContext;
     }

@@ -30,8 +30,8 @@ namespace FxMap.Expressions.Building;
 /// </remarks>
 public sealed class ProjectionBuilder<TModel>(
     string idProperty,
-    string defaultProperty = null,
-    GetTypeAccessor typeAccessorProvider = null)
+    string defaultProperty,
+    GetTypeAccessor typeAccessorProvider)
     where TModel : class
 {
     private readonly ParameterExpression _parameter = Expression.Parameter(typeof(TModel), "x");

@@ -72,7 +72,10 @@ builder.Services.AddFxMap(cfg =>
         // cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
         cfg.ThrowIfException();
     })
-    .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context)))
+    .AddEntityFrameworkCore(cfg =>
+    {
+        cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context));
+    })
     .AddMongoDb(cfg => cfg.AddCollection(memberSocialCollection))
     .AddHotChocolate(cfg => cfg.AddRequestExecutorBuilder(registerBuilder));
 

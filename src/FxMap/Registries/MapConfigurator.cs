@@ -49,6 +49,8 @@ public class MapConfigurator(IServiceCollection services)
     /// </summary>
     public IServiceCollection Services { get; } = services;
 
+    #region Profile Configurations
+
     /// <summary>
     /// Scans the specified assembly for <see cref="ProfileOf{TModel}"/> and <see cref="ProfileOf{TModel}"/>
     /// implementations, builds them, and registers their configurations.
@@ -69,6 +71,47 @@ public class MapConfigurator(IServiceCollection services)
             ScanProfileConfigs(assembly);
     }
 
+    public void AddProfileConfig<TProfileConfig>() where TProfileConfig : IFluentProfileConfig
+    {
+        var profileType = typeof(TProfileConfig);
+        if (profileType.IsClosedConcreteType()) AddProfileConfig(profileType);
+    }
+
+    public void AddProfileConfigs(params Type[] profiles)
+    {
+        var candidates = profiles
+            .Where(t => t.IsClosedConcreteType() && t.IsAssignableTo(typeof(IFluentProfileConfig)) &&
+                        _knownProfileTypes.Add(t))
+            .ToList();
+        candidates
+            .Where(t => !candidates.Any(other => other != t && other.IsSubclassOf(t)))
+            .ForEach(AddProfileConfig);
+    }
+
+    private void ScanProfileConfigs(Assembly assembly) => AddProfileConfigs([..assembly.ExportedTypes]);
+
+    private void AddProfileConfig(Type profileType)
+    {
+        var profile = (IFluentProfileConfig)Activator.CreateInstance(profileType)!;
+        profile.Build();
+        if (!_profileConfigs.TryAdd(profile.ModelType, profile))
+            throw new DistributedMapException.AmbiguousProfileConfiguration(
+                _profileConfigs[profile.ModelType].GetType(), profileType, profile.ModelType);
+    }
+
+    internal IFluentProfileConfig GetProfileConfig(Type modelType) => _profileConfigs
+        .GetOrAdd(modelType, static mt =>
+        {
+            var profile = (IFluentProfileConfig)Activator
+                .CreateInstance(typeof(VirtualProfileOf<>).MakeGenericType(mt))!;
+            profile.Build();
+            return profile;
+        });
+
+    #endregion
+
+    #region Entity Configurations
+
     public void AddEntitiesFromAssemblyContaining<TAssemblyMarker>()
     {
         var assembly = typeof(TAssemblyMarker).Assembly;
@@ -81,55 +124,34 @@ public class MapConfigurator(IServiceCollection services)
             ScanEntityConfigs(assembly);
     }
 
-    private void ScanEntityConfigs(Assembly assembly)
+    public void AddEntityConfig<TEntityConfig>() where TEntityConfig : IFluentEntityConfig
     {
-        var candidates = assembly.ExportedTypes
-            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false }
-                        && t.IsAssignableTo(typeof(IFluentEntityConfig))
-                        && _knownEntityTypes.Add(t))
-            .ToList();
-
-        var leafTypes = candidates
-            .Where(t => !candidates.Any(other => other != t && other.IsSubclassOf(t)));
-
-        leafTypes.ForEach(type =>
-        {
-            var config = (IFluentEntityConfig)Activator.CreateInstance(type)!;
-            if (!_entityConfigs.TryAdd(config.EntityType, config))
-                throw new DistributedMapException.AmbiguousEntityConfiguration(
-                    _entityConfigs[config.EntityType].GetType(), type, config.EntityType);
-        });
+        var type = typeof(TEntityConfig);
+        if (type.IsClosedConcreteType()) AddEntityConfig(type);
     }
 
-    private void ScanProfileConfigs(Assembly assembly)
+    public void AddEntityConfigs(params Type[] profiles)
     {
-        var candidates = assembly.ExportedTypes
-            .Where(t => t is { IsClass: true, IsAbstract: false, IsGenericTypeDefinition: false }
-                        && t.IsAssignableTo(typeof(IFluentProfileConfig))
-                        && _knownProfileTypes.Add(t))
+        var candidates = profiles
+            .Where(t => t.IsClosedConcreteType() && t.IsAssignableTo(typeof(IFluentEntityConfig)) &&
+                        _knownEntityTypes.Add(t))
             .ToList();
-
-        var leafTypes = candidates
-            .Where(t => !candidates.Any(other => other != t && other.IsSubclassOf(t)));
-
-        leafTypes.ForEach(type =>
-        {
-            var profile = (IFluentProfileConfig)Activator.CreateInstance(type)!;
-            profile.Build();
-            if (!_profileConfigs.TryAdd(profile.ModelType, profile))
-                throw new DistributedMapException.AmbiguousProfileConfiguration(
-                    _profileConfigs[profile.ModelType].GetType(), type, profile.ModelType);
-        });
+        candidates
+            .Where(t => !candidates.Any(other => other != t && other.IsSubclassOf(t)))
+            .ForEach(AddEntityConfig);
     }
 
-    internal IFluentProfileConfig GetProfileConfig(Type modelType) => _profileConfigs
-        .GetOrAdd(modelType, static mt =>
-        {
-            var profile = (IFluentProfileConfig)Activator
-                .CreateInstance(typeof(VirtualProfileOf<>).MakeGenericType(mt))!;
-            profile.Build();
-            return profile;
-        });
+    private void ScanEntityConfigs(Assembly assembly) => AddEntityConfigs([..assembly.ExportedTypes]);
+
+    private void AddEntityConfig(Type entityType)
+    {
+        var config = (IFluentEntityConfig)Activator.CreateInstance(entityType)!;
+        if (!_entityConfigs.TryAdd(config.EntityType, config))
+            throw new DistributedMapException.AmbiguousEntityConfiguration(
+                _entityConfigs[config.EntityType].GetType(), entityType, config.EntityType);
+    }
+
+    #endregion
 
     /// <summary>
     /// Enables throwing exceptions during mapping operations instead of silently failing.
