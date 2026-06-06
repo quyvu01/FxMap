@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service1.Models;
 
@@ -18,6 +18,6 @@ public class MemberAddressConfig : EntityConfigureOf<MemberAddress>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.ProvinceId);
-        UseDistributedKey<MemberAddressOfAttribute>();
+        UseDistributedKey<MemberAddressDistributedKey>();
     }
 }

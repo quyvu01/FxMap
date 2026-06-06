@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using FxMap.Tests.TestData.Attributes;
+using FxMap.Tests.TestData.DistributedKeys;
 
 namespace FxMap.Tests.TestData.Dtos;
 
@@ -30,7 +30,7 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 {
     protected override void Configure()
     {
-        UseDistributedKey<CountryOfAttribute>()
+        UseDistributedKey<CountryDistributedKey>()
             .Of(x => x.CountryId)
             .For(x => x.CountryName)
             .For(x => x.FirstCityName, "Provinces[0 asc Name].Cities[0 asc Name].Name")

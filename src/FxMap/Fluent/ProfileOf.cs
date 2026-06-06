@@ -53,7 +53,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
         var properties = clrType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
         var dependencyGraph = BuildDependencyGraphFromFluentRules(properties, _ruleGroups);
 
-        var propertiesWithinAttribute = dependencyGraph
+        var propertiesWithinKeys = dependencyGraph
             .Keys
             .Concat(dependencyGraph.Values
                 .Select(a => a.Select(p => p.RequiredPropertyInfo))
@@ -63,10 +63,10 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
 
         var nonPrimitiveProperties = properties
             .Where(a => !a.PropertyType.IsPrimitiveType())
-            .Except(propertiesWithinAttribute)
+            .Except(propertiesWithinKeys)
             .ToArray();
 
-        Accessors = propertiesWithinAttribute
+        Accessors = propertiesWithinKeys
             .Concat(nonPrimitiveProperties)
             .ToDictionary(p => p, p => CreateAccessor(clrType, p));
 

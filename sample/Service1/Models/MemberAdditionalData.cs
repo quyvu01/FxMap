@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service1.Models;
 
@@ -15,6 +15,6 @@ public class MemberAdditionalDataConfig : EntityConfigureOf<MemberAdditionalData
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<MemberAdditionalOfAttribute>();
+        UseDistributedKey<MemberAdditionalDistributedKey>();
     }
 }

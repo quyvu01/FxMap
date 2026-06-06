@@ -120,7 +120,7 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
         }
         catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
         {
-            _logger?.LogWarning("Request timeout for <{Attribute}>", typeof(TDistributedKey).Name);
+            _logger?.LogWarning("Request timeout for <{DistributedKey}>", typeof(TDistributedKey).Name);
             var response = Result.Failed(new TimeoutException($"Request timeout for {typeof(TDistributedKey).Name}"));
 
             activity?.SetStatus(ActivityStatusCode.Error, "Request timeout");
@@ -129,7 +129,7 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
         }
         catch (Exception e)
         {
-            _logger?.LogError(e, "Error while responding <{Attribute}>", typeof(TDistributedKey).Name);
+            _logger?.LogError(e, "Error while responding <{DistributedKey}>", typeof(TDistributedKey).Name);
             var response = Result.Failed(e);
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);

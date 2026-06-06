@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using FxMap.Tests.TestData.Attributes;
+using FxMap.Tests.TestData.DistributedKeys;
 
 namespace FxMap.Tests.TestData.Models;
 
@@ -17,6 +17,6 @@ public class CityConfig : EntityConfigureOf<City>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<CityOfAttribute>();
+        UseDistributedKey<CityDistributedKey>();
     }
 }

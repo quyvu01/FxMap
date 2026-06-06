@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using FxMap.Tests.TestData.Attributes;
+using FxMap.Tests.TestData.DistributedKeys;
 
 namespace FxMap.Tests.TestData.Models;
 
@@ -17,6 +17,6 @@ public class CountryConfig : EntityConfigureOf<Country>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<CountryOfAttribute>();
+        UseDistributedKey<CountryDistributedKey>();
     }
 }

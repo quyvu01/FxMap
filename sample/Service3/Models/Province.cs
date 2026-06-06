@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service3Api.Models;
 
@@ -17,6 +17,6 @@ public class ProvinceConfig : EntityConfigureOf<Province>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<ProvinceOfAttribute>();
+        UseDistributedKey<ProvinceDistributedKey>();
     }
 }

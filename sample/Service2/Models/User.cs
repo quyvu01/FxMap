@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service2.Models;
 
@@ -18,7 +18,7 @@ public class UserConfig : EntityConfigureOf<User>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<UserOfAttribute>();
+        UseDistributedKey<UserDistributedKey>();
         ExposedName(x => x.Email, "UserEmail");
     }
 }

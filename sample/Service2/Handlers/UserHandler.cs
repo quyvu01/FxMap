@@ -1,12 +1,12 @@
 using FxMap.Abstractions;
 using FxMap.Responses;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service2.Handlers;
 
-public sealed class UserHandler : IClientRequestHandler<UserOfAttribute>
+public sealed class UserHandler : IClientRequestHandler<UserDistributedKey>
 {
-    public Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<UserOfAttribute> requestContext)
+    public Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<UserDistributedKey> requestContext)
     {
         throw new NotImplementedException();
     }

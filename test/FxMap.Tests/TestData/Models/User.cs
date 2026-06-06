@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using FxMap.Tests.TestData.Attributes;
+using FxMap.Tests.TestData.DistributedKeys;
 
 namespace FxMap.Tests.TestData.Models;
 
@@ -19,6 +19,6 @@ public class UserConfig : EntityConfigureOf<User>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<UserOfAttribute>();
+        UseDistributedKey<UserDistributedKey>();
     }
 }

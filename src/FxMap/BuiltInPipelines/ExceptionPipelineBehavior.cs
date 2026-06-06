@@ -30,7 +30,7 @@ internal sealed class ExceptionPipelineBehavior<TDistributedKey>(IServiceProvide
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error in pipeline for {@Attribute}", typeof(TDistributedKey).Name);
+            _logger?.LogError(ex, "Error in pipeline for {@DistributedKey}", typeof(TDistributedKey).Name);
 
             // Only suppress non-critical exceptions
             if (ex is OutOfMemoryException or StackOverflowException or ThreadAbortException) throw;

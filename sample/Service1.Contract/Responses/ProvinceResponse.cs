@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service1.Contract.Responses;
 
@@ -14,7 +14,7 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 {
     protected override void Configure()
     {
-        UseDistributedKey<ProvinceOfAttribute>()
+        UseDistributedKey<ProvinceDistributedKey>()
             .Of(x => x.Id)
             .For(x => x.Country, "Country.{Id, Name}");
     }

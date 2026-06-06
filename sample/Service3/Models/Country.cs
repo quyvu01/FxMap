@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service3Api.Models;
 
@@ -16,6 +16,6 @@ public class CountryConfig : EntityConfigureOf<Country>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<CountryOfAttribute>();
+        UseDistributedKey<CountryDistributedKey>();
     }
 }

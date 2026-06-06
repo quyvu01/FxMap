@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service1.Contract.Responses;
 
@@ -13,7 +13,7 @@ public class SimpleMemberResponseProfile : ProfileOf<SimpleMemberResponse>
 {
     protected override void Configure()
     {
-        UseDistributedKey<UserOfAttribute>()
+        UseDistributedKey<UserDistributedKey>()
             .Of(x => x.UserId)
             .For(x => x.UserEmail, "UserEmail");
     }

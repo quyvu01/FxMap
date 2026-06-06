@@ -46,8 +46,8 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
             var allPropertyDatas = DiscoverResolvableProperties(value).ToArray();
 
-            var attributes = fxMapConfiguration.DistributedKeyTypes;
-            var typeData = GetDistributedKeyInfos(allPropertyDatas, attributes);
+            var distributedKeyTypes = fxMapConfiguration.DistributedKeyTypes;
+            var typeData = GetDistributedKeyInfos(allPropertyDatas, distributedKeyTypes);
 
             // Pre-group once by order — avoids O(N×M) re-scan per order level
             var propertiesByOrder = allPropertyDatas

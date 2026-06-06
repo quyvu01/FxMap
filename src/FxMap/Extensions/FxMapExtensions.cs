@@ -110,19 +110,16 @@ public static class FxMapExtensions
         return new ConfiguratorWrapped(newOfRegister);
     }
 
-    private static IReadOnlyCollection<EntityInfo> GetEntitiesInfos(
+    private static EntityInfo[] GetEntitiesInfos(
         IReadOnlyDictionary<Type, IFluentEntityConfig> entityConfigs)
     {
-        EntityInfo[] models =
-        [
-            ..entityConfigs.Select(cfg =>
-            {
-                var config = cfg.Value;
-                var distributedKeyType = config.GetDistributedKeyType();
-                return new EntityInfo(config.EntityType, distributedKeyType,
-                    new FxMapEntityConfig(config.IdPropertyName, config.DefaultPropertyName));
-            })
-        ];
+        var models = entityConfigs.Select(cfg =>
+        {
+            var config = cfg.Value;
+            var distributedKeyType = config.GetDistributedKeyType();
+            return new EntityInfo(config.EntityType, distributedKeyType,
+                new FxMapEntityConfig(config.IdPropertyName, config.DefaultPropertyName));
+        }).ToArray();
         // Validate if one attribute is assigned to multiple models.
         models.GroupBy(a => a.DistributedKeyType)
             .ForEach(a =>
@@ -134,7 +131,7 @@ public static class FxMapExtensions
         return models;
     }
 
-    private static IReadOnlyDictionary<Type, Type> GetDistributedKeyMapHandlers(
+    private static Dictionary<Type, Type> GetDistributedKeyMapHandlers(
         IReadOnlyDictionary<Type, IFluentEntityConfig> entityConfigs)
     {
         var queryOfHandlerType = typeof(IQueryOfHandler<,>);

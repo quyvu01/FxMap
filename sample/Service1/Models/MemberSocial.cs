@@ -1,6 +1,6 @@
 using MongoDB.Bson.Serialization.Attributes;
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service1.Models;
 
@@ -32,6 +32,6 @@ public class MemberSocialConfig : EntityConfigureOf<MemberSocial>
     {
         Id(x => x.Id);
         DefaultProperty(x => x.Name);
-        UseDistributedKey<MemberSocialOfAttribute>();
+        UseDistributedKey<MemberSocialDistributedKey>();
     }
 }

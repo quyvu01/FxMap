@@ -1,5 +1,5 @@
 using FxMap.Fluent;
-using Shared.Attributes;
+using Shared.DistributedKeys;
 
 namespace Service1.Contract.Responses;
 
@@ -28,35 +28,35 @@ public class MemberResponseProfile : ProfileOf<MemberResponse>
 {
     protected override void Configure()
     {
-        UseDistributedKey<MemberAddressOfAttribute>()
+        UseDistributedKey<MemberAddressDistributedKey>()
             .Of(x => x.MemberAddressId)
             .For(x => x.MemberProvinceId);
 
-        UseDistributedKey<ProvinceOfAttribute>()
+        UseDistributedKey<ProvinceDistributedKey>()
             .Of(x => x.MemberProvinceId)
             .For(x => x.MemberProvinceName);
 
-        UseDistributedKey<MemberAdditionalOfAttribute>()
+        UseDistributedKey<MemberAdditionalDistributedKey>()
             .Of(x => x.MemberAdditionalId)
             .For(x => x.MemberAdditionalName);
 
-        UseDistributedKey<MemberSocialOfAttribute>()
+        UseDistributedKey<MemberSocialDistributedKey>()
             .Of(x => x.MemberSocialId)
             .For(x => x.MemberSocialName);
         
-        UseDistributedKey<UserOfAttribute>()
+        UseDistributedKey<UserDistributedKey>()
             .Of(x => x.UserId)
             .For(x => x.UserName)
             .For(x => x.UserEmail, "UserEmail")
             .For(x => x.ProvinceId, "ProvinceId");
 
-        UseDistributedKey<ProvinceOfAttribute>()
+        UseDistributedKey<ProvinceDistributedKey>()
             .Of(x => x.ProvinceId)
             .For(x => x.ProvinceName)
             .For(x => x.CountryName, "Country.Name")
             .For(x => x.CountryId, "CountryId");
 
-        UseDistributedKey<CountryOfAttribute>()
+        UseDistributedKey<CountryDistributedKey>()
             .Of(x => x.CountryId)
             .For(x => x.Provinces, "Provinces[asc Name]")
             .For(x => x.Province, "Provinces[0 asc Name]");
