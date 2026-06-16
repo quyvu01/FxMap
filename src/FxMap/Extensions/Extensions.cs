@@ -66,5 +66,5 @@ public static class Extensions
     /// <param name="entityConfig">The entity configuration to resolve the key type from.</param>
     /// <returns>The resolved <see cref="Type"/> that implements <see cref="IDistributedKey"/>.</returns>
     public static Type GetDistributedKeyType(this IFluentEntityConfig entityConfig) =>
-        DistributedKeyTypeFactory.Resolve(entityConfig.DistributedKeyType, entityConfig.DistributedKey, entityConfig.DistributedNamespace);
+        DistributedKeyTypeFactory.Resolve(entityConfig.DistributedKeyType, entityConfig.DistributedKey);
 }

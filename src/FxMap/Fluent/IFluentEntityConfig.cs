@@ -34,10 +34,4 @@ public interface IFluentEntityConfig
     /// a strongly-typed distributed key instead.
     /// </summary>
     string DistributedKey { get; }
-
-    /// <summary>
-    /// Gets the namespace used to scope the dynamic key type generated for a string-based
-    /// distributed key. Returns <c>null</c> when a strongly-typed key is used.
-    /// </summary>
-    string DistributedNamespace { get; }
 }

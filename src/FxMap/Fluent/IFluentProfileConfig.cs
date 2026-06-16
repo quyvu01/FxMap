@@ -12,5 +12,4 @@ public interface IFluentProfileConfig
     IReadOnlyDictionary<PropertyInfo, IPropertyAccessor> Accessors { get; }
     IReadOnlyDictionary<PropertyInfo, PropertyContext[]> DependencyGraphs { get; }
     PropertyInformation GetInformation(PropertyInfo propertyInfo);
-    void Build();
 }

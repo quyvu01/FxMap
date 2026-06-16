@@ -14,8 +14,7 @@ namespace FxMap.Helpers;
 /// </summary>
 internal static partial class DistributedKeyTypeFactory
 {
-    private static readonly ConcurrentDictionary<(string DistributedKey, string DistributedNamespace), Type>
-        GeneratedTypes = new();
+    private static readonly ConcurrentDictionary<string, Type> GeneratedTypes = new();
 
     private static readonly Lazy<ModuleBuilder> DynamicModule = new(() =>
     {
@@ -23,7 +22,7 @@ internal static partial class DistributedKeyTypeFactory
         var assemblyBuilder = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
         return assemblyBuilder.DefineDynamicModule("DistributedMappingModule");
     });
-    
+
     /// <summary>
     /// Resolves a <see cref="Type"/> for a distributed key.
     /// If <paramref name="distributedKeyType"/> is provided, returns it directly.
@@ -35,7 +34,7 @@ internal static partial class DistributedKeyTypeFactory
     /// <exception cref="DistributedMapException.InvalidDistributedKeyName">
     /// Thrown when the string key contains invalid characters.
     /// </exception>
-    internal static Type Resolve(Type distributedKeyType, string distributedKey, string distributedNamespace)
+    internal static Type Resolve(Type distributedKeyType, string distributedKey)
     {
         var hasType = distributedKeyType is not null;
         var hasKey = !string.IsNullOrWhiteSpace(distributedKey);
@@ -43,42 +42,25 @@ internal static partial class DistributedKeyTypeFactory
         if (hasType == hasKey)
             throw new DistributedMapException.InvalidDistributedKeyConfiguration(distributedKeyType, distributedKey);
 
-        return hasType ? distributedKeyType : GetOrCreateType(distributedKey, distributedNamespace);
+        return hasType ? distributedKeyType : GetOrCreateType(distributedKey);
     }
 
-    private static Type GetOrCreateType(string key, string distributedNamespace)
+    private static Type GetOrCreateType(string distributedKey)
     {
-        ValidateKeyName(key);
-        return GeneratedTypes.GetOrAdd((key, distributedNamespace), static k =>
+        ValidateKeyName(distributedKey);
+        return GeneratedTypes.GetOrAdd(distributedKey, static k =>
         {
-            var name = $"{k.DistributedNamespace}.{k.DistributedKey}";
             const TypeAttributes attr = TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class;
-            var typeBuilder = DynamicModule.Value.DefineType(name, attr, null, [typeof(IDistributedKey)]);
+            var typeBuilder = DynamicModule.Value.DefineType(k, attr, null, [typeof(IDistributedKey)]);
             return typeBuilder.CreateType()!;
         });
     }
 
     internal static void ValidateKeyName(string key)
     {
-        if (!ValidKeyPattern().IsMatch(key))
+        if (!ValidNamespacePattern().IsMatch(key))
             throw new DistributedMapException.InvalidDistributedKeyName(key);
     }
-
-    /// <summary>
-    /// Validates that <paramref name="namespace"/> is a dot-separated identifier
-    /// (e.g., <c>"MyApp.Keys"</c>), where each segment follows identifier rules.
-    /// </summary>
-    /// <exception cref="DistributedMapException.InvalidDistributedNamespace">
-    /// Thrown when <paramref name="namespace"/> contains invalid characters or structure.
-    /// </exception>
-    internal static void ValidateNamespace(string @namespace)
-    {
-        if (!ValidNamespacePattern().IsMatch(@namespace))
-            throw new DistributedMapException.InvalidDistributedNamespace(@namespace);
-    }
-
-    [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*$")]
-    private static partial Regex ValidKeyPattern();
 
     [GeneratedRegex(@"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)*$")]
     private static partial Regex ValidNamespacePattern();

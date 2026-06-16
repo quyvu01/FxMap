@@ -6,7 +6,6 @@
   </Configurations>
   <Folder Name="/FxMap.Analyzers/">
     <Project Path="src/FxMap.Analyzers/FxMap.Analyzers.csproj" />
-    <Project Path="src/FxMap.UI/FxMap.UI.csproj" />
     <Project Path="test/FxMap.Analyzers.Tests/FxMap.Analyzers.Tests.csproj" />
   </Folder>
   <Folder Name="/FxMap.Core/">

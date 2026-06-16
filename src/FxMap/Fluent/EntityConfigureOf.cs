@@ -21,14 +21,12 @@ public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TMod
     IReadOnlyCollection<ExposedNameStore> IFluentEntityConfig.ExposedNameStores => [.._exposedNameStores];
     Type IFluentEntityConfig.DistributedKeyType => DistributedKeyType;
     string IFluentEntityConfig.DistributedKey => DistributedKey;
-    string IFluentEntityConfig.DistributedNamespace => DistributedNamespace;
     private string IdPropertyName { get; set; }
     private readonly List<ExposedNameStore> _exposedNameStores = [];
     private readonly HashSet<string> _exposedPropertyNames = [];
     private string DefaultPropertyName { get; set; }
     private Type DistributedKeyType { get; set; }
     private string DistributedKey { get; set; }
-    private string DistributedNamespace { get; set; }
 
     /// <summary>
     /// Declares which property on <typeparamref name="TModel"/> acts as the primary identifier.
@@ -70,30 +68,18 @@ public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TMod
     /// The distributed key name. Must start with a letter or underscore and contain only
     /// letters, digits, or underscores (e.g., <c>"UserKey"</c>).
     /// </param>
-    /// <param name="namespace">
-    /// The namespace used to scope the dynamic key type (e.g., <c>"MyApp.Keys"</c>).
-    /// </param>
     /// <exception cref="DistributedMapException.DistributedKeyNullOrEmpty">
     /// Thrown when <paramref name="distributedKey"/> is <c>null</c> or whitespace.
     /// </exception>
     /// <exception cref="DistributedMapException.InvalidDistributedKeyName">
     /// Thrown when <paramref name="distributedKey"/> does not match the valid identifier pattern.
     /// </exception>
-    /// <exception cref="DistributedMapException.DistributedNamespaceNullOrEmpty">
-    /// Thrown when <paramref name="namespace"/> is <c>null</c> or whitespace.
-    /// </exception>
-    /// <exception cref="DistributedMapException.InvalidDistributedNamespace">
-    /// Thrown when <paramref name="namespace"/> is not a valid dot-separated identifier.
-    /// </exception>
-    protected void UseDistributedKey(string distributedKey, string @namespace)
+    protected void UseDistributedKey(string distributedKey)
     {
         if (string.IsNullOrWhiteSpace(distributedKey))
             throw new DistributedMapException.DistributedKeyNullOrEmpty();
         DistributedKeyTypeFactory.ValidateKeyName(distributedKey);
-        if (string.IsNullOrWhiteSpace(@namespace))
-            throw new DistributedMapException.DistributedNamespaceNullOrEmpty();
-        DistributedKeyTypeFactory.ValidateNamespace(@namespace);
-        (DistributedKey, DistributedNamespace) = (distributedKey, @namespace);
+        DistributedKey = distributedKey;
     }
 
     /// <summary>

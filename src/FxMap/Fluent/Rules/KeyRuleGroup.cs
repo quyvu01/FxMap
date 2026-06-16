@@ -21,12 +21,6 @@ public sealed class KeyRuleGroup
     public string DistributedKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the namespace used to scope the dynamically generated key type
-    /// when a string-based <see cref="DistributedKey"/> is used.
-    /// </summary>
-    public string DistributedNamespace { get; set; }
-
-    /// <summary>
     /// Gets or sets the name of the source (selector) property on the DTO whose value
     /// is sent as the distributed key lookup identifier.
     /// </summary>
@@ -38,7 +32,7 @@ public sealed class KeyRuleGroup
     /// </summary>
     /// <returns>The resolved <see cref="Type"/> that implements <see cref="IDistributedKey"/>.</returns>
     public Type GetDistributedKeyType() =>
-        DistributedKeyTypeFactory.Resolve(DistributedKeyType, DistributedKey, DistributedNamespace);
+        DistributedKeyTypeFactory.Resolve(DistributedKeyType, DistributedKey);
 
     /// <summary>
     /// Gets the list of individual property mapping rules (target property + optional expression)

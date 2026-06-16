@@ -93,7 +93,6 @@ public class MapConfigurator(IServiceCollection services)
     private void AddProfileConfig(Type profileType)
     {
         var profile = (IFluentProfileConfig)Activator.CreateInstance(profileType)!;
-        profile.Build();
         if (!_profileConfigs.TryAdd(profile.ModelType, profile))
             throw new DistributedMapException.AmbiguousProfileConfiguration(
                 _profileConfigs[profile.ModelType].GetType(), profileType, profile.ModelType);
@@ -104,7 +103,6 @@ public class MapConfigurator(IServiceCollection services)
         {
             var profile = (IFluentProfileConfig)Activator
                 .CreateInstance(typeof(VirtualProfileOf<>).MakeGenericType(mt))!;
-            profile.Build();
             return profile;
         });
 

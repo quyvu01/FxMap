@@ -44,7 +44,10 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
 
     Type IFluentProfileConfig.ModelType => typeof(TModel);
 
-    void IFluentProfileConfig.Build()
+    // Keep this public ctor, this will be dynamically invoked by Activator.
+    // Derived classes must NOT declare any constructor with parameters — doing so will cause
+    // Activator.CreateInstance to fail at runtime when FxMap scans and instantiates profiles.
+    public ProfileOf()
     {
         Configure();
         // Build DependencyGraph!
@@ -82,9 +85,6 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
     /// The distributed key name. Must start with a letter or underscore and contain only
     /// letters, digits, or underscores (e.g., <c>"UserKey"</c>).
     /// </param>
-    /// <param name="namespace">
-    /// The namespace used to scope the dynamic key type (e.g., <c>"MyApp.Keys"</c>).
-    /// </param>
     /// <returns>A <see cref="DistributedKeyRuleBuilder{TModel}"/> for chaining <c>.Of()</c> and <c>.For()</c> rules.</returns>
     /// <exception cref="DistributedMapException.DistributedKeyNullOrEmpty">
     /// Thrown when <paramref name="key"/> is <c>null</c> or whitespace.
@@ -92,21 +92,12 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
     /// <exception cref="DistributedMapException.InvalidDistributedKeyName">
     /// Thrown when <paramref name="key"/> does not match the valid identifier pattern.
     /// </exception>
-    /// <exception cref="DistributedMapException.DistributedNamespaceNullOrEmpty">
-    /// Thrown when <paramref name="namespace"/> is <c>null</c> or whitespace.
-    /// </exception>
-    /// <exception cref="DistributedMapException.InvalidDistributedNamespace">
-    /// Thrown when <paramref name="namespace"/> is not a valid dot-separated identifier.
-    /// </exception>
-    protected DistributedKeyRuleBuilder<TModel> UseDistributedKey(string key, string @namespace)
+    protected DistributedKeyRuleBuilder<TModel> UseDistributedKey(string key)
     {
         if (string.IsNullOrWhiteSpace(key))
             throw new DistributedMapException.DistributedKeyNullOrEmpty();
         DistributedKeyTypeFactory.ValidateKeyName(key);
-        if (string.IsNullOrWhiteSpace(@namespace))
-            throw new DistributedMapException.DistributedNamespaceNullOrEmpty();
-        DistributedKeyTypeFactory.ValidateNamespace(@namespace);
-        var group = new KeyRuleGroup { DistributedKey = key, DistributedNamespace = @namespace };
+        var group = new KeyRuleGroup { DistributedKey = key };
         _ruleGroups.Add(group);
         return new DistributedKeyRuleBuilder<TModel>(group);
     }
@@ -129,7 +120,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
 
     /// <summary>
     /// Override this method to declare all distributed key mapping rules for <typeparamref name="TModel"/>
-    /// using <see cref="UseDistributedKey(string, string)"/> or <see cref="UseDistributedKey{TDistributedKey}"/>.
+    /// using <see cref="UseDistributedKey(string)"/> or <see cref="UseDistributedKey{TDistributedKey}"/>.
     /// </summary>
     protected abstract void Configure();
 
@@ -150,7 +141,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
     /// to the ordered chain of <see cref="PropertyContext"/> entries it depends on.
     /// </summary>
     /// <param name="properties">All public instance properties of <typeparamref name="TModel"/>.</param>
-    /// <param name="ruleGroups">The rule groups registered via <see cref="UseDistributedKey(string,string)"/> calls.</param>
+    /// <param name="ruleGroups">The rule groups registered via <see cref="UseDistributedKey(string)"/> calls.</param>
     /// <returns>
     /// A dictionary keyed by target property, where the value is the dependency chain
     /// in resolution order (deepest dependency first).
