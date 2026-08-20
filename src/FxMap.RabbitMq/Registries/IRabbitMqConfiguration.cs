@@ -1,6 +1,6 @@
 using RabbitMQ.Client;
 
-namespace FxMap.RabbitMq.Abstractions;
+namespace FxMap.RabbitMq.Registries;
 
 internal interface IRabbitMqConfiguration
 {
@@ -10,4 +10,5 @@ internal interface IRabbitMqConfiguration
     string RabbitMqUserName { get; }
     string RabbitMqPassword { get; }
     SslOption SslOption { get; }
+    int ChannelPoolSize { get; }
 }

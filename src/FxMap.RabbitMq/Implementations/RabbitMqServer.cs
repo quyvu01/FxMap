@@ -11,6 +11,7 @@ using FxMap.Implementations;
 using FxMap.RabbitMq.Abstractions;
 using FxMap.RabbitMq.Constants;
 using FxMap.RabbitMq.Extensions;
+using FxMap.RabbitMq.Registries;
 using FxMap.Responses;
 using FxMap.Telemetry;
 using RabbitMQ.Client;
@@ -25,12 +26,9 @@ internal class RabbitMqServer : IRabbitMqServer
     private readonly IServiceProvider _serviceProvider;
     private readonly IMapperConfiguration _mapperConfiguration;
     private readonly IRabbitMqConfiguration _rabbitMqConfiguration;
-
-    // Backpressure: limit concurrent processing (configurable via FxMapConfigurator.SetMaxConcurrentProcessing)
-    private readonly SemaphoreSlim _semaphore;
-
-    private IConnection _connection;
-    private IChannel _channel;
+    private readonly IRabbitMqConnection _rabbitMqConnection;
+    private readonly ushort _concurrentMessageLimit;
+    private readonly List<IChannel> _consumerChannels = [];
     private const string TransportName = "rabbitmq";
 
     public RabbitMqServer(IServiceProvider serviceProvider)
@@ -39,8 +37,8 @@ internal class RabbitMqServer : IRabbitMqServer
         _logger = serviceProvider.GetService<ILogger<RabbitMqServer>>();
         _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
         _rabbitMqConfiguration = serviceProvider.GetRequiredService<IRabbitMqConfiguration>();
-        _semaphore = new SemaphoreSlim(_mapperConfiguration.MaxConcurrentProcessing,
-            _mapperConfiguration.MaxConcurrentProcessing);
+        _rabbitMqConnection = serviceProvider.GetRequiredService<IRabbitMqConnection>();
+        _concurrentMessageLimit = (ushort)_mapperConfiguration.MaxConcurrentProcessing;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
@@ -48,56 +46,44 @@ internal class RabbitMqServer : IRabbitMqServer
         var queueName = $"{FxMapRabbitMqConstants.QueueNamePrefix}-{AppDomain.CurrentDomain.FriendlyName.ToLower()}";
         const string routingKey = FxMapRabbitMqConstants.RoutingKey;
 
-        var userName = _rabbitMqConfiguration.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
-        var password = _rabbitMqConfiguration.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
-        var connectionFactory = new ConnectionFactory
-        {
-            HostName = _rabbitMqConfiguration.RabbitMqHost,
-            VirtualHost = _rabbitMqConfiguration.RabbitVirtualHost,
-            Port = _rabbitMqConfiguration.RabbitMqPort,
-            Ssl = _rabbitMqConfiguration.SslOption ?? new SslOption(),
-            UserName = userName,
-            Password = password,
-            // Enable automatic recovery
-            AutomaticRecoveryEnabled = true,
-            NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
-        };
-
-        _connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
-        _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
-        await _channel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false,
-            autoDelete: false, arguments: null, cancellationToken: cancellationToken);
-
         var distributedKeyTypes = _mapperConfiguration.DistributedKeyMapHandlers.Keys.ToList();
         if (distributedKeyTypes is not { Count: > 0 }) return;
-        var exchangeNames = distributedKeyTypes.Select(distributedKeyType =>
-            distributedKeyType.GetExchangeName());
 
-        foreach (var exchangeName in exchangeNames)
+        // Topology declare uses its own short-lived channel over the shared connection - it must
+        // not be tied to any of the long-lived consumer channels created below.
+        await using (var declareChannel = await _rabbitMqConnection
+                         .CreateChannelAsync(cancellationToken: cancellationToken))
         {
-            await _channel.ExchangeDeclareAsync(exchangeName, type: ExchangeType.Direct,
-                cancellationToken: cancellationToken);
-            await _channel.QueueBindAsync(queue: queueName, exchangeName, routingKey,
-                cancellationToken: cancellationToken);
+            await declareChannel.QueueDeclareAsync(queue: queueName, durable: false, exclusive: false,
+                autoDelete: false, arguments: null, cancellationToken: cancellationToken);
+
+            var exchangeNames = distributedKeyTypes.Select(distributedKeyType =>
+                distributedKeyType.GetExchangeName());
+
+            foreach (var exchangeName in exchangeNames)
+            {
+                await declareChannel.ExchangeDeclareAsync(exchangeName, type: ExchangeType.Direct,
+                    cancellationToken: cancellationToken);
+                await declareChannel.QueueBindAsync(queue: queueName, exchangeName, routingKey,
+                    cancellationToken: cancellationToken);
+            }
         }
 
-        var consumer = new AsyncEventingBasicConsumer(_channel);
+        var createChannelOptions = new CreateChannelOptions(
+            publisherConfirmationsEnabled: false,
+            publisherConfirmationTrackingEnabled: false,
+            consumerDispatchConcurrency: _concurrentMessageLimit);
 
-        consumer.ReceivedAsync += async (sender, ea) =>
+        for (var i = 0; i < _rabbitMqConfiguration.ChannelPoolSize; i++)
         {
-            // Backpressure - wait for available slot
-            await _semaphore.WaitAsync(cancellationToken);
-            try
-            {
-                await ProcessMessageAsync(sender, ea, cancellationToken);
-            }
-            finally
-            {
-                _semaphore.Release();
-            }
-        };
+            var channel = await _rabbitMqConnection.CreateChannelAsync(createChannelOptions, cancellationToken);
+            _consumerChannels.Add(channel);
 
-        await _channel.BasicConsumeAsync(queueName, false, consumer, cancellationToken: cancellationToken);
+            var consumer = new AsyncEventingBasicConsumer(channel);
+            consumer.ReceivedAsync += (sender, ea) => ProcessMessageAsync(sender, ea, cancellationToken);
+
+            await channel.BasicConsumeAsync(queueName, false, consumer, cancellationToken: cancellationToken);
+        }
     }
 
     private async Task ProcessMessageAsync(object sender, BasicDeliverEventArgs ea, CancellationToken stoppingToken)
@@ -175,7 +161,7 @@ internal class RabbitMqServer : IRabbitMqServer
             activity?.RecordException(e);
             activity?.SetStatus(ActivityStatusCode.Error, e.Message);
 
-            await SendResponseAsync(ch, props.ReplyTo, replyProps, response, stoppingToken);
+            await SendResponseAsync(ch, props.ReplyTo, replyProps, response, cancellationToken);
         }
         finally
         {
@@ -210,8 +196,18 @@ internal class RabbitMqServer : IRabbitMqServer
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
-        if (_channel is not null) await _channel.CloseAsync(cancellationToken);
-        if (_connection is not null) await _connection.CloseAsync(cancellationToken);
-        _semaphore?.Dispose();
+        foreach (var channel in _consumerChannels)
+        {
+            try
+            {
+                await channel.CloseAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Failed to close RabbitMQ consumer channel");
+            }
+        }
+
+        _consumerChannels.Clear();
     }
 }

@@ -18,13 +18,16 @@ namespace FxMap.RabbitMq.Implementations;
 
 internal class RabbitMqRequestClient(
     IMapperConfiguration mapperConfiguration,
-    IRabbitMqConfiguration rabbitMqConfiguration)
+    IRabbitMqConnection rabbitMqConnection,
+    RabbitMqChannelPool publishChannelPool)
     : IRequestClient, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<BasicDeliverEventArgs>> _eventArgsMapper = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
-    private IConnection _connection;
-    private IChannel _channel;
+
+    // Dedicated to consuming replies off the exclusive reply queue - there is only ever one
+    // consumer for it, so pooling this one wouldn't help.
+    private IChannel _replyChannel;
     private AsyncEventingBasicConsumer _consumer;
     private string _replyQueueName;
     private bool _initialized;
@@ -41,8 +44,6 @@ internal class RabbitMqRequestClient(
         {
             // Lazy initialization - thread-safe
             await EnsureInitializedAsync(requestContext.CancellationToken);
-
-            if (_channel is null) throw new InvalidOperationException("RabbitMQ channel is not initialized");
 
             var exchangeName = typeof(TDistributedKey).GetExchangeName();
             var cancellationToken = requestContext.CancellationToken;
@@ -78,8 +79,18 @@ internal class RabbitMqRequestClient(
             {
                 var messageSerialize = JsonSerializer.Serialize(requestContext.Query);
                 var messageBytes = Encoding.UTF8.GetBytes(messageSerialize);
-                await _channel.BasicPublishAsync(exchangeName, routingKey: RoutingKey,
-                    mandatory: true, basicProperties: props, body: messageBytes, cancellationToken: cancellationToken);
+
+                var channel = await publishChannelPool.RentAsync(cancellationToken);
+                try
+                {
+                    await channel.BasicPublishAsync(exchangeName, routingKey: RoutingKey,
+                        mandatory: true, basicProperties: props, body: messageBytes,
+                        cancellationToken: cancellationToken);
+                }
+                finally
+                {
+                    await publishChannelPool.ReturnAsync(channel, cancellationToken);
+                }
 
                 // Wait with timeout
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -138,41 +149,24 @@ internal class RabbitMqRequestClient(
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        var userName = rabbitMqConfiguration.RabbitMqUserName ?? FxMapRabbitMqConstants.DefaultUserName;
-        var password = rabbitMqConfiguration.RabbitMqPassword ?? FxMapRabbitMqConstants.DefaultPassword;
-        var connectionFactory = new ConnectionFactory
-        {
-            HostName = rabbitMqConfiguration.RabbitMqHost,
-            VirtualHost = rabbitMqConfiguration.RabbitVirtualHost,
-            Port = rabbitMqConfiguration.RabbitMqPort,
-            Ssl = rabbitMqConfiguration.SslOption ?? new SslOption(),
-            UserName = userName,
-            Password = password,
-            // Enable automatic recovery
-            AutomaticRecoveryEnabled = true,
-            NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
-        };
-
-        _connection = await connectionFactory.CreateConnectionAsync(cancellationToken);
-        _channel = await _connection.CreateChannelAsync(cancellationToken: cancellationToken);
-        var queueDeclareResult = await _channel.QueueDeclareAsync(cancellationToken: cancellationToken);
+        _replyChannel = await rabbitMqConnection.CreateChannelAsync(cancellationToken: cancellationToken);
+        var queueDeclareResult = await _replyChannel.QueueDeclareAsync(cancellationToken: cancellationToken);
         _replyQueueName = queueDeclareResult.QueueName;
-        _consumer = new AsyncEventingBasicConsumer(_channel);
-        _consumer.ReceivedAsync += (_, ea) =>
+        _consumer = new AsyncEventingBasicConsumer(_replyChannel);
+        _consumer.ReceivedAsync += async (sender, ea) =>
         {
             var correlationId = ea.BasicProperties.CorrelationId;
-            if (string.IsNullOrEmpty(correlationId) || !_eventArgsMapper.TryRemove(correlationId, out var tcs))
-                return Task.CompletedTask;
+            if (string.IsNullOrEmpty(correlationId) || !_eventArgsMapper.TryRemove(correlationId, out var tcs)) return;
             tcs.TrySetResult(ea);
-            return Task.CompletedTask;
+            var ackChannel = ((AsyncEventingBasicConsumer)sender).Channel;
+            await ackChannel.BasicAckAsync(ea.DeliveryTag, false, ea.CancellationToken);
         };
-        await _channel.BasicConsumeAsync(_replyQueueName, true, _consumer, cancellationToken);
+        await _replyChannel.BasicConsumeAsync(_replyQueueName, false, _consumer, cancellationToken);
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_channel is not null) await _channel.CloseAsync();
-        if (_connection is not null) await _connection.CloseAsync();
+        if (_replyChannel is not null) await _replyChannel.CloseAsync();
         _initLock.Dispose();
     }
 }

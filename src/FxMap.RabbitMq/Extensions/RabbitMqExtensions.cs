@@ -22,7 +22,10 @@ public static class RabbitMqExtensions
             config.PortValue,
             config.Credential.UserNameValue,
             config.Credential.PasswordValue,
-            config.Credential.SslOptionValue));
+            config.Credential.SslOptionValue,
+            config.ChannelPoolSizeValue));
+        services.AddSingleton<IRabbitMqConnection, RabbitMqConnection>();
+        services.AddSingleton<RabbitMqChannelPool>();
         services.AddSingleton<IRabbitMqServer, RabbitMqServer>();
         services.AddSingleton<IRequestClient, RabbitMqRequestClient>();
 
