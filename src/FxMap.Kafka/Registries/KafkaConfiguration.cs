@@ -1,8 +1,6 @@
 using Confluent.Kafka;
-using FxMap.Kafka.Abstractions;
-using FxMap.Kafka.Registries;
 
-namespace FxMap.Kafka.Implementations;
+namespace FxMap.Kafka.Registries;
 
 internal sealed class KafkaConfiguration(string kafkaHost, KafkaSslOptions kafkaSslOptions) : IKafkaConfiguration
 {

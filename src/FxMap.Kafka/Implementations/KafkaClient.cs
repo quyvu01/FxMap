@@ -10,6 +10,7 @@ using FxMap.Models;
 using FxMap.Exceptions;
 using FxMap.Kafka.Abstractions;
 using FxMap.Kafka.Constants;
+using FxMap.Kafka.Registries;
 using FxMap.Kafka.Wrappers;
 using FxMap.Responses;
 using FxMap.Telemetry;
@@ -18,7 +19,7 @@ namespace FxMap.Kafka.Implementations;
 
 internal class KafkaClient : IRequestClient, IAsyncDisposable
 {
-    private readonly IProducer<string, string> _producer;
+    private readonly IKafkaConnection _kafkaConnection;
     private readonly IConsumer<string, string> _consumer;
     private readonly ILogger<KafkaClient> _logger;
     private readonly IMapperConfiguration _mapperConfiguration;
@@ -36,35 +37,16 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
     private readonly string _kafkaBootstrapServers;
 
     public KafkaClient(ILogger<KafkaClient> logger, IMapperConfiguration mapperConfiguration,
-        IKafkaConfiguration kafkaConfiguration)
+        IKafkaConfiguration kafkaConfiguration, IKafkaConnection kafkaConnection)
     {
         _logger = logger;
         _mapperConfiguration = mapperConfiguration;
         _kafkaConfiguration = kafkaConfiguration;
+        _kafkaConnection = kafkaConnection;
         _kafkaBootstrapServers = kafkaConfiguration.KafkaHost;
-        var producerConfig = new ProducerConfig { BootstrapServers = _kafkaBootstrapServers };
-        var consumerConfig = new ConsumerConfig
-        {
-            GroupId = $"{KafkaConstants.ClientGroupId}-{Guid.NewGuid():N}",
-            BootstrapServers = _kafkaBootstrapServers,
-            AutoOffsetReset = AutoOffsetReset.Latest,
-            EnableAutoCommit = true
-        };
 
-        if (kafkaConfiguration.KafkaSslOptions != null)
-        {
-            kafkaConfiguration.ApplySsl(producerConfig);
-            kafkaConfiguration.ApplySsl(consumerConfig);
-        }
-
-        _producer = new ProducerBuilder<string, string>(producerConfig)
-            .SetKeySerializer(Serializers.Utf8)
-            .SetValueSerializer(Serializers.Utf8)
-            .Build();
-        _consumer = new ConsumerBuilder<string, string>(consumerConfig)
-            .SetKeyDeserializer(Deserializers.Utf8)
-            .SetValueDeserializer(Deserializers.Utf8)
-            .Build();
+        _consumer = kafkaConnection.CreateConsumer($"{KafkaConstants.ClientGroupId}-{Guid.NewGuid():N}",
+            AutoOffsetReset.Latest, enableAutoCommit: true);
         _replyTo =
             $"{KafkaConstants.ResponseTopicPrefix}-{AppDomain.CurrentDomain.FriendlyName.ToLower()}-{Guid.NewGuid():N}";
     }
@@ -110,7 +92,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             try
             {
                 // Produce the request
-                await _producer.ProduceAsync(topic, new Message<string, string>
+                await _kafkaConnection.Producer.ProduceAsync(topic, new Message<string, string>
                 {
                     Key = correlationId,
                     Value = JsonSerializer.Serialize(message),
@@ -258,7 +240,6 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             }
         }
 
-        await CastAndDispose(_producer);
         await CastAndDispose(_consumer);
         await CastAndDispose(_consumerCts);
         await CastAndDispose(_initLock);

@@ -1,3 +1,5 @@
+using FxMap.Abstractions;
+
 namespace FxMap.Fluent;
 
 /// <summary>

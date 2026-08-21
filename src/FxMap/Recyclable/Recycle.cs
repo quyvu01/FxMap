@@ -1,4 +1,4 @@
-namespace FxLink.Wrappers;
+namespace FxMap.Recyclable;
 
 /// <summary>
 /// Lazily creates a <typeparamref name="T"/> and transparently replaces it with a fresh one once it

@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// A marker node representing the elements of a group in a GroupBy projection context.

@@ -1,9 +1,8 @@
 using FxMap.Accessors.TypeAccessors;
+using FxMap.Analyzers;
 using FxMap.Delegates;
 using Microsoft.EntityFrameworkCore;
 using FxMap.Expressions.Building;
-using FxMap.Expressions.Nodes;
-using FxMap.Expressions.Parsing;
 using FxMap.Registries;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

@@ -1,4 +1,4 @@
-namespace FxMap.Nats.Abstractions;
+namespace FxMap.Nats.Registries;
 
 internal interface INatsConfiguration
 {

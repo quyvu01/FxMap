@@ -5,13 +5,14 @@ using FxMap.Nats.Abstractions;
 using FxMap.Nats.Configuration;
 using FxMap.Nats.BackgroundServices;
 using FxMap.Nats.Implementations;
+using FxMap.Nats.Registries;
 using FxMap.Nats.Wrappers;
 using FxMap.Registries;
 using FxMap.Supervision;
 
 namespace FxMap.Nats.Extensions;
 
-public static class NatsExtensions
+public static class DependencyExtensions
 {
     public static void AddNats(this MapConfigurator mapRegister, Action<NatsClientSetting> options)
     {
@@ -28,6 +29,6 @@ public static class NatsExtensions
 
         // Use NatsSupervisorWorker with supervisor pattern
         services.AddHostedService<NatsSupervisorWorker>();
-        services.AddTransient<IRequestClient, NatsRequestClient>();
+        services.AddSingleton<IRequestClient, NatsRequestClient>();
     }
 }

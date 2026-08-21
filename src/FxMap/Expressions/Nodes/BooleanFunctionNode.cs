@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents a boolean function applied to a collection: Orders:any, Orders:any(Status = 'Done'), Documents:all(IsApproved = true)

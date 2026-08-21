@@ -1,4 +1,4 @@
-namespace FxLink.Wrappers;
+namespace FxMap.Recyclable;
 
 /// <summary>
 /// A resource with a lifetime that can end on its own (broker-closed channel, dropped connection, ...).

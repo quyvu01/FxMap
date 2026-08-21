@@ -1,4 +1,6 @@
 using System.Reflection;
+using Amazon;
+using FxMap.Aws.Sqs.Extensions;
 using Microsoft.EntityFrameworkCore;
 using MongoDB.Driver;
 using FxMap.EntityFrameworkCore.Extensions;
@@ -6,6 +8,8 @@ using FxMap.Extensions;
 using FxMap.Grpc.Extensions;
 using FxMap.HotChocolate.Extensions;
 using FxMap.MongoDb.Extensions;
+using FxMap.Nats.Extensions;
+using FxMap.RabbitMq.Extensions;
 using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -60,8 +64,14 @@ builder.Services.AddFxMap(cfg =>
         cfg.AddEntitiesFromAssemblyContaining<IAssemblyMarker>();
         cfg.AddProfilesFromAssemblyContaining<IService1ContractAssembly>();
 
-        cfg.AddGrpcClients(c => c
-            .AddGrpcHosts("http://localhost:8012", "http://localhost:8013"));
+        // cfg.AddRabbitMq(config => config.Host("localhost", "fx-map"));
+        // cfg.AddSqs(sqs => sqs.Region(RegionEndpoint.USEast1, credential =>                                                                                                                                                      
+        // {                                                                                                                                                                                                                       
+        //     credential.ServiceUrl("http://localhost:4566");                                                                                                                                                                     
+        //     credential.AccessKeyId("test");                                                                                                                                                                                     
+        //     credential.SecretAccessKey("test");                                                                                                                                                                                 
+        // }));  
+        cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -69,13 +79,9 @@ builder.Services.AddFxMap(cfg =>
             opts.EnableCircuitBreaker = true;
             opts.CircuitBreakerThreshold = 3;
         });
-        // cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
         cfg.ThrowIfException();
     })
-    .AddEntityFrameworkCore(cfg =>
-    {
-        cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context));
-    })
+    .AddEntityFrameworkCore(cfg => { cfg.AddDbContexts(typeof(Service1Context), typeof(OtherService1Context)); })
     .AddMongoDb(cfg => cfg.AddCollection(memberSocialCollection))
     .AddHotChocolate(cfg => cfg.AddRequestExecutorBuilder(registerBuilder));
 

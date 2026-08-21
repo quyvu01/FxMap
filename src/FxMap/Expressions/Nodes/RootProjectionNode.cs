@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents a single property in a root projection, which can include navigation paths, aliases, or computed expressions.

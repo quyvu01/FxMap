@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Tokens;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents the type of token in the FxMap expression language.

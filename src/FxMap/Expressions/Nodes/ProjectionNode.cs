@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents a projection selecting specific properties from a collection source: Orders.{Id, Name, Description}

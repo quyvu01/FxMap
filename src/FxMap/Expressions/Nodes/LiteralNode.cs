@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents a literal value: 'string', 123, true, null

@@ -1,6 +1,4 @@
-using FxMap.Azure.ServiceBus.Abstractions;
-
-namespace FxMap.Azure.ServiceBus.Implementations;
+namespace FxMap.Azure.ServiceBus.Registries;
 
 internal sealed class AzureServiceBusConfiguration(string topicPrefix, int maxConcurrentSessions)
     : IAzureServiceBusConfiguration

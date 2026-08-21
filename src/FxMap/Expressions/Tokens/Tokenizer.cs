@@ -1,6 +1,6 @@
 using System.Text;
 
-namespace FxMap.Expressions.Tokens;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Tokenizes FxMap expression strings into a sequence of tokens.

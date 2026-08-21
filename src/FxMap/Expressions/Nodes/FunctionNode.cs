@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents a function applied to a property: Name:count, Orders:sum(Total), Name:upper, Name:substring(0, 3)

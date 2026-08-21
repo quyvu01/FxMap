@@ -9,7 +9,7 @@ using FxMap.Supervision;
 
 namespace FxMap.Kafka.Extensions;
 
-public static class KafkaExtensions
+public static class DependencyExtensions
 {
     public static void AddKafka(this MapConfigurator mapRegister, Action<KafkaConfigurator> options)
     {
@@ -17,6 +17,7 @@ public static class KafkaExtensions
         options.Invoke(config);
         var services = mapRegister.Services;
         services.AddSingleton<IKafkaConfiguration>(new KafkaConfiguration(config.KafkaHostValue, config.KafkaSslOptionsValue));
+        services.AddSingleton<IKafkaConnection, KafkaConnection>();
         services.AddSingleton(typeof(IKafkaServer<,>), typeof(KafkaServer<,>));
         services.AddSingleton<IRequestClient, KafkaClient>();
 

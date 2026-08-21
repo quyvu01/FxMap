@@ -6,13 +6,14 @@ using FxMap.Azure.ServiceBus.Abstractions;
 using FxMap.Azure.ServiceBus.Configuration;
 using FxMap.Azure.ServiceBus.BackgroundServices;
 using FxMap.Azure.ServiceBus.Implementations;
+using FxMap.Azure.ServiceBus.Registries;
 using FxMap.Azure.ServiceBus.Wrappers;
 using FxMap.Registries;
 using FxMap.Supervision;
 
 namespace FxMap.Azure.ServiceBus.Extensions;
 
-public static class AzureServiceBusExtensions
+public static class DependencyExtensions
 {
     public static void AddAzureServiceBus(this MapConfigurator mapRegister, Action<AzureServiceBusClientSetting> options)
     {

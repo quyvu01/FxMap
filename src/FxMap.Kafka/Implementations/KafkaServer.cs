@@ -10,6 +10,7 @@ using FxMap.Models;
 using FxMap.Implementations;
 using FxMap.Kafka.Abstractions;
 using FxMap.Kafka.Constants;
+using FxMap.Kafka.Registries;
 using FxMap.Kafka.Wrappers;
 using FxMap.Responses;
 using FxMap.Telemetry;
@@ -22,7 +23,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly IConsumer<string, string> _consumer;
-    private readonly IProducer<string, string> _producer;
+    private readonly IKafkaConnection _kafkaConnection;
     private readonly string _requestTopic;
     private readonly ILogger<KafkaServer<TModel, TDistributedKey>> _logger;
     private readonly IMapperConfiguration _mapperConfiguration;
@@ -39,35 +40,14 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         _serviceProvider = serviceProvider;
         _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
         var kafkaConfiguration = serviceProvider.GetRequiredService<IKafkaConfiguration>();
+        _kafkaConnection = serviceProvider.GetRequiredService<IKafkaConnection>();
         _semaphore = new SemaphoreSlim(_mapperConfiguration.MaxConcurrentProcessing,
             _mapperConfiguration.MaxConcurrentProcessing);
 
         _kafkaBootstrapServers = kafkaConfiguration.KafkaHost;
-        var consumerConfig = new ConsumerConfig
-        {
-            GroupId = KafkaConstants.ServerGroupId,
-            BootstrapServers = _kafkaBootstrapServers,
-            AutoOffsetReset = AutoOffsetReset.Earliest,
-            EnableAutoCommit = false
-        };
 
-        var producerConfig = new ProducerConfig { BootstrapServers = _kafkaBootstrapServers };
-
-        if (kafkaConfiguration.KafkaSslOptions != null)
-        {
-            kafkaConfiguration.ApplySsl(producerConfig);
-            kafkaConfiguration.ApplySsl(consumerConfig);
-        }
-
-        _consumer = new ConsumerBuilder<string, string>(consumerConfig)
-            .SetKeyDeserializer(Deserializers.Utf8)
-            .SetValueDeserializer(Deserializers.Utf8)
-            .Build();
-
-        _producer = new ProducerBuilder<string, string>(producerConfig)
-            .SetKeySerializer(Serializers.Utf8)
-            .SetValueSerializer(Serializers.Utf8)
-            .Build();
+        _consumer = _kafkaConnection.CreateConsumer(KafkaConstants.ServerGroupId, AutoOffsetReset.Earliest,
+            enableAutoCommit: false);
         _requestTopic = kafkaConfiguration.GetRequestTopic(typeof(TDistributedKey));
         _logger = serviceProvider.GetService<ILogger<KafkaServer<TModel, TDistributedKey>>>();
     }
@@ -216,7 +196,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
     private async Task SendResponseAsync(ConsumeResult<string, string> consumeResult, string replyTo,
         Result response, CancellationToken cancellationToken)
     {
-        await _producer.ProduceAsync(replyTo, new Message<string, string>
+        await _kafkaConnection.Producer.ProduceAsync(replyTo, new Message<string, string>
         {
             Key = consumeResult.Message.Key,
             Value = JsonSerializer.Serialize(response)
@@ -257,7 +237,6 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
     public void Dispose()
     {
         _consumer?.Dispose();
-        _producer?.Dispose();
         _semaphore.Dispose();
     }
 

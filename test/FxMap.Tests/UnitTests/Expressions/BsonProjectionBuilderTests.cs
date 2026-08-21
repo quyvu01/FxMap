@@ -1,5 +1,5 @@
+using FxMap.Analyzers;
 using MongoDB.Bson;
-using FxMap.Expressions.Parsing;
 using FxMap.MongoDb.Extensions;
 using Shouldly;
 using Xunit;

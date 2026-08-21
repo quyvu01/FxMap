@@ -21,7 +21,7 @@ namespace FxMap.Grpc.Extensions;
 /// <summary>
 /// Provides extension methods for integrating gRPC transport with the FxMap framework.
 /// </summary>
-public static class GrpcExtensions
+public static class DependencyExtensions
 {
     private static readonly TimeSpan DefaultRequestTimeout = TimeSpan.FromSeconds(3);
 

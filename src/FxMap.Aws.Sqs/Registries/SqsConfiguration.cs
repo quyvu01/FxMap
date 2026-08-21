@@ -1,7 +1,7 @@
 using Amazon;
 using FxMap.Aws.Sqs.Abstractions;
 
-namespace FxMap.Aws.Sqs.Implementations;
+namespace FxMap.Aws.Sqs.Registries;
 
 internal sealed class SqsConfiguration(
     string awsAccessKeyId,

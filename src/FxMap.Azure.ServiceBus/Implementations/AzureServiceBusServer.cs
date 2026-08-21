@@ -8,6 +8,7 @@ using Microsoft.Extensions.Logging;
 using FxMap.Abstractions;
 using FxMap.Models;
 using FxMap.Azure.ServiceBus.Abstractions;
+using FxMap.Azure.ServiceBus.Registries;
 using FxMap.Azure.ServiceBus.Wrappers;
 using FxMap.Implementations;
 using FxMap.Responses;

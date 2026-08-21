@@ -1,5 +1,4 @@
-using FxMap.Expressions.Nodes;
-using FxMap.Expressions.Parsing;
+using FxMap.Analyzers;
 using Shouldly;
 using Xunit;
 

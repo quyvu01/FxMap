@@ -1,6 +1,4 @@
-using FxMap.Nats.Abstractions;
-
-namespace FxMap.Nats.Implementations;
+namespace FxMap.Nats.Registries;
 
 internal sealed class NatsConfiguration(string topicPrefix) : INatsConfiguration
 {

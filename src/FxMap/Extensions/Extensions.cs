@@ -1,4 +1,5 @@
 using System.Reflection;
+using FxMap.Abstractions;
 using FxMap.Fluent;
 using FxMap.Helpers;
 using FxMap.PropertyMappingContexts;

@@ -1,14 +1,13 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
-using Amazon;
-using Amazon.Runtime;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
 using FxMap.Aws.Sqs.Abstractions;
 using FxMap.Aws.Sqs.Constants;
+using FxMap.Aws.Sqs.Registries;
 using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Responses;
@@ -16,12 +15,15 @@ using FxMap.Telemetry;
 
 namespace FxMap.Aws.Sqs.Implementations;
 
-internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsConfiguration sqsConfiguration)
+internal class SqsRequestClient(
+    IMapperConfiguration mapperConfiguration,
+    ISqsConfiguration sqsConfiguration,
+    ISqsConnection sqsConnection)
     : IRequestClient, IAsyncDisposable
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource<Message>> _eventArgsMapper = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
-    private AmazonSQSClient _sqsClient;
+    private AmazonSQSClient SqsClient => sqsConnection.Client;
     private string _responseQueueUrl;
     private bool _initialized;
     private CancellationTokenSource _receiverCts;
@@ -37,8 +39,6 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
         {
             // Lazy initialization - thread-safe
             await EnsureInitializedAsync(requestContext.CancellationToken);
-
-            if (_sqsClient is null) throw new InvalidOperationException("SQS client is not initialized");
 
             var queueName = sqsConfiguration.GetQueueName(typeof(TDistributedKey));
             var cancellationToken = requestContext.CancellationToken;
@@ -93,7 +93,7 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
                 var requestQueueUrl = await GetOrCreateQueueUrlAsync(queueName, cancellationToken);
 
                 // Send message
-                await _sqsClient.SendMessageAsync(new SendMessageRequest
+                await SqsClient.SendMessageAsync(new SendMessageRequest
                 {
                     QueueUrl = requestQueueUrl,
                     MessageBody = messageSerialize,
@@ -118,7 +118,7 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
 
                 // Record success metrics
                 var itemCount = response.Data?.Items?.Length ?? 0;
-                
+
                 activity?.SetFxMapTags(itemCount: itemCount);
                 activity?.SetStatus(ActivityStatusCode.Ok);
 
@@ -157,33 +157,9 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
 
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
-        // Configure AWS credentials
-        AWSCredentials credentials = null;
-        if (!string.IsNullOrEmpty(sqsConfiguration.AwsAccessKeyId) &&
-            !string.IsNullOrEmpty(sqsConfiguration.AwsSecretAccessKey))
-        {
-            credentials = new BasicAWSCredentials(sqsConfiguration.AwsAccessKeyId, sqsConfiguration.AwsSecretAccessKey);
-        }
-
-        // Create SQS client
-        var config = new AmazonSQSConfig
-        {
-            RegionEndpoint = sqsConfiguration.AwsRegion ?? RegionEndpoint.USEast1
-        };
-
-        // Support LocalStack for testing
-        if (!string.IsNullOrEmpty(sqsConfiguration.ServiceUrl))
-        {
-            config.ServiceURL = sqsConfiguration.ServiceUrl;
-        }
-
-        _sqsClient = credentials != null
-            ? new AmazonSQSClient(credentials, config)
-            : new AmazonSQSClient(config);
-
         // Create persistent response queue
         var responseQueueName = $"fxmap-response-{Environment.MachineName}-{Guid.NewGuid()}".ToLower();
-        var createQueueResponse = await _sqsClient.CreateQueueAsync(new CreateQueueRequest
+        var createQueueResponse = await SqsClient.CreateQueueAsync(new CreateQueueRequest
         {
             QueueName = responseQueueName,
             Attributes = new Dictionary<string, string>
@@ -214,7 +190,7 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
             try
             {
                 // Long polling (wait up to 20 seconds for messages)
-                var response = await _sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
+                var response = await SqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
                 {
                     QueueUrl = _responseQueueUrl,
                     MaxNumberOfMessages = SqsConstants.MaxNumberOfMessages,
@@ -252,7 +228,7 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
                 var receiptHandles = processingResults.ToList();
 
                 if (receiptHandles.Count > 0)
-                    await _sqsClient.DeleteMessageBatchAsync(new DeleteMessageBatchRequest
+                    await SqsClient.DeleteMessageBatchAsync(new DeleteMessageBatchRequest
                     {
                         QueueUrl = _responseQueueUrl,
                         Entries = receiptHandles.Select((handle, index) => new DeleteMessageBatchRequestEntry
@@ -278,7 +254,7 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
 
         try
         {
-            var response = await _sqsClient.GetQueueUrlAsync(queueName, cancellationToken);
+            var response = await SqsClient.GetQueueUrlAsync(queueName, cancellationToken);
             _queueUrlCache.TryAdd(queueName, response.QueueUrl);
             return response.QueueUrl;
         }
@@ -292,14 +268,14 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
 
     public async ValueTask DisposeAsync()
     {
-        _receiverCts?.Cancel();
+        if (_receiverCts is not null) await _receiverCts.CancelAsync();
 
         try
         {
             // Delete response queue on cleanup
-            if (_sqsClient != null && !string.IsNullOrEmpty(_responseQueueUrl))
+            if (!string.IsNullOrEmpty(_responseQueueUrl))
             {
-                await _sqsClient.DeleteQueueAsync(_responseQueueUrl);
+                await SqsClient.DeleteQueueAsync(_responseQueueUrl);
             }
         }
         catch
@@ -307,7 +283,6 @@ internal class SqsRequestClient(IMapperConfiguration mapperConfiguration, ISqsCo
             // Ignore errors during cleanup
         }
 
-        _sqsClient?.Dispose();
         _initLock.Dispose();
         _receiverCts?.Dispose();
     }

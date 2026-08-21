@@ -1,8 +1,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Text.Json;
-using Amazon;
-using Amazon.Runtime;
 using Amazon.SQS;
 using Amazon.SQS.Model;
 using FxMap.Abstractions;
@@ -11,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using FxMap.Models;
 using FxMap.Aws.Sqs.Abstractions;
 using FxMap.Aws.Sqs.Constants;
+using FxMap.Aws.Sqs.Registries;
 using FxMap.Extensions;
 using FxMap.Implementations;
 using FxMap.Responses;
@@ -26,7 +25,8 @@ internal class SqsServer : ISqsServer
     // Backpressure: limit concurrent processing
     private readonly SemaphoreSlim _semaphore;
 
-    private AmazonSQSClient _sqsClient;
+    private readonly ISqsConnection _sqsConnection;
+    private AmazonSQSClient SqsClient => _sqsConnection.Client;
     private readonly List<string> _requestQueueUrls = [];
     private readonly CancellationTokenSource _processingCts = new();
     private readonly IServiceProvider _serviceProvider;
@@ -39,6 +39,7 @@ internal class SqsServer : ISqsServer
         _logger = serviceProvider.GetService<ILogger<SqsServer>>();
         _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
         _sqsConfiguration = serviceProvider.GetRequiredService<ISqsConfiguration>();
+        _sqsConnection = serviceProvider.GetRequiredService<ISqsConnection>();
         _semaphore = new SemaphoreSlim(_mapperConfiguration.MaxConcurrentProcessing,
             _mapperConfiguration.MaxConcurrentProcessing);
     }
@@ -47,27 +48,6 @@ internal class SqsServer : ISqsServer
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
-        // Configure AWS credentials
-        AWSCredentials credentials = null;
-        if (!string.IsNullOrEmpty(_sqsConfiguration.AwsAccessKeyId) &&
-            !string.IsNullOrEmpty(_sqsConfiguration.AwsSecretAccessKey))
-        {
-            credentials =
-                new BasicAWSCredentials(_sqsConfiguration.AwsAccessKeyId, _sqsConfiguration.AwsSecretAccessKey);
-        }
-
-        // Create SQS client
-        var config = new AmazonSQSConfig
-        {
-            RegionEndpoint = _sqsConfiguration.AwsRegion ?? RegionEndpoint.USEast1
-        };
-
-        // Support LocalStack for testing
-        if (!string.IsNullOrEmpty(_sqsConfiguration.ServiceUrl)) config.ServiceURL = _sqsConfiguration.ServiceUrl;
-
-        _sqsClient = credentials != null
-            ? new AmazonSQSClient(credentials, config)
-            : new AmazonSQSClient(config);
         var fxMapConfiguration = _serviceProvider.GetRequiredService<IMapperConfiguration>();
         var distributedKeyTypes = fxMapConfiguration.DistributedKeyMapHandlers.Keys.ToList();
         if (distributedKeyTypes is not { Count: > 0 }) return;
@@ -79,13 +59,13 @@ internal class SqsServer : ISqsServer
             try
             {
                 // Try to get existing queue
-                var getQueueUrlResponse = await _sqsClient.GetQueueUrlAsync(queueName, cancellationToken);
+                var getQueueUrlResponse = await SqsClient.GetQueueUrlAsync(queueName, cancellationToken);
                 _requestQueueUrls.Add(getQueueUrlResponse.QueueUrl);
             }
             catch (QueueDoesNotExistException)
             {
                 // Create new queue
-                var createQueueResponse = await _sqsClient.CreateQueueAsync(new CreateQueueRequest
+                var createQueueResponse = await SqsClient.CreateQueueAsync(new CreateQueueRequest
                 {
                     QueueName = queueName,
                     Attributes = new Dictionary<string, string>
@@ -116,7 +96,7 @@ internal class SqsServer : ISqsServer
             try
             {
                 // Long polling receive
-                var response = await _sqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
+                var response = await SqsClient.ReceiveMessageAsync(new ReceiveMessageRequest
                 {
                     QueueUrl = queueUrl,
                     MaxNumberOfMessages = SqsConstants.MaxNumberOfMessages,
@@ -149,19 +129,19 @@ internal class SqsServer : ISqsServer
 
                 var results = await Task.WhenAll(processingTasks);
 
-                // Batch delete all processed messages
-                var receiptHandles = results.ToList();
-
-                if (receiptHandles.Count > 0)
-                    await _sqsClient.DeleteMessageBatchAsync(new DeleteMessageBatchRequest
-                    {
-                        QueueUrl = queueUrl,
-                        Entries = receiptHandles.Select((handle, index) => new DeleteMessageBatchRequestEntry
+                if (results is not { Length: > 0 }) continue;
+                await SqsClient.DeleteMessageBatchAsync(new DeleteMessageBatchRequest
+                {
+                    QueueUrl = queueUrl,
+                    Entries =
+                    [
+                        .. results.Select((handle, index) => new DeleteMessageBatchRequestEntry
                         {
                             Id = index.ToString(),
                             ReceiptHandle = handle
-                        }).ToList()
-                    }, ct);
+                        })
+                    ]
+                }, ct);
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
@@ -229,7 +209,7 @@ internal class SqsServer : ISqsServer
             // Send response back to reply queue
             if (!string.IsNullOrEmpty(replyToQueueUrl))
             {
-                await _sqsClient.SendMessageAsync(new SendMessageRequest
+                await SqsClient.SendMessageAsync(new SendMessageRequest
                 {
                     QueueUrl = replyToQueueUrl,
                     MessageBody = JsonSerializer.Serialize(response),
@@ -283,7 +263,7 @@ internal class SqsServer : ISqsServer
 
         try
         {
-            await _sqsClient.SendMessageAsync(new SendMessageRequest
+            await SqsClient.SendMessageAsync(new SendMessageRequest
             {
                 QueueUrl = replyToQueueUrl,
                 MessageBody = JsonSerializer.Serialize(response),
@@ -305,7 +285,6 @@ internal class SqsServer : ISqsServer
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
         if (_processingCts is not null) await _processingCts.CancelAsync();
-        _sqsClient?.Dispose();
         _semaphore?.Dispose();
         _processingCts?.Dispose();
     }

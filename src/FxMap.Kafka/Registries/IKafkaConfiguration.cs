@@ -1,7 +1,6 @@
 using Confluent.Kafka;
-using FxMap.Kafka.Registries;
 
-namespace FxMap.Kafka.Abstractions;
+namespace FxMap.Kafka.Registries;
 
 internal interface IKafkaConfiguration
 {

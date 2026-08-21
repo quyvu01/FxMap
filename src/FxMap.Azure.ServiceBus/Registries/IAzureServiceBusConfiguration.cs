@@ -1,4 +1,4 @@
-namespace FxMap.Azure.ServiceBus.Abstractions;
+namespace FxMap.Azure.ServiceBus.Registries;
 
 internal interface IAzureServiceBusConfiguration
 {

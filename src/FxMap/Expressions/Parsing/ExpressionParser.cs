@@ -1,8 +1,6 @@
 using System.Globalization;
-using FxMap.Expressions.Nodes;
-using FxMap.Expressions.Tokens;
 
-namespace FxMap.Expressions.Parsing;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Parses FxMap expression strings into an Abstract Syntax Tree (AST).

@@ -6,7 +6,6 @@ using FxMap.Extensions;
 using FxMap.Tests.Infrastructure;
 using FxMap.Tests.TestData.Builders;
 using FxMap.Tests.TestData.Dtos;
-using FxMap.Tests.TestData.Models;
 using Shouldly;
 using Xunit;
 

@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents an indexer operation on a collection: [asc Name], [0 asc Name], [0 10 desc CreatedAt]

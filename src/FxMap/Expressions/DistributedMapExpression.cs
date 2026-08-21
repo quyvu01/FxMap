@@ -1,8 +1,7 @@
 using System.Linq.Expressions;
+using FxMap.Analyzers;
 using FxMap.Delegates;
 using FxMap.Expressions.Building;
-using FxMap.Expressions.Nodes;
-using FxMap.Expressions.Parsing;
 
 namespace FxMap.Expressions;
 

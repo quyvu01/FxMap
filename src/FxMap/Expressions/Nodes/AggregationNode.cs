@@ -1,4 +1,4 @@
-namespace FxMap.Expressions.Nodes;
+namespace FxMap.Analyzers;
 
 /// <summary>
 /// Represents an aggregation on a collection: Orders:sum(Total), Items:avg(Price)

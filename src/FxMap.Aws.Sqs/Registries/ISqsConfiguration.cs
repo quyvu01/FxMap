@@ -1,6 +1,6 @@
 using Amazon;
 
-namespace FxMap.Aws.Sqs.Abstractions;
+namespace FxMap.Aws.Sqs.Registries;
 
 internal interface ISqsConfiguration
 {

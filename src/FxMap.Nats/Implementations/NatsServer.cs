@@ -6,6 +6,7 @@ using FxMap.Abstractions;
 using FxMap.Models;
 using FxMap.Implementations;
 using FxMap.Nats.Abstractions;
+using FxMap.Nats.Registries;
 using FxMap.Nats.Wrappers;
 using FxMap.Responses;
 using FxMap.Telemetry;

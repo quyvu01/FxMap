@@ -4,12 +4,13 @@ using FxMap.Aws.Sqs.Abstractions;
 using FxMap.Aws.Sqs.Configuration;
 using FxMap.Aws.Sqs.BackgroundServices;
 using FxMap.Aws.Sqs.Implementations;
+using FxMap.Aws.Sqs.Registries;
 using FxMap.Registries;
 using FxMap.Supervision;
 
 namespace FxMap.Aws.Sqs.Extensions;
 
-public static class SqsExtensions
+public static class DependencyExtensions
 {
     public static void AddSqs(this MapConfigurator mapRegister, Action<SqsConfigurator> options)
     {
@@ -21,6 +22,7 @@ public static class SqsExtensions
             config.Credential.SecretAccessKeyValue,
             config.AwsRegionValue,
             config.Credential.ServiceUrlValue));
+        services.AddSingleton<ISqsConnection, SqsConnection>();
         services.AddSingleton<ISqsServer, SqsServer>();
         services.AddSingleton<IRequestClient, SqsRequestClient>();
 
