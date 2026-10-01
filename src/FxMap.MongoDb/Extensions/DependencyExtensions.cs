@@ -10,7 +10,7 @@ namespace FxMap.MongoDb.Extensions;
 /// <summary>
 /// Provides extension methods for integrating MongoDB with the FxMap framework.
 /// </summary>
-public static class MongoDbExtensions
+public static class DependencyExtensions
 {
     private static readonly Type MongoDbQueryOfHandlerType = typeof(MongoDbQueryHandler<,>);
 

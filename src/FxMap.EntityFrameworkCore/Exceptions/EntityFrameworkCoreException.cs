@@ -28,5 +28,5 @@ public static class EntityFrameworkCoreException
     /// </summary>
     public class DbContextsMustNotBeEmpty()
         : Exception(
-            $"There are no any db contexts on {nameof(EntityFrameworkExtensions.AddEntityFrameworkCore)}() method");
+            $"There are no any db contexts on {nameof(DependencyExtensions.AddEntityFrameworkCore)}() method");
 }

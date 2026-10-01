@@ -18,7 +18,7 @@ namespace FxMap.Extensions;
 /// <summary>
 /// Provides the main extension method for adding FxMap services to the dependency injection container.
 /// </summary>
-public static class FxMapExtensions
+public static class DependencyExtensions
 {
     /// <summary>
     /// Adds the FxMap distributed mapping framework to the service collection.

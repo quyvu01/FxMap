@@ -13,7 +13,7 @@ namespace FxMap.EntityFrameworkCore.Extensions;
 /// <summary>
 /// Provides extension methods for integrating Entity Framework Core with the FxMap framework.
 /// </summary>
-public static class EntityFrameworkExtensions
+public static class DependencyExtensions
 {
     /// <summary>
     /// Adds Entity Framework Core support for FxMap data fetching.

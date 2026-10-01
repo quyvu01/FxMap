@@ -6,7 +6,7 @@ namespace FxMap.HotChocolate.Extensions;
 /// <summary>
 /// Provides extension methods for integrating HotChocolate GraphQL with the FxMap framework.
 /// </summary>
-public static class HotChocolateExtensions
+public static class DependencyExtensions
 {
     /// <summary>
     /// Adds HotChocolate GraphQL integration for automatic FxMap field resolution.
