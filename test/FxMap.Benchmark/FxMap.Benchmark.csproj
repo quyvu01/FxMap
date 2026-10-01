@@ -10,10 +10,12 @@
         <PackageReference Include="AutoMapper" Version="14.0.0" />
         <PackageReference Include="BenchmarkDotNet" Version="0.15.6"/>
         <PackageReference Include="MediatR" Version="12.5.0" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\FxMap\FxMap.csproj" />
+      <ProjectReference Include="..\..\src\FxMap.EntityFrameworkCore\FxMap.EntityFrameworkCore.csproj" />
     </ItemGroup>
 
 
