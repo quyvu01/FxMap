@@ -6,6 +6,7 @@ using FxMap.Extensions;
 using FxMap.Fluent.Builders;
 using FxMap.Fluent.Rules;
 using FxMap.Helpers;
+using FxMap.Models;
 using FxMap.PropertyMappingContexts;
 
 namespace FxMap.Fluent;
@@ -15,8 +16,15 @@ namespace FxMap.Fluent;
 /// via distributed key lookups using the FxMap mapping engine.
 /// </summary>
 /// <typeparam name="TModel">The DTO or response type being enriched.</typeparam>
-public abstract class ProfileOf<TModel> : IFluentProfileConfig
+public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSource
 {
+    private static readonly PropertyInformation NoInformation = new(0, null, null, null);
+
+    private readonly IReadOnlyDictionary<PropertyInfo, PropertyInformation> _information;
+
+    ProfilePlan IProfilePlanSource.Plan => _plan;
+    private readonly ProfilePlan _plan;
+
     private readonly List<KeyRuleGroup> _ruleGroups = [];
 
     /// <summary>
@@ -74,6 +82,23 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
             .ToDictionary(p => p, p => CreateAccessor(clrType, p));
 
         DependencyGraphs = dependencyGraph;
+
+        // The information of a property never changes after construction, so build it once instead of on every walk.
+        _information = dependencyGraph.Keys.ToDictionary(p => p, BuildInformation);
+        _plan = BuildPlan();
+    }
+
+    private ProfilePlan BuildPlan()
+    {
+        var entries = Accessors
+            .Select(kv => new ProfileEntry(kv.Key, kv.Value, GetInformation(kv.Key),
+                _information.ContainsKey(kv.Key)))
+            .ToArray();
+        // A property that is neither a rule target nor able to hold an object (declared as a primitive) can
+        // never produce anything while walking, so the walker never needs to look at it.
+        return new ProfilePlan(
+            [..entries.Where(e => e.IsRule)],
+            [..entries.Where(e => !e.IsRule && !e.Property.PropertyType.IsPrimitiveType())]);
     }
 
 
@@ -226,10 +251,12 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig
     /// A <see cref="PropertyInformation"/> record containing the property's mapping metadata.
     /// If the property has no dependencies, returns default information with order 0.
     /// </returns>
-    public PropertyInformation GetInformation(PropertyInfo propertyInfo)
+    public PropertyInformation GetInformation(PropertyInfo propertyInfo) =>
+        _information.GetValueOrDefault(propertyInfo) ?? NoInformation;
+
+    private PropertyInformation BuildInformation(PropertyInfo propertyInfo)
     {
-        if (!DependencyGraphs.TryGetValue(propertyInfo, out var dependencies))
-            return new PropertyInformation(0, null, null, null);
+        var dependencies = DependencyGraphs[propertyInfo];
         var dependency = dependencies.First();
         var requiredAccessor = GetAccessor(dependency.RequiredPropertyInfo);
         return new PropertyInformation(dependencies.Length - 1, dependency.Expression,

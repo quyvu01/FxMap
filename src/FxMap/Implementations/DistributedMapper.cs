@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using FxMap.Abstractions;
 using FxMap.Models;
+using FxMap.Fluent;
 using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.PublicContracts;
@@ -64,26 +65,37 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 var tasks = mappableTypes.Select(async x =>
                 {
                     var emptyResponse = (x.DistributedKeyType, Response: _emptyResponse);
-                    var accessors = x.Accessors.ToList();
-                    if (accessors is not { Count: > 0 }) return emptyResponse;
-                    var selectorIds = accessors
-                        .Select(c => c.PropertyInformation?.RequiredAccessor?.Get(c.Model)?
-                            .ToString()).ToArray();
+                    var properties = x.Properties.ToList();
+                    if (properties is not { Count: > 0 }) return emptyResponse;
 
-                    if (selectorIds is not { Length: > 0 }) return emptyResponse;
+                    // Collect each distinct id once instead of one entry per object: many objects share few ids.
+                    var selectorIds = new HashSet<string>();
+                    foreach (var property in properties)
+                        if (property.Property.RequiredAccessor?.Get(property.Model)?.ToString() is { } id)
+                            selectorIds.Add(id);
 
                     var requestCt = new RequestContext([], token);
 
-                    // Resolve conditional expressions and store on PropertyDescriptor (request-scoped)
-                    var effectiveExpressionTasks = accessors
-                        .Select(async a => a.EffectiveExpression = await a.PropertyInformation
-                            .ResolveExpression(serviceProvider, token));
-                    await Task.WhenAll(effectiveExpressionTasks);
+                    // Resolve conditional expressions and store on PropertyDescriptor (request-scoped).
+                    // Plain expressions need no resolution, so no task is created for them.
+                    var conditionalTasks = new List<Task>();
+                    foreach (var property in properties)
+                    {
+                        if (property.Property.ConditionalExpression is null)
+                        {
+                            property.EffectiveExpression = property.Property.Expression;
+                            continue;
+                        }
 
-                    var expressions = accessors.Select(a => a.EffectiveExpression);
+                        conditionalTasks.Add(ResolveConditionalAsync(property, serviceProvider, token));
+                    }
+
+                    if (conditionalTasks.Count > 0) await Task.WhenAll(conditionalTasks);
+
+                    var expressions = new HashSet<string>(properties.Select(p => p.EffectiveExpression));
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
-                        new DistributedMapRequest(selectorIds, [..expressions]), requestCt);
+                        new DistributedMapRequest([.. selectorIds], [.. expressions]), requestCt);
                     return (x.DistributedKeyType, Response: result);
                 });
                 var fetchedResult = await Task.WhenAll(tasks);
@@ -94,10 +106,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 .Where(a => !a.PropertyInfo.PropertyType.IsPrimitiveType())
                 .Aggregate(new List<object>(), (acc, next) =>
                 {
-                    var getProfileConfig = serviceProvider.GetRequiredService<GetProfileConfig>();
-                    var profileConfig = getProfileConfig.Invoke(next.Model.GetType());
-                    var propertyAccessor = profileConfig?.Accessors?.GetValueOrDefault(next.PropertyInfo);
-                    var propertyValue = propertyAccessor?.Get(next.Model);
+                    var propertyValue = next.Accessor.Get(next.Model);
                     if (propertyValue is null) return acc;
                     acc.Add(propertyValue);
                     return acc;
@@ -118,8 +127,8 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         var sendPipelineType = SendOrchestratorTypes
             .GetOrAdd(runtimeType, static type => typeof(SendPipelinesOrchestrator<>).MakeGenericType(type));
         var sendPipelineWrapped = (SendPipelinesOrchestrator)serviceProvider.GetService(sendPipelineType)!;
-        string[] selectorIds = [..new HashSet<string>(query.SelectorIds.Where(a => a is not null))];
-        string[] expressions = [..new HashSet<string>(query.Expressions)];
+        string[] selectorIds = [.. new HashSet<string>(query.SelectorIds.Where(a => a is not null))];
+        string[] expressions = [.. new HashSet<string>(query.Expressions)];
         var result = await sendPipelineWrapped
             .ExecuteAsync(new DistributedMapRequest(selectorIds, expressions), context);
         return result;
@@ -129,41 +138,57 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     private IEnumerable<PropertyDescriptor> DiscoverResolvableProperties(object rootObject)
     {
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        return GetResolvablePropertiesRecursive(rootObject, visited);
+        var getProfileConfig = serviceProvider.GetRequiredService<GetProfileConfig>();
+        return GetResolvablePropertiesRecursive(rootObject, visited, getProfileConfig);
     }
 
-    private IEnumerable<PropertyDescriptor> GetResolvablePropertiesRecursive(object obj, HashSet<object> visited)
+    private static ProfilePlan PlanOf(IFluentProfileConfig profileConfig) =>
+        (profileConfig as IProfilePlanSource)?.Plan ?? BuildPlanFor(profileConfig);
+
+    // Only for profiles that do not come from ProfileOf<T> (they cannot cache a plan themselves).
+    private static ProfilePlan BuildPlanFor(IFluentProfileConfig profileConfig)
+    {
+        var entries = profileConfig.Accessors
+            .Select(kv =>
+            {
+                var information = profileConfig.GetInformation(kv.Key);
+                return new ProfileEntry(kv.Key, kv.Value, information, information.RequiredAccessor is not null);
+            })
+            .ToArray();
+        return new ProfilePlan([.. entries.Where(e => e.IsRule)],
+            [.. entries.Where(e => !e.IsRule && !e.Property.PropertyType.IsPrimitiveType())]);
+    }
+
+    private static IEnumerable<PropertyDescriptor> GetResolvablePropertiesRecursive(object obj, HashSet<object> visited,
+        GetProfileConfig getProfileConfig)
     {
         if (obj.IsNullOrPrimitive()) yield break;
 
         if (obj is IEnumerable enumerable)
         {
             foreach (var item in enumerable is IDictionary dictionary ? dictionary.Values : enumerable)
-            foreach (var prop in GetResolvablePropertiesRecursive(item, visited))
+            foreach (var prop in GetResolvablePropertiesRecursive(item, visited, getProfileConfig))
                 yield return prop;
             yield break;
         }
 
         if (!visited.Add(obj)) yield break;
 
-        var objType = obj.GetType();
-        var getProfileConfig = serviceProvider.GetRequiredService<GetProfileConfig>();
-        var profileConfig = getProfileConfig.Invoke(objType);
+        var profileConfig = getProfileConfig.Invoke(obj.GetType());
         if (profileConfig is null) yield break;
-        foreach (var (propertyInfo, accessor) in profileConfig.Accessors)
-        {
-            var propertyInformation = profileConfig.GetInformation(propertyInfo);
-            if (propertyInformation.RequiredAccessor is not null)
-            {
-                yield return new PropertyDescriptor(propertyInfo, obj, propertyInformation);
-                continue;
-            }
+        var plan = PlanOf(profileConfig);
 
-            var propValue = accessor.Get(obj);
-            foreach (var value in GetResolvablePropertiesRecursive(propValue, visited))
-                yield return value;
-        }
+        foreach (var entry in plan.RuleEntries)
+            yield return new PropertyDescriptor(entry.Property, obj, entry.Information, entry.Accessor);
+
+        foreach (var entry in plan.WalkEntries)
+        foreach (var value in GetResolvablePropertiesRecursive(entry.Accessor.Get(obj), visited, getProfileConfig))
+            yield return value;
     }
+
+    private static async Task ResolveConditionalAsync(PropertyDescriptor property, IServiceProvider serviceProvider,
+        CancellationToken token) => property.EffectiveExpression =
+        await property.Property.ResolveExpression(serviceProvider, token);
 
     // To use merge-expression, we have to group by distributed key only, exclude expression as the older version!
     private static IEnumerable<DistributedKeyInfo> GetDistributedKeyInfos
@@ -172,8 +197,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             .GroupBy(mdp => (DistributedKeyType: mdp.Property?.RuntimeDistributedKeyType,
                 Order: mdp.Property?.Order ?? 0))
             .Join(distributedKeyTypes, gr => gr.Key.DistributedKeyType, at => at,
-                (d, x) => new DistributedKeyInfo(x, d
-                    .Select(a => new PropertyMappingData(a)), d.Key.Order));
+                (d, x) => new DistributedKeyInfo(x, d, d.Key.Order));
 
     private void MapResponseData(IEnumerable<PropertyDescriptor> mappableProperties,
         IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
@@ -196,10 +220,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 try
                 {
                     var valueSet = JsonSerializer.DeserializeObject(value, propertyInfo.PropertyType);
-                    var getProfileConfig = serviceProvider.GetRequiredService<GetProfileConfig>();
-                    var profileConfig = getProfileConfig.Invoke(ap.Model.GetType());
-                    var propertyAccessor = profileConfig?.Accessors?.GetValueOrDefault(ap.PropertyInfo);
-                    propertyAccessor?.Set(ap.Model, valueSet);
+                    ap.Accessor.Set(ap.Model, valueSet);
                 }
                 catch (Exception)
                 {
