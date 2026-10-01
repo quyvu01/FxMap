@@ -249,6 +249,39 @@ public class DistributedMapperTraversalTests
     }
 
     [Fact]
+    public async Task Very_deep_linked_chain_does_not_exhaust_the_stack()
+    {
+        using var h = MappingHarness.Create();
+        var head = new Node { UserId = "n0" };
+        var tail = head;
+        for (var i = 1; i < 100_000; i++)
+        {
+            var next = new Node { UserId = $"n{i % 50}" };
+            tail.Next = next;
+            tail = next;
+        }
+
+        await h.Map(head).WaitAsync(TimeSpan.FromSeconds(60));
+
+        head.UserName.ShouldBe(Name("n0"));
+        tail.UserName.ShouldBe(Name(tail.UserId));
+        h.Remote.CallsOf<UserKey>().ShouldHaveSingleItem().Ids.Length.ShouldBe(50);
+    }
+
+    [Fact]
+    public async Task Very_deeply_nested_collections_do_not_exhaust_the_stack()
+    {
+        using var h = MappingHarness.Create();
+        var target = new FlatDto { UserId = "deep" };
+        object current = target;
+        for (var i = 0; i < 50_000; i++) current = new List<object> { current };
+
+        await h.Map(current).WaitAsync(TimeSpan.FromSeconds(60));
+
+        target.UserName.ShouldBe(Name("deep"));
+    }
+
+    [Fact]
     public async Task Wide_tree_with_thousands_of_objects_is_fully_mapped_with_deduplicated_requests()
     {
         using var h = MappingHarness.Create();

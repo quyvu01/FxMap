@@ -46,7 +46,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 return;
             }
 
-            var allPropertyDatas = DiscoverResolvableProperties(value).ToArray();
+            var allPropertyDatas = DiscoverResolvableProperties(value);
 
             var distributedKeyTypes = fxMapConfiguration.DistributedKeyTypes;
             var typeData = GetDistributedKeyInfos(allPropertyDatas, distributedKeyTypes);
@@ -136,11 +136,49 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     }
 
 
-    private IEnumerable<PropertyDescriptor> DiscoverResolvableProperties(object rootObject)
+    /// <summary>
+    /// Finds every property that has a mapping rule in the object graph below <paramref name="rootObject"/>.
+    /// Iterative (explicit stack) so the depth of the graph is not limited by the call stack and no iterator state
+    /// machine is allocated per object. Each object is processed once, whatever the number of paths leading to it.
+    /// </summary>
+    private List<PropertyDescriptor> DiscoverResolvableProperties(object rootObject)
     {
+        var descriptors = new List<PropertyDescriptor>();
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
         var getProfileConfig = serviceProvider.GetRequiredService<GetProfileConfig>();
-        return GetResolvablePropertiesRecursive(rootObject, visited, getProfileConfig);
+        var pending = new Stack<object>();
+        PushIfWalkable(pending, rootObject);
+
+        while (pending.TryPop(out var current))
+        {
+            if (current is IEnumerable enumerable)
+            {
+                // A runtime byte[] / List<string> / ... behind an `object` or interface property: nothing inside.
+                if (!PropertyClassifier.ShouldWalk(current.GetType())) continue;
+                foreach (var item in enumerable is IDictionary dictionary ? dictionary.Values : enumerable)
+                    PushIfWalkable(pending, item);
+                continue;
+            }
+
+            if (!visited.Add(current)) continue;
+
+            var profileConfig = getProfileConfig.Invoke(current.GetType());
+            if (profileConfig is null) continue;
+            var plan = PlanOf(profileConfig);
+
+            foreach (var entry in plan.RuleEntries)
+                descriptors.Add(new PropertyDescriptor(entry.Property, current, entry.Information, entry.Accessor));
+
+            foreach (var entry in plan.WalkEntries)
+                PushIfWalkable(pending, entry.Accessor.Get(current));
+        }
+
+        return descriptors;
+    }
+
+    private static void PushIfWalkable(Stack<object> pending, object value)
+    {
+        if (!value.IsNullOrPrimitive()) pending.Push(value);
     }
 
     private static ProfilePlan PlanOf(IFluentProfileConfig profileConfig) =>
@@ -158,35 +196,6 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             .ToArray();
         return new ProfilePlan([.. entries.Where(e => e.IsRule)],
             [.. entries.Where(e => !e.IsRule && PropertyClassifier.ShouldWalk(e.Property.PropertyType))]);
-    }
-
-    private static IEnumerable<PropertyDescriptor> GetResolvablePropertiesRecursive(object obj, HashSet<object> visited,
-        GetProfileConfig getProfileConfig)
-    {
-        if (obj.IsNullOrPrimitive()) yield break;
-
-        if (obj is IEnumerable enumerable)
-        {
-            // A runtime byte[] / List<string> / ... behind an `object` or interface property: nothing to find inside.
-            if (!PropertyClassifier.ShouldWalk(obj.GetType())) yield break;
-            foreach (var item in enumerable is IDictionary dictionary ? dictionary.Values : enumerable)
-            foreach (var prop in GetResolvablePropertiesRecursive(item, visited, getProfileConfig))
-                yield return prop;
-            yield break;
-        }
-
-        if (!visited.Add(obj)) yield break;
-
-        var profileConfig = getProfileConfig.Invoke(obj.GetType());
-        if (profileConfig is null) yield break;
-        var plan = PlanOf(profileConfig);
-
-        foreach (var entry in plan.RuleEntries)
-            yield return new PropertyDescriptor(entry.Property, obj, entry.Information, entry.Accessor);
-
-        foreach (var entry in plan.WalkEntries)
-        foreach (var value in GetResolvablePropertiesRecursive(entry.Accessor.Get(obj), visited, getProfileConfig))
-            yield return value;
     }
 
     private static async Task ResolveConditionalAsync(PropertyDescriptor property, IServiceProvider serviceProvider,
