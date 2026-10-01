@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using FxMap.Abstractions;
+using FxMap.Helpers;
 using FxMap.Models;
 using FxMap.Fluent;
 using FxMap.Exceptions;
@@ -156,7 +157,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             })
             .ToArray();
         return new ProfilePlan([.. entries.Where(e => e.IsRule)],
-            [.. entries.Where(e => !e.IsRule && !e.Property.PropertyType.IsPrimitiveType())]);
+            [.. entries.Where(e => !e.IsRule && PropertyClassifier.ShouldWalk(e.Property.PropertyType))]);
     }
 
     private static IEnumerable<PropertyDescriptor> GetResolvablePropertiesRecursive(object obj, HashSet<object> visited,
@@ -166,6 +167,8 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
         if (obj is IEnumerable enumerable)
         {
+            // A runtime byte[] / List<string> / ... behind an `object` or interface property: nothing to find inside.
+            if (!PropertyClassifier.ShouldWalk(obj.GetType())) yield break;
             foreach (var item in enumerable is IDictionary dictionary ? dictionary.Values : enumerable)
             foreach (var prop in GetResolvablePropertiesRecursive(item, visited, getProfileConfig))
                 yield return prop;

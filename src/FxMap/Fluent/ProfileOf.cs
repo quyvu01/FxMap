@@ -72,8 +72,10 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
             .Distinct()
             .ToArray();
 
+        // Properties that can hold objects to walk. Leaves, collections of leaves (byte[], List<string>...) and
+        // framework types such as Uri are left out: walking them can never produce a descriptor.
         var nonPrimitiveProperties = properties
-            .Where(a => !a.PropertyType.IsPrimitiveType())
+            .Where(a => PropertyClassifier.ShouldWalk(a.PropertyType))
             .Except(propertiesWithinKeys)
             .ToArray();
 
@@ -98,7 +100,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
         // never produce anything while walking, so the walker never needs to look at it.
         return new ProfilePlan(
             [..entries.Where(e => e.IsRule)],
-            [..entries.Where(e => !e.IsRule && !e.Property.PropertyType.IsPrimitiveType())]);
+            [..entries.Where(e => !e.IsRule && PropertyClassifier.ShouldWalk(e.Property.PropertyType))]);
     }
 
 

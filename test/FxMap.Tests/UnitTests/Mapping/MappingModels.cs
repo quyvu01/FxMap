@@ -292,6 +292,50 @@ internal sealed class BlobDtoProfile : ProfileOf<BlobDto>
 
 #endregion
 
+/// <summary>Every collection shape that still contains models and must therefore be walked.</summary>
+public class CollectionsDto
+{
+    public Dictionary<string, List<ItemDto>> Grouped { get; set; }
+    public List<List<ItemDto>> Matrix { get; set; }
+    public ItemDto[][] Jagged { get; set; }
+    public IEnumerable<object> Mixed { get; set; }
+    public object Boxed { get; set; }
+    public Dictionary<string, object> Bag { get; set; }
+    public IReadOnlyDictionary<string, ItemDto> ReadOnly { get; set; }
+    public IList<ItemDto> AsInterface { get; set; }
+}
+
+/// <summary>Counts how often someone enumerates it, to prove the walker leaves leaf collections alone.</summary>
+public sealed class CountingStrings : IEnumerable<string>
+{
+    public int Enumerations { get; private set; }
+
+    public IEnumerator<string> GetEnumerator()
+    {
+        Enumerations++;
+        yield return "a";
+        yield return "b";
+    }
+
+    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+}
+
+public class LeafHolderDto
+{
+    public string UserId { get; set; }
+    public string UserName { get; set; }
+    public IEnumerable<string> Names { get; set; }
+    public CountingStrings Counting { get; set; }
+    public object Boxed { get; set; }
+    public List<object> BoxedList { get; set; }
+}
+
+internal sealed class LeafHolderDtoProfile : ProfileOf<LeafHolderDto>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserKey>().Of(x => x.UserId).For(x => x.UserName, "Name");
+}
+
 #region Mapped values that are objects themselves (multi level)
 
 public class AddressDto

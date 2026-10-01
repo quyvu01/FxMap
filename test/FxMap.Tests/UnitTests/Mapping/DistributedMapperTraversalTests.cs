@@ -336,5 +336,77 @@ public class DistributedMapperTraversalTests
         dto.Link.ToString().ShouldBe("https://example.com/a/b?q=1");
     }
 
+    [Fact]
+    public async Task Models_inside_every_collection_shape_are_still_found()
+    {
+        using var h = MappingHarness.Create();
+        ItemDto Item(string id) => new() { ProductId = id };
+        var dto = new CollectionsDto
+        {
+            Grouped = new Dictionary<string, List<ItemDto>> { ["a"] = [Item("g1"), Item("g2")] },
+            Matrix = [[Item("m1")], [Item("m2"), Item("m3")]],
+            Jagged = [[Item("j1")], [Item("j2")]],
+            Mixed = new object[] { Item("x1"), "text", 5, null, new List<ItemDto> { Item("x2") } },
+            Boxed = new List<ItemDto> { Item("b1") },
+            Bag = new Dictionary<string, object> { ["k"] = Item("bag1"), ["n"] = 3 },
+            ReadOnly = new Dictionary<string, ItemDto> { ["r"] = Item("ro1") },
+            AsInterface = new List<ItemDto> { Item("i1") }
+        };
+
+        await h.Map(dto);
+
+        var all = dto.Grouped["a"]
+            .Concat(dto.Matrix.SelectMany(x => x))
+            .Concat(dto.Jagged.SelectMany(x => x))
+            .Concat(dto.Mixed.OfType<ItemDto>())
+            .Concat(dto.Mixed.OfType<List<ItemDto>>().SelectMany(x => x))
+            .Concat((List<ItemDto>)dto.Boxed)
+            .Concat(dto.Bag.Values.OfType<ItemDto>())
+            .Concat(dto.ReadOnly.Values)
+            .Concat(dto.AsInterface)
+            .ToList();
+        all.Count.ShouldBe(13);
+        all.ShouldAllBe(i => i.ProductName == $"product-name:{i.ProductId}");
+        all.ShouldAllBe(i => i.CategoryName == $"category-name:category-id:{i.ProductId}");
+    }
+
+    [Fact]
+    public async Task Leaf_collections_are_never_enumerated_even_behind_object_or_interface_properties()
+    {
+        using var h = MappingHarness.Create();
+        var counting = new CountingStrings();
+        var boxedCounting = new CountingStrings();
+        var inList = new CountingStrings();
+        var dto = new LeafHolderDto
+        {
+            UserId = "u1",
+            Names = new CountingStringsAsInterface(),
+            Counting = counting,
+            Boxed = boxedCounting,
+            BoxedList = [inList, new byte[1000], new[] { "a" }]
+        };
+
+        await h.Map(dto);
+
+        dto.UserName.ShouldBe(Name("u1"));
+        counting.Enumerations.ShouldBe(0);
+        boxedCounting.Enumerations.ShouldBe(0);
+        inList.Enumerations.ShouldBe(0);
+        ((CountingStringsAsInterface)dto.Names).Enumerations.ShouldBe(0);
+    }
+
+    private sealed class CountingStringsAsInterface : IEnumerable<string>
+    {
+        public int Enumerations { get; private set; }
+
+        public IEnumerator<string> GetEnumerator()
+        {
+            Enumerations++;
+            yield return "x";
+        }
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
     #endregion
 }

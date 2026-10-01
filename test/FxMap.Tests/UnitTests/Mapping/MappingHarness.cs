@@ -99,7 +99,7 @@ public sealed class MappingHarness : IDisposable
         typeof(NullExpressionDtoProfile), typeof(TwoSelectorsDtoProfile), typeof(ChainDtoProfile),
         typeof(DiamondDtoProfile), typeof(ItemDtoProfile), typeof(OrderDtoProfile), typeof(NodeProfile),
         typeof(DerivedItemProfile), typeof(BlobDtoProfile), typeof(AddressDtoProfile), typeof(ProfileDtoProfile),
-        typeof(ConditionalDtoProfile), typeof(GNodeProfile)
+        typeof(ConditionalDtoProfile), typeof(GNodeProfile), typeof(LeafHolderDtoProfile)
     ];
 
     private readonly ServiceProvider _provider;
