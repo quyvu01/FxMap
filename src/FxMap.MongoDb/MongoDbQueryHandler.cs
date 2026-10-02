@@ -7,6 +7,7 @@ using MongoDB.Bson;
 using MongoDB.Driver;
 using FxMap.Abstractions;
 using FxMap.Delegates;
+using FxMap.Helpers;
 using FxMap.MongoDb.Abstractions;
 using FxMap.MongoDb.Extensions;
 using FxMap.Responses;
@@ -50,7 +51,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
 
     // Static cache per generic type combination
     private static readonly Lazy<FilterCache> FilterCacheInstance = new(() => new FilterCache());
-    private static readonly ConcurrentDictionary<int, BsonDocument> ProjectionCache = new();
+    private static readonly ConcurrentDictionary<string, BsonDocument> ProjectionCache = new();
 
     public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TDistributedKey> context)
     {
@@ -85,7 +86,9 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
                 .ToListAsync(context.CancellationToken);
 
             // Transform to FxMapDataResponse
-            var data = TransformResults(rawResults, expressions);
+            // Answer to the ids the way the caller wrote them (upper case Guid, leading zeros...).
+            var data = RequestedIdAnswers.Align(context.Query.SelectorIds,
+                TransformResults(rawResults, expressions), FilterCacheInstance.Value.IdConverter);
 
             var itemCount = data.Length;
             activity?.SetFxMapTags(itemCount: itemCount);
@@ -205,13 +208,9 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         return bsonValue.ToJson();
     }
 
-    private static int ComputeCacheKey(string[] expressions)
-    {
-        var hash = new HashCode();
-        foreach (var expr in expressions) hash.Add(expr);
-
-        return hash.ToHashCode();
-    }
+    // The key is the expression list itself: a hash code of it could be shared by two different lists.
+    private static string ComputeCacheKey(string[] expressions) =>
+        string.Join('\u001f', expressions.Select(e => e ?? "\u0000"));
 
     /// <summary>
     /// Caches filter-related metadata and provides filter building.
