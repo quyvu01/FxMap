@@ -1,15 +1,69 @@
-# FxMap
-Effective distributed data mapping!
+<p align="center">
+  <img src="https://raw.githubusercontent.com/quyvu01/FxMap/main/FxMap.png" alt="FxMap" width="120" />
+</p>
+
+<h1 align="center">FxMap</h1>
+
+<p align="center">
+  Distributed data mapping for .NET — declare where a property comes from, and FxMap fetches it from the service
+  that owns the data, over the transport you already run.
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/FxMap"><img alt="NuGet" src="https://img.shields.io/nuget/v/FxMap.svg" /></a>
+  <a href="https://www.nuget.org/packages/FxMap"><img alt="Downloads" src="https://img.shields.io/nuget/dt/FxMap.svg" /></a>
+  <a href="https://github.com/quyvu01/FxMap/actions/workflows/build.yml"><img alt="Build" src="https://github.com/quyvu01/FxMap/actions/workflows/build.yml/badge.svg" /></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" /></a>
+  <img alt=".NET" src="https://img.shields.io/badge/.NET-8%20%7C%209%20%7C%2010-512BD4.svg" />
+</p>
+
+<p align="center">
+  <a href="https://fxmapper.net"><b>Documentation</b></a> ·
+  <a href="https://fxmapper.net/docs/getting-started"><b>Getting Started</b></a> ·
+  <a href="https://fxmapper.net/docs/expressions"><b>Expression Language</b></a>
+</p>
+
+---
+
+In a microservice system a response often carries only keys: an order has a `UserId`, a `ProvinceId`, a `ProductId`.
+Showing it means collecting `UserName`, `ProvinceName`, `ProductName` from the services that own them, and writing
+that glue again for every endpoint. FxMap turns the glue into a declaration:
+
 ```csharp
-public string UserId { get; set; }
-public string UserName { get; set; }
-public string UserEmail { get; set; }
+public class OrderResponse
+{
+    public string UserId { get; set; }
+    public string UserName { get; set; }     // filled by FxMap
+    public string UserEmail { get; set; }    // filled by FxMap
+}
+
+public class OrderResponseProfile : ProfileOf<OrderResponse>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserDistributedKey>()
+            .Of(x => x.UserId)
+            .For(x => x.UserName)
+            .For(x => x.UserEmail, "Email");
+}
+
+await distributedMapper.MapDataAsync(response);   // one batched request per key, however many objects
 ```
 
-FxMap is an open-source library focused on FluentAPI-based data mapping. It streamlines data handling across services,
-reduces boilerplate code, and improves maintainability.
+The service that owns the data registers an entity configuration and a data provider. FxMap batches the ids,
+sends them over a transport (or answers locally when the owner is the same service), and writes the results back.
+No client code per field, and no coupling between the two services beyond a key name.
 
-**[Full Documentation](https://fxmapper.net)** | **[Getting Started](https://fxmapper.net/docs/getting-started)** |**[Expression Language](https://fxmapper.net/docs/expressions)**
+## Features
+
+- **FluentAPI mapping**: declare the mapping with `ProfileOf<T>` and `EntityConfigureOf<T>`; no attributes on your DTOs, and property access is compiled once per type.
+- **Expression language**: a SQL-like DSL for navigation, filters, aggregations, projections, indexers and conditions (`Orders(Status = 'Done'):sum(Total)`).
+- **Batched and chained**: one request per distributed key and dependency level, with distinct ids, however many objects are mapped; chains such as `UserId → ProvinceId → CountryId` resolve level by level.
+- **Data providers**: Entity Framework Core and MongoDB.
+- **Transports**: gRPC, NATS, RabbitMQ, Kafka, Azure Service Bus and Amazon SQS, with retries and supervision.
+- **GraphQL integration** with HotChocolate.
+- **Compile-time checks**: Roslyn analyzers for misconfigured profiles and entities.
+- **Observable**: activities for OpenTelemetry tracing on mapping and data access.
+- Targets **.NET 8, 9 and 10**.
 
 > [!WARNING]
 > All FxMap.* packages need to have the same version.
@@ -56,14 +110,6 @@ public class UserResponseProfile : ProfileOf<UserResponse>
 }
 ```
 
-## Key Features
-
-- **FluentAPI-based Mapping**: Declarative data fetching using `ProfileOf<T>` and `EntityConfigureOf<T>`
-- **Powerful Expression Language**: SQL-like DSL for complex queries, filtering, aggregation, and projections
-- **Multiple Data Providers**: Support for EF Core, MongoDB, and more
-- **Multiple Transports**: gRPC, NATS, RabbitMQ, Kafka, Azure Service Bus, Amazon SQS
-- **GraphQL Integration**: Seamless integration with HotChocolate
-
 ## Expression Examples
 
 ```csharp
@@ -71,7 +117,7 @@ public class UserResponseProfile : ProfileOf<UserResponse>
 {
     protected override void Configure()
     {
-        UseDistributedKey<UserOfAttribute>()
+        UseDistributedKey<UserDistributedKey>()
             .Of(x => x.UserId)
             // Simple property access
             .For(x => x.UserEmail, "Email")

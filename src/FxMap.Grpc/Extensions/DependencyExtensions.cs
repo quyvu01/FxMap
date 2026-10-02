@@ -182,7 +182,7 @@ public static class DependencyExtensions
     /// </remarks>
     /// <example>
     /// <code>
-    /// app.MapFxMapGrpcService();
+    /// app.MapFxMapperGrpc();
     /// </code>
     /// </example>
     public static void MapFxMapperGrpc(this IEndpointRouteBuilder builder) => builder.MapGrpcService<GrpcServer>();

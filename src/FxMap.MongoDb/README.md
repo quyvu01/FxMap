@@ -1,93 +1,91 @@
-# FxMap.MongoDb
+<p align="center">
+  <img src="https://raw.githubusercontent.com/quyvu01/FxMap/main/FxMap.png" alt="FxMap" width="96" />
+</p>
 
-FxMap.MongoDb is an extension package for FxMap that integrates with MongoDb to simplify data fetching by
-leveraging FluentAPI-based data mapping. This extension streamlines data retrieval using MongoDb, reducing boilerplate
-code and improving maintainability.
+<h1 align="center">FxMap.MongoDb</h1>
 
-[Demo Project!](https://github.com/quyvu01/TestFxMap-Demo)
+<p align="center">
+  MongoDB data provider for FxMap — answers FxMap requests straight from your collections.
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/FxMap.MongoDb"><img alt="NuGet" src="https://img.shields.io/nuget/v/FxMap.MongoDb.svg" /></a>
+  <a href="https://www.nuget.org/packages/FxMap.MongoDb"><img alt="Downloads" src="https://img.shields.io/nuget/dt/FxMap.MongoDb.svg" /></a>
+  <a href="https://github.com/quyvu01/FxMap/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/quyvu01/FxMap"><b>FxMap</b></a> ·
+  <a href="https://fxmapper.net"><b>Documentation</b></a> ·
+  <a href="https://github.com/quyvu01/TestFxMap-Demo"><b>Demo project</b></a>
+</p>
 
 ---
 
-## MongoDb
-
-FxMap.MongoDb extends the core FxMap library by providing seamless integration with MongoDb. This enables
-developers to automatically map and retrieve data directly from a database, leveraging the power of MongoDb along with
-FluentAPI-based data mapping.
-
-For example, suppose you have a `UserId` property in your model, and you want to fetch the corresponding `Name`
-and `Email` fields from the database. By using FxMap.MongoDb, you can configure your entity with `AbstractFxMapConfig<T>`
-and define profiles with `ProfileOf<T>`, and the library will handle data fetching for you.
-
----
+The owning service of an entity registers it with `EntityConfigureOf<T>` and hands FxMap the `IMongoCollection<T>` that
+stores it. Incoming requests (ids plus expressions) become one MongoDB query with a BSON projection per distributed key.
 
 ## Installation
-
-To install the FxMap.MongoDb package, use the following NuGet command:
 
 ```bash
 dotnet add package FxMap.MongoDb
 ```
 
-Or via the NuGet Package Manager:
+> [!WARNING]
+> All FxMap.* packages must use the same version.
 
-```bash
-Install-Package FxMap.MongoDb
-```
-
----
-
-## How to Use
-
-### 1. Register FxMap.MongoDb
-
-Add FxMap.MongoDb to your service configuration during application startup:
+## Usage
 
 ```csharp
+public sealed class UserDistributedKey : IDistributedKey;
+
+public class UserConfig : EntityConfigureOf<User>
+{
+    protected override void Configure()
+    {
+        Id(x => x.Id);
+        DefaultProperty(x => x.Name);
+        UseDistributedKey<UserDistributedKey>();
+    }
+}
+
 builder.Services.AddFxMap(cfg =>
     {
         cfg.AddEntitiesFromAssemblyContaining<SomeEntityAssemblyMarker>();
         cfg.AddProfilesFromAssemblyContaining<SomeProfileAssemblyMarker>();
     })
-    .AddMongoDb(cfg => cfg.AddCollection(memberSocialCollection));
+    .AddMongoDb(cfg => cfg
+        .AddCollection(database.GetCollection<User>("users"))
+        .AddCollection(database.GetCollection<Order>("orders")));
 ```
 
-### Function Descriptions
+## Notes
 
-#### AddMongoDb
+- `AddCollection` can be chained; register one collection per entity that FxMap should serve.
+- Expressions are evaluated against the stored documents, so they use the **actual property names** of the model
+  (not an `ExposedName`).
+- Ids are parsed to the entity's id type through the same converters as the other providers, including strongly typed
+  ids with an `IStronglyTypeConverter<TId>`. As of 2.3.5 a response is also answered under the id text that was sent.
+  That match compares the text of the stored `_id` with the text of the parsed id, so an id type whose BSON text form
+  differs from `ToString()` is not matched. Test your id type.
 
-Here, you can use the method `AddMongoDb()`, which takes `AddCollection(s)` to executing.
+## Related packages
 
-That all, Enjoy your moment!
-
-| Package Name                                                 | Description                                                                                                 | .NET Version   | Document                                                                                     |
-|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|----------------|----------------------------------------------------------------------------------------------|
-| **Core**                                                     |                                                                                                             |
-| [FxMap][FxMap.nuget]                                         | FxMap core                                                                                                  | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/README.md)                               |
-| **Data Providers**                                           |                                                                                                             |
-| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget] | FxMap extension package using EntityFramework to fetch data                                                 | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
-| [FxMap.MongoDb][FxMap.MongoDb.nuget]                         | FxMap extension package using MongoDb to fetch data                                                         | 8.0, 9.0, 10.0 | This Document                                                                                |
-| **Integrations**                                             |                                                                                                             |
-| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]               | FxMap.HotChocolate is an integration package with HotChocolate for FxMap.                                   | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.HotChocolate/README.md)        |
-| **Transports**                                               |                                                                                                             |
-| [FxMap.Grpc][FxMap.Grpc.nuget]                               | FxMap.Grpc is an extension package for FxMap that leverages gRPC for efficient data transportation.         | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Grpc/README.md)                |
-| [FxMap.Kafka][FxMap.Kafka.nuget]                             | FxMap.Kafka is an extension package for FxMap that leverages Kafka for efficient data transportation.       | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md)               |
-| [FxMap.Nats][FxMap.Nats.nuget]                               | FxMap.Nats is an extension package for FxMap that leverages Nats for efficient data transportation.         | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md)                |
-| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                       | FxMap.RabbitMq is an extension package for FxMap that leverages RabbitMq for efficient data transportation. | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md)            |
-
----
-
-[FxMap.nuget]: https://www.nuget.org/packages/FxMap/
-
-[FxMap.EntityFrameworkCore.nuget]: https://www.nuget.org/packages/FxMap.EntityFrameworkCore/
-
-[FxMap.MongoDb.nuget]: https://www.nuget.org/packages/FxMap.MongoDb/
-
-[FxMap.HotChocolate.nuget]: https://www.nuget.org/packages/FxMap.HotChocolate/
-
-[FxMap.Grpc.nuget]: https://www.nuget.org/packages/FxMap.Grpc/
-
-[FxMap.Nats.nuget]: https://www.nuget.org/packages/FxMap.Nats/
-
-[FxMap.RabbitMq.nuget]: https://www.nuget.org/packages/FxMap.RabbitMq/
-
-[FxMap.Kafka.nuget]: https://www.nuget.org/packages/FxMap.Kafka/
+| Package | Description | Documentation |
+|---|---|---|
+| **Core** | | |
+| [FxMap](https://www.nuget.org/packages/FxMap) | FxMap core: profiles, entity configs, the mapper and the expression language | [README](https://github.com/quyvu01/FxMap/blob/main/README.md) |
+| **Data providers** | | |
+| [FxMap.EntityFrameworkCore](https://www.nuget.org/packages/FxMap.EntityFrameworkCore) | Answers requests from an Entity Framework Core `DbContext` | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
+| [FxMap.MongoDb](https://www.nuget.org/packages/FxMap.MongoDb) | Answers requests from MongoDB collections | This document |
+| **Integrations** | | |
+| [FxMap.HotChocolate](https://www.nuget.org/packages/FxMap.HotChocolate) | Fills GraphQL response types through HotChocolate | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.HotChocolate/README.md) |
+| **Transports** | | |
+| [FxMap.Grpc](https://www.nuget.org/packages/FxMap.Grpc) | gRPC transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Grpc/README.md) |
+| [FxMap.Nats](https://www.nuget.org/packages/FxMap.Nats) | NATS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md) |
+| [FxMap.RabbitMq](https://www.nuget.org/packages/FxMap.RabbitMq) | RabbitMQ transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md) |
+| [FxMap.Kafka](https://www.nuget.org/packages/FxMap.Kafka) | Apache Kafka transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md) |
+| [FxMap.Azure.ServiceBus](https://www.nuget.org/packages/FxMap.Azure.ServiceBus) | Azure Service Bus transport (Standard / Premium tiers) | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Azure.ServiceBus/README.md) |
+| [FxMap.Aws.Sqs](https://www.nuget.org/packages/FxMap.Aws.Sqs) | Amazon SQS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Aws.Sqs/README.md) |
+| **Tooling** | | |
+| [FxMap.Analyzers](https://www.nuget.org/packages/FxMap.Analyzers) | Roslyn analyzer that validates expression strings at compile time | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Analyzers/README.md) |

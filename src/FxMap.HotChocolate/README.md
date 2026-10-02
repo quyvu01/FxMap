@@ -1,98 +1,81 @@
-# FxMap.HotChocolate
+<p align="center">
+  <img src="https://raw.githubusercontent.com/quyvu01/FxMap/main/FxMap.png" alt="FxMap" width="96" />
+</p>
 
-**FxMap.HotChocolate** is an integration package that seamlessly connects **FxMap** with the **HotChocolate** GraphQL library ([Hot Chocolate Docs](https://chillicream.com/docs/hotchocolate/v15)).
+<h1 align="center">FxMap.HotChocolate</h1>
 
-With **FxMap.HotChocolate**, you get **high-performance, FluentAPI-based data mapping**, making your **GraphQL queries lightning-fast** across distributed systems.
+<p align="center">
+  HotChocolate integration for FxMap — GraphQL fields declared in a profile are resolved through FxMap.
+</p>
 
-**Write Less Code. Fetch Data Smarter. Scale Effortlessly.**
+<p align="center">
+  <a href="https://www.nuget.org/packages/FxMap.HotChocolate"><img alt="NuGet" src="https://img.shields.io/nuget/v/FxMap.HotChocolate.svg" /></a>
+  <a href="https://www.nuget.org/packages/FxMap.HotChocolate"><img alt="Downloads" src="https://img.shields.io/nuget/dt/FxMap.HotChocolate.svg" /></a>
+  <a href="https://github.com/quyvu01/FxMap/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" /></a>
+</p>
 
-[Demo Project!](https://github.com/quyvu01/TestFxMap-Demo)
+<p align="center">
+  <a href="https://github.com/quyvu01/FxMap"><b>FxMap</b></a> ·
+  <a href="https://fxmapper.net"><b>Documentation</b></a> ·
+  <a href="https://github.com/quyvu01/TestFxMap-Demo"><b>Demo project</b></a>
+</p>
 
 ---
 
-## Why FxMap.HotChocolate?
-
-**Effortless Data Mapping** -- Leverage FxMap's FluentAPI-based Data Mapping to simplify GraphQL queries.
-**Seamless Integration** -- Works out-of-the-box with HotChocolate and FxMap.
-**Blazing Fast Queries** -- Optimized data retrieval for high-performance systems.
-**Scalable & Flexible** -- Works across distributed environments with multiple transport layers.
-
----
+With **FxMap.HotChocolate**, a GraphQL type whose properties are declared in a `ProfileOf<T>` gets those fields resolved
+through FxMap, across services and transports, instead of writing a resolver per field. See the
+[Hot Chocolate docs](https://chillicream.com/docs/hotchocolate/v15) for the GraphQL side.
 
 ## Installation
-
-To install the FxMap.HotChocolate package, use the following NuGet command:
 
 ```bash
 dotnet add package FxMap.HotChocolate
 ```
 
-Or via the NuGet Package Manager:
+> [!WARNING]
+> All FxMap.* packages must use the same version.
 
-```bash
-Install-Package FxMap.HotChocolate
-```
-
----
-
-## How to Use
-
-### 1. Register FxMap.HotChocolate
-
-Add FxMap.HotChocolate to your service configuration during application startup:
+## Usage
 
 ```csharp
 var registerBuilder = builder.Services.AddGraphQLServer()
     .AddQueryType<Query>();
 
 builder.Services.AddFxMap(cfg =>
-{
-    cfg.AddEntitiesFromAssemblyContaining<SomeEntityAssemblyMarker>();
-    cfg.AddProfilesFromAssemblyContaining<SomeProfileAssemblyMarker>();
-    cfg.AddNats(config => config.Url("nats://localhost:4222"));
-})
-.AddHotChocolate(cfg => cfg.AddRequestExecutorBuilder(registerBuilder));
-
-...
+    {
+        cfg.AddEntitiesFromAssemblyContaining<SomeEntityAssemblyMarker>();
+        cfg.AddProfilesFromAssemblyContaining<SomeProfileAssemblyMarker>();
+        cfg.AddNats(config => config.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
+    })
+    .AddHotChocolate(cfg => cfg.AddRequestExecutorBuilder(registerBuilder));
 
 var app = builder.Build();
-
+app.MapGraphQL();
 app.Run();
 ```
-`Note:` FxMap.HotChocolate will dynamically create the `ObjectTypeExtension<T>` for **ResponseType**. So If you want to create **ObjectType** for some object e.g: `UserResponse`,
-please use `ObjectTypeExtension<T>` instead of `ObjectType<T>`.
 
-That All, enjoy your moment!
+> [!NOTE]
+> FxMap.HotChocolate creates an `ObjectTypeExtension<T>` for each response type that has a profile. If you want to
+> define the GraphQL type of such an object (for example `UserResponse`) yourself, use `ObjectTypeExtension<T>` instead
+> of `ObjectType<T>`.
 
-| Package Name                                                 | Description                                                                                                 | .NET Version   | Document                                                                                     |
-|--------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------|----------------|----------------------------------------------------------------------------------------------|
-| **Core**                                                     |                                                                                                             |
-| [FxMap][FxMap.nuget]                                         | FxMap core                                                                                                  | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/README.md)                               |
-| **Data Providers**                                           |                                                                                                             |
-| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget] | FxMap extension package using EntityFramework to fetch data                                                 | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
-| [FxMap.MongoDb][FxMap.MongoDb.nuget]                         | FxMap extension package using MongoDb to fetch data                                                         | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.MongoDb/README.md)             |
-| **Integrations**                                             |                                                                                                             |
-| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]               | FxMap.HotChocolate is an integration package with HotChocolate for FxMap.                                   | 8.0, 9.0, 10.0 | This Document                                                                                |
-| **Transports**                                               |                                                                                                             |
-| [FxMap.Grpc][FxMap.Grpc.nuget]                               | FxMap.Grpc is an extension package for FxMap that leverages gRPC for efficient data transportation.         | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Grpc/README.md)                |
-| [FxMap.Kafka][FxMap.Kafka.nuget]                             | FxMap.Kafka is an extension package for FxMap that leverages Kafka for efficient data transportation.       | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md)               |
-| [FxMap.Nats][FxMap.Nats.nuget]                               | FxMap.Nats is an extension package for FxMap that leverages Nats for efficient data transportation.         | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md)                |
-| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                       | FxMap.RabbitMq is an extension package for FxMap that leverages RabbitMq for efficient data transportation. | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md)            |
+## Related packages
 
----
-
-[FxMap.nuget]: https://www.nuget.org/packages/FxMap/
-
-[FxMap.EntityFrameworkCore.nuget]: https://www.nuget.org/packages/FxMap.EntityFrameworkCore/
-
-[FxMap.MongoDb.nuget]: https://www.nuget.org/packages/FxMap.MongoDb/
-
-[FxMap.HotChocolate.nuget]: https://www.nuget.org/packages/FxMap.HotChocolate/
-
-[FxMap.Grpc.nuget]: https://www.nuget.org/packages/FxMap.Grpc/
-
-[FxMap.Nats.nuget]: https://www.nuget.org/packages/FxMap.Nats/
-
-[FxMap.RabbitMq.nuget]: https://www.nuget.org/packages/FxMap.RabbitMq/
-
-[FxMap.Kafka.nuget]: https://www.nuget.org/packages/FxMap.Kafka/
+| Package | Description | Documentation |
+|---|---|---|
+| **Core** | | |
+| [FxMap](https://www.nuget.org/packages/FxMap) | FxMap core: profiles, entity configs, the mapper and the expression language | [README](https://github.com/quyvu01/FxMap/blob/main/README.md) |
+| **Data providers** | | |
+| [FxMap.EntityFrameworkCore](https://www.nuget.org/packages/FxMap.EntityFrameworkCore) | Answers requests from an Entity Framework Core `DbContext` | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
+| [FxMap.MongoDb](https://www.nuget.org/packages/FxMap.MongoDb) | Answers requests from MongoDB collections | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.MongoDb/README.md) |
+| **Integrations** | | |
+| [FxMap.HotChocolate](https://www.nuget.org/packages/FxMap.HotChocolate) | Fills GraphQL response types through HotChocolate | This document |
+| **Transports** | | |
+| [FxMap.Grpc](https://www.nuget.org/packages/FxMap.Grpc) | gRPC transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Grpc/README.md) |
+| [FxMap.Nats](https://www.nuget.org/packages/FxMap.Nats) | NATS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md) |
+| [FxMap.RabbitMq](https://www.nuget.org/packages/FxMap.RabbitMq) | RabbitMQ transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md) |
+| [FxMap.Kafka](https://www.nuget.org/packages/FxMap.Kafka) | Apache Kafka transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md) |
+| [FxMap.Azure.ServiceBus](https://www.nuget.org/packages/FxMap.Azure.ServiceBus) | Azure Service Bus transport (Standard / Premium tiers) | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Azure.ServiceBus/README.md) |
+| [FxMap.Aws.Sqs](https://www.nuget.org/packages/FxMap.Aws.Sqs) | Amazon SQS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Aws.Sqs/README.md) |
+| **Tooling** | | |
+| [FxMap.Analyzers](https://www.nuget.org/packages/FxMap.Analyzers) | Roslyn analyzer that validates expression strings at compile time | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Analyzers/README.md) |

@@ -1,105 +1,85 @@
-# FxMap.Grpc
+<p align="center">
+  <img src="https://raw.githubusercontent.com/quyvu01/FxMap/main/FxMap.png" alt="FxMap" width="96" />
+</p>
 
-FxMap.Grpc is an extension package for FxMap that leverages gRPC for efficient data transportation. This package provides a
-high-performance, strongly-typed communication layer for FxMap's FluentAPI-based Data Mapping, enabling streamlined data
-retrieval across distributed systems.
+<h1 align="center">FxMap.Grpc</h1>
 
-[Demo Project!](https://github.com/quyvu01/TestFxMap-Demo)
+<p align="center">
+  gRPC transport for FxMap — typed requests between services over HTTP/2.
+</p>
+
+<p align="center">
+  <a href="https://www.nuget.org/packages/FxMap.Grpc"><img alt="NuGet" src="https://img.shields.io/nuget/v/FxMap.Grpc.svg" /></a>
+  <a href="https://www.nuget.org/packages/FxMap.Grpc"><img alt="Downloads" src="https://img.shields.io/nuget/dt/FxMap.Grpc.svg" /></a>
+  <a href="https://github.com/quyvu01/FxMap/blob/main/LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-blue.svg" /></a>
+</p>
+
+<p align="center">
+  <a href="https://github.com/quyvu01/FxMap"><b>FxMap</b></a> ·
+  <a href="https://fxmapper.net"><b>Documentation</b></a> ·
+  <a href="https://github.com/quyvu01/TestFxMap-Demo"><b>Demo project</b></a>
+</p>
 
 ---
 
-## Introduction
-
-gRPC-based Transport: Implements gRPC to handle data communication between services, providing a fast, secure, and
-scalable solution.
-
----
+A transport carries FxMap requests between the service that needs data (the client) and the service that owns it
+(the server). Every service that maps data needs the core `FxMap` package; the owning service also needs a data provider
+([EntityFrameworkCore](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) or
+[MongoDb](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.MongoDb/README.md)), and both sides use the same transport.
+Requests are batched per distributed key, so a hundred objects that need a `UserName` produce one request.
 
 ## Installation
-
-To install the FxMap.Grpc package, use the following NuGet command:
 
 ```bash
 dotnet add package FxMap.Grpc
 ```
 
-Or via the NuGet Package Manager:
+> [!WARNING]
+> All FxMap.* packages must use the same version.
 
-```bash
-Install-Package FxMap.Grpc
-```
----
+## Usage
 
-## How to Use
-
-### 1. Register FxMap.Grpc
-
-Add FxMap.Grpc to your service configuration during application startup:
-
-For Client:
+**Client** (the service that needs data) — list the hosts of the services that own the entities:
 
 ```csharp
-// Current version: FxMap.Grpc is now smarter and stronger than ever.
 builder.Services.AddFxMap(cfg =>
 {
     cfg.AddEntitiesFromAssemblyContaining<SomeEntityAssemblyMarker>();
     cfg.AddProfilesFromAssemblyContaining<SomeProfileAssemblyMarker>();
-    cfg.AddGrpcClients(c => c.AddGrpcHosts("http://localhost:5001", "http://localhost:5013")); // You can also add multiple hosts!
+    cfg.AddGrpcClients(c => c.AddGrpcHosts("http://localhost:5001", "http://localhost:5013"));
 });
 ```
 
-For Server:
+**Server** (the service that owns the data):
 
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
+builder.Services.AddGrpc();
 ...
 var app = builder.Build();
-...
-app.MapFxMapGrpcService();
-...
+app.MapFxMapperGrpc();
+app.Run();
 ```
 
-After installing the package FxMap.Grpc, you can use the extension method `AddGrpcClients()` for client and
-`MapFxMapGrpcService()` for server. Look up at `AddGrpcClients` function, we have to define the entity assembly with
-server host, on this example above, all the queries are included in `SomeEntityAssemblyMarker` assembly.
+`AddGrpcHosts` accepts one or several hosts. The server needs an HTTP/2 endpoint (Kestrel `Http2`, or `Http1AndHttp2`
+with TLS).
 
-That All, enjoy your moment!
+## Related packages
 
-| Package Name                                                 | Description                                                                                                                 | .NET Version   | Document                                                                                     |
-|--------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|----------------|----------------------------------------------------------------------------------------------|
-| **Core**                                                     |                                                                                                                             |
-| [FxMap][FxMap.nuget]                                         | FxMap core                                                                                                                  | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/README.md)                               |
-| **Integrations**                                             |                                                                                                                             |
-| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]               | FxMap.HotChocolate is an integration package with HotChocolate for FxMap.                                                   | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.HotChocolate/README.md)        |
-| **Data Providers**                                           |                                                                                                                             |
-| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget] | FxMap extension package using EntityFramework to fetch data                                                                 | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
-| [FxMap.MongoDb][FxMap.MongoDb.nuget]                         | FxMap extension package using MongoDb to fetch data                                                                         | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.MongoDb/README.md)             |
-| **Transports**                                               |                                                                                                                             |
-| [FxMap.Aws.Sqs][FxMap.Aws.Sqs.nuget]                         | FxMap.Aws.Sqs is an extension package for FxMap that leverages Amazon SQS for efficient data transportation.                | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Aws.Sqs/README.md)             |
-| [FxMap.Azure.ServiceBus][FxMap.Azure.ServiceBus.nuget]       | FxMap.Azure.ServiceBus is an extension package for FxMap that leverages Azure ServiceBus for efficient data transportation. | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Azure.ServiceBus/README.md)    |
-| [FxMap.Grpc][FxMap.Grpc.nuget]                               | FxMap.Grpc is an extension package for FxMap that leverages gRPC for efficient data transportation.                         | 8.0, 9.0, 10.0 | This Document                                                                                |
-| [FxMap.Kafka][FxMap.Kafka.nuget]                             | FxMap.Kafka is an extension package for FxMap that leverages Kafka for efficient data transportation.                       | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md)               |
-| [FxMap.Nats][FxMap.Nats.nuget]                               | FxMap.Nats is an extension package for FxMap that leverages Nats for efficient data transportation.                         | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md)                |
-| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                       | FxMap.RabbitMq is an extension package for FxMap that leverages RabbitMq for efficient data transportation.                 | 8.0, 9.0, 10.0 | [ReadMe](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md)            |
-
----
-
-[FxMap.nuget]: https://www.nuget.org/packages/FxMap/
-
-[FxMap.EntityFrameworkCore.nuget]: https://www.nuget.org/packages/FxMap.EntityFrameworkCore/
-
-[FxMap.MongoDb.nuget]: https://www.nuget.org/packages/FxMap.MongoDb/
-
-[FxMap.HotChocolate.nuget]: https://www.nuget.org/packages/FxMap.HotChocolate/
-
-[FxMap.Aws.Sqs.nuget]: https://www.nuget.org/packages/FxMap.Aws.Sqs/
-
-[FxMap.Grpc.nuget]: https://www.nuget.org/packages/FxMap.Grpc/
-
-[FxMap.Nats.nuget]: https://www.nuget.org/packages/FxMap.Nats/
-
-[FxMap.RabbitMq.nuget]: https://www.nuget.org/packages/FxMap.RabbitMq/
-
-[FxMap.Kafka.nuget]: https://www.nuget.org/packages/FxMap.Kafka/
-
-[FxMap.Azure.ServiceBus.nuget]: https://www.nuget.org/packages/FxMap.Azure.ServiceBus/
+| Package | Description | Documentation |
+|---|---|---|
+| **Core** | | |
+| [FxMap](https://www.nuget.org/packages/FxMap) | FxMap core: profiles, entity configs, the mapper and the expression language | [README](https://github.com/quyvu01/FxMap/blob/main/README.md) |
+| **Data providers** | | |
+| [FxMap.EntityFrameworkCore](https://www.nuget.org/packages/FxMap.EntityFrameworkCore) | Answers requests from an Entity Framework Core `DbContext` | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
+| [FxMap.MongoDb](https://www.nuget.org/packages/FxMap.MongoDb) | Answers requests from MongoDB collections | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.MongoDb/README.md) |
+| **Integrations** | | |
+| [FxMap.HotChocolate](https://www.nuget.org/packages/FxMap.HotChocolate) | Fills GraphQL response types through HotChocolate | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.HotChocolate/README.md) |
+| **Transports** | | |
+| [FxMap.Grpc](https://www.nuget.org/packages/FxMap.Grpc) | gRPC transport | This document |
+| [FxMap.Nats](https://www.nuget.org/packages/FxMap.Nats) | NATS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md) |
+| [FxMap.RabbitMq](https://www.nuget.org/packages/FxMap.RabbitMq) | RabbitMQ transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md) |
+| [FxMap.Kafka](https://www.nuget.org/packages/FxMap.Kafka) | Apache Kafka transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md) |
+| [FxMap.Azure.ServiceBus](https://www.nuget.org/packages/FxMap.Azure.ServiceBus) | Azure Service Bus transport (Standard / Premium tiers) | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Azure.ServiceBus/README.md) |
+| [FxMap.Aws.Sqs](https://www.nuget.org/packages/FxMap.Aws.Sqs) | Amazon SQS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Aws.Sqs/README.md) |
+| **Tooling** | | |
+| [FxMap.Analyzers](https://www.nuget.org/packages/FxMap.Analyzers) | Roslyn analyzer that validates expression strings at compile time | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Analyzers/README.md) |

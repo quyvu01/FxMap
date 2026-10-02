@@ -434,7 +434,7 @@ podman stats
 
 1. ✅ **Explore the demo**: Follow [README-TELEMETRY-DEMO.md](./README-TELEMETRY-DEMO.md)
 2. 📖 **Understand the implementation**: Read [../docs/telemetry.md](../docs/telemetry.md)
-3. 🎨 **Customize Grafana dashboards**: Modify [grafana/provisioning/dashboards/json/fxmap-overview.json](./grafana/provisioning/dashboards/json/fxmap-overview.json)
+3. 🎨 **Customize Grafana dashboards**: Modify [grafana/provisioning/dashboards/json/ofx-overview.json](./grafana/provisioning/dashboards/json/ofx-overview.json)
 4. 🚨 **Set up alerting**: Configure Prometheus alert rules
 5. 🔄 **Integrate with CI/CD**: Add telemetry checks to your pipeline
 

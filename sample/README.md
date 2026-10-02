@@ -5,8 +5,8 @@ This directory contains sample applications demonstrating the FxMap framework's 
 ## Sample Services
 
 - **Service1** - GraphQL API service using HotChocolate, Entity Framework Core, and MongoDB
-- **Service2** - Worker service demonstrating EF Core integration
-- **Service3** - Worker service demonstrating EF Core integration
+- **Service2** - Worker service owning the User entity (NATS, SQS and gRPC transports, EF Core)
+- **Service3** - Worker service owning the Country and Province entities (NATS, SQS and gRPC transports, EF Core)
 - **Shared** - Common models and utilities shared across services
 
 ## Quick Start Guides
@@ -244,13 +244,14 @@ The samples demonstrate FxMap's built-in telemetry capabilities:
 - **Port**: 5001 (HTTPS), 5000 (HTTP)
 - **Endpoint**: `/graphql`
 - **Features**:
-  - GraphQL API with HotChocolate
-  - Multiple data sources (EF Core + MongoDB)
-  - Cross-service queries via NATS
+  - GraphQL API with HotChocolate (`FxMap.HotChocolate`)
+  - Multiple data sources (EF Core with two `DbContext`s + MongoDB)
+  - Cross-service queries over NATS (RabbitMQ and SQS configurations are included, commented out)
   - OpenTelemetry tracing and metrics
 
 ### Service2 (Worker)
-- **Role**: NATS message consumer
+- **Role**: owns the User entity; answers FxMap requests
+- **Transports**: NATS, Amazon SQS (LocalStack) and gRPC (`app.MapFxMapperGrpc()`)
 - **Features**:
   - Entity Framework Core
   - User entity management
@@ -258,7 +259,8 @@ The samples demonstrate FxMap's built-in telemetry capabilities:
   - Distributed tracing
 
 ### Service3 (Worker)
-- **Role**: NATS message consumer
+- **Role**: owns the Country and Province entities; answers FxMap requests
+- **Transports**: NATS, Amazon SQS (LocalStack) and gRPC (`app.MapFxMapperGrpc()`)
 - **Features**:
   - Entity Framework Core
   - Country and Province entities
