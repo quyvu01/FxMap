@@ -1,5 +1,6 @@
 using FxMap.Abstractions;
 using FxMap.Fluent.Rules;
+using FxMap.Models;
 
 namespace FxMap.Accessors.PropertyAccessors;
 
@@ -37,6 +38,9 @@ public sealed record PropertyInformation(
     /// property filled with a single value.
     /// </summary>
     public CollectionRule Collection { get; init; }
+
+    /// <summary>The compiled form of <see cref="Collection"/> used by the mapper; null for a single-value property.</summary>
+    internal CollectionPlan CollectionPlan { get; init; }
 
     public async ValueTask<string> ResolveExpression(IServiceProvider serviceProvider, CancellationToken token)
     {

@@ -26,6 +26,7 @@ public sealed class FakeRemote
     private sealed record Resolver(Func<string, string, object> Value, Func<string, bool> Exists);
 
     private readonly ConcurrentDictionary<Type, Resolver> _resolvers = new();
+    private readonly ConcurrentDictionary<Type, Func<string, IReadOnlyList<Func<string, object>>>> _rowResolvers = new();
     private readonly ConcurrentQueue<RemoteCall> _calls = new();
     private int _seq;
 
@@ -48,6 +49,17 @@ public sealed class FakeRemote
         return this;
     }
 
+    /// <summary>
+    /// A key that matches several rows: for an id, one function per row (expression to value). The response has one
+    /// DataResponse per row, all with that id; an id with no row gets none.
+    /// </summary>
+    public FakeRemote SetupRows<TKey>(Func<string, IReadOnlyList<Func<string, object>>> rowsOf)
+        where TKey : IDistributedKey
+    {
+        _rowResolvers[typeof(TKey)] = rowsOf;
+        return this;
+    }
+
     internal async Task<ItemsResponse<DataResponse>> HandleAsync(Type keyType, string[] ids, string[] expressions,
         CancellationToken token)
     {
@@ -55,7 +67,27 @@ public sealed class FakeRemote
         var start = Stopwatch.GetTimestamp();
         if (OnRequest is not null) await OnRequest(keyType);
         var responses = new List<DataResponse>();
-        if (_resolvers.TryGetValue(keyType, out var resolver))
+        if (_rowResolvers.TryGetValue(keyType, out var rowsOf))
+            foreach (var id in ids)
+            foreach (var row in rowsOf(id))
+                responses.Add(new DataResponse
+                {
+                    Id = id,
+                    Values =
+                    [
+                        ..expressions
+                            .Select(e => (Expression: e, Value: row(e)))
+                            .Where(x => !ReferenceEquals(x.Value, Absent))
+                            .Select(x => new ValueResponse
+                            {
+                                Expression = x.Expression,
+                                Value = x.Value is RawJson raw
+                                    ? raw.Json
+                                    : System.Text.Json.JsonSerializer.Serialize(x.Value)
+                            })
+                    ]
+                });
+        else if (_resolvers.TryGetValue(keyType, out var resolver))
             foreach (var id in ids.Where(id => resolver.Exists(id)))
                 responses.Add(new DataResponse
                 {
@@ -99,7 +131,8 @@ public sealed class MappingHarness : IDisposable
         typeof(NullExpressionDtoProfile), typeof(TwoSelectorsDtoProfile), typeof(ChainDtoProfile),
         typeof(DiamondDtoProfile), typeof(ItemDtoProfile), typeof(OrderDtoProfile), typeof(NodeProfile),
         typeof(DerivedItemProfile), typeof(BlobDtoProfile), typeof(AddressDtoProfile), typeof(ProfileDtoProfile),
-        typeof(ConditionalDtoProfile), typeof(GNodeProfile), typeof(LeafHolderDtoProfile)
+        typeof(ConditionalDtoProfile), typeof(GNodeProfile), typeof(LeafHolderDtoProfile), typeof(RowItemProfile), typeof(RowsDtoProfile), typeof(RowsArrayDtoProfile),
+        typeof(RowsInterfaceDtoProfile), typeof(RowsConditionalDtoProfile), typeof(RowsChainDtoProfile)
     ];
 
     private readonly ServiceProvider _provider;

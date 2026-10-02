@@ -412,3 +412,106 @@ internal sealed class GNodeProfile : ProfileOf<GNode>
         UseDistributedKey<ProvinceKey>().Of(x => x.ProvinceId).For(x => x.ProvinceName, "Name");
     }
 }
+
+#region Collections: one element per row of a key that matches several rows
+
+public class RowItem
+{
+    public string Name { get; set; }
+    public string Email { get; set; }
+    public int RowId { get; set; }
+    public string ProvinceId { get; set; }
+    public string ProvinceName { get; set; }
+}
+
+/// <summary>Elements that need a second round of mapping (ProvinceName comes from the ProvinceId of the row).</summary>
+internal sealed class RowItemProfile : ProfileOf<RowItem>
+{
+    protected override void Configure() =>
+        UseDistributedKey<ProvinceKey>().Of(x => x.ProvinceId).For(x => x.ProvinceName, "Name");
+}
+
+public class RowsDto
+{
+    public string Code { get; set; }
+    public string Name { get; set; }
+    public List<RowItem> Items { get; set; }
+}
+
+internal sealed class RowsDtoProfile : ProfileOf<RowsDto>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserKey>().Of(x => x.Code)
+            .For(x => x.Name, "Name")
+            .Collection(x => x.Items, i => i
+                .For(x => x.Name, "Name")
+                .For(x => x.Email, "Email")
+                .For(x => x.RowId, "Id")
+                .For(x => x.ProvinceId, "ProvinceId"));
+}
+
+public class RowsArrayDto
+{
+    public string Code { get; set; }
+    public RowItem[] Items { get; set; }
+}
+
+internal sealed class RowsArrayDtoProfile : ProfileOf<RowsArrayDto>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserKey>().Of(x => x.Code)
+            .Collection(x => x.Items, i => i.For(x => x.Name, "Name").For(x => x.RowId, "Id").Limit(2));
+}
+
+public class RowsInterfaceDto
+{
+    public string Code { get; set; }
+    public IReadOnlyList<RowItem> ReadOnly { get; set; }
+    public IEnumerable<RowItem> Enumerable { get; set; }
+    public ICollection<RowItem> Collection { get; set; }
+}
+
+internal sealed class RowsInterfaceDtoProfile : ProfileOf<RowsInterfaceDto>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserKey>().Of(x => x.Code)
+            .Collection(x => x.ReadOnly, i => i.For(x => x.Name, "Name"))
+            .Collection(x => x.Enumerable, i => i.For(x => x.RowId, "Id"))
+            .Collection(x => x.Collection, i => i.For(x => x.Email, "Email"));
+}
+
+public class RowsConditionalDto
+{
+    public string Code { get; set; }
+    public List<RowItem> Items { get; set; }
+}
+
+internal sealed class RowsConditionalDtoProfile : ProfileOf<RowsConditionalDto>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserKey>().Of(x => x.Code)
+            .Collection(x => x.Items, i => i.For(x => x.Name, c => c
+                .If(sp => sp.GetRequiredService<ModeFlag>().UseEmail)
+                .Expression("Email")
+                .Else("Name")));
+}
+
+/// <summary>The collection is at order 1: its selector (Code) is filled by another key first.</summary>
+public class RowsChainDto
+{
+    public string UserId { get; set; }
+    public string Code { get; set; }
+    public List<RowItem> Items { get; set; }
+}
+
+internal sealed class RowsChainDtoProfile : ProfileOf<RowsChainDto>
+{
+    protected override void Configure()
+    {
+        UseDistributedKey<UserKey>().Of(x => x.UserId).For(x => x.Code, "Code");
+        UseDistributedKey<ProductKey>().Of(x => x.Code)
+            .Collection(x => x.Items, i => i.For(x => x.Name, "Name").For(x => x.RowId, "Id"));
+    }
+}
+
+#endregion

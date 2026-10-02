@@ -283,7 +283,11 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
             dependency.RuntimeDistributedKeyType,
             requiredAccessor)
         {
-            ConditionalExpression = dependency.ConditionalExpression, Collection = dependency.Collection
+            ConditionalExpression = dependency.ConditionalExpression,
+            Collection = dependency.Collection,
+            CollectionPlan = dependency.Collection is null
+                ? null
+                : CollectionPlan.Build(dependency.Collection, dependency.TargetPropertyInfo.PropertyType)
         };
     }
 }

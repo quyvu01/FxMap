@@ -17,4 +17,7 @@ internal sealed record PropertyDescriptor(
     IPropertyAccessor Accessor)
 {
     internal string EffectiveExpression { get; set; }
+
+    /// <summary>For a collection property: the expression of each item rule (request-scoped, same order as the rules).</summary>
+    internal string[] ItemExpressions { get; set; }
 }

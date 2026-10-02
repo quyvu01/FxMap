@@ -17,8 +17,9 @@ namespace FxMap.Helpers;
 public static class RequestedIdAnswers
 {
     /// <summary>
-    /// Returns the rows re-keyed so that every requested id text that resolves to a row gets an answer under that
-    /// exact text. Rows nobody asked for are dropped; texts that do not resolve to a row get no answer.
+    /// Returns the rows re-keyed so that every requested id text that resolves to rows gets those rows under that
+    /// exact text. A key that matches several rows (non-unique lookup) keeps all of them, in their original order.
+    /// Rows nobody asked for are dropped; texts that do not resolve to a row get no answer.
     /// </summary>
     /// <param name="requestedIds">The id texts of the request (nulls are ignored).</param>
     /// <param name="rows">The rows returned by the provider, keyed by the canonical id text.</param>
@@ -28,24 +29,30 @@ public static class RequestedIdAnswers
     {
         if (rows.Length == 0) return rows;
         var requested = new HashSet<string>(requestedIds.Where(id => id is not null));
-        // Common case: every requested text is itself the canonical id of a row, nothing to translate.
-        if (requested.Count == rows.Length && rows.All(r => requested.Contains(r.Id))) return rows;
 
-        var byCanonicalId = new Dictionary<string, DataResponse>(rows.Length);
-        foreach (var row in rows) byCanonicalId.TryAdd(row.Id, row);
+        var rowsByCanonicalId = new Dictionary<string, List<DataResponse>>();
+        foreach (var row in rows)
+        {
+            if (!rowsByCanonicalId.TryGetValue(row.Id, out var group)) rowsByCanonicalId[row.Id] = group = [];
+            group.Add(row);
+        }
 
-        var answers = new List<DataResponse>(requested.Count);
+        // Common case: every requested text is itself the canonical id of some rows, nothing to translate.
+        if (requested.Count == rowsByCanonicalId.Count && rowsByCanonicalId.Keys.All(requested.Contains)) return rows;
+
+        var answers = new List<DataResponse>(rows.Length);
         foreach (var text in requested)
         {
-            if (byCanonicalId.TryGetValue(text, out var exact))
+            if (rowsByCanonicalId.TryGetValue(text, out var exact))
             {
-                answers.Add(exact);
+                answers.AddRange(exact);
                 continue;
             }
 
             var parsed = (idConverter.ConvertIds([text]) as IEnumerable)?.Cast<object>().FirstOrDefault();
-            if (parsed?.ToString() is { } canonical && byCanonicalId.TryGetValue(canonical, out var row))
-                answers.Add(new DataResponse { Id = text, Values = row.Values });
+            if (parsed?.ToString() is not { } canonical || !rowsByCanonicalId.TryGetValue(canonical, out var group))
+                continue;
+            answers.AddRange(group.Select(row => new DataResponse { Id = text, Values = row.Values }));
         }
 
         return [..answers];

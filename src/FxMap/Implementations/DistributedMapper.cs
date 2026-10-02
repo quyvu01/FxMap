@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Concurrent;
 using FxMap.Abstractions;
+using FxMap.Accessors.PropertyAccessors;
+using FxMap.Fluent.Rules;
 using FxMap.Helpers;
 using FxMap.Models;
 using FxMap.Fluent;
@@ -85,6 +87,23 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                     var conditionalTasks = new List<Task>();
                     foreach (var property in properties)
                     {
+                        // A collection property asks for the expressions of its item rules instead.
+                        if (property.Property.CollectionPlan is { } collectionPlan)
+                        {
+                            property.ItemExpressions = new string[collectionPlan.Rules.Length];
+                            for (var i = 0; i < collectionPlan.Rules.Length; i++)
+                            {
+                                var itemRule = collectionPlan.Rules[i].Rule;
+                                if (itemRule.ConditionalExpression is null)
+                                    property.ItemExpressions[i] = itemRule.Expression;
+                                else
+                                    conditionalTasks.Add(ResolveItemExpressionAsync(property, i,
+                                        itemRule.ConditionalExpression, serviceProvider, token));
+                            }
+
+                            continue;
+                        }
+
                         if (property.Property.ConditionalExpression is null)
                         {
                             property.EffectiveExpression = property.Property.Expression;
@@ -96,7 +115,13 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
                     if (conditionalTasks.Count > 0) await Task.WhenAll(conditionalTasks);
 
-                    var expressions = new HashSet<string>(properties.Select(p => p.EffectiveExpression));
+                    var expressions = new HashSet<string>();
+                    foreach (var property in properties)
+                        if (property.ItemExpressions is { } itemExpressions)
+                            foreach (var itemExpression in itemExpressions)
+                                expressions.Add(itemExpression);
+                        else
+                            expressions.Add(property.EffectiveExpression);
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
                         new DistributedMapRequest([.. selectorIds], [.. expressions]), requestCt);
@@ -205,6 +230,10 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         CancellationToken token) => property.EffectiveExpression =
         await property.Property.ResolveExpression(serviceProvider, token);
 
+    private static async Task ResolveItemExpressionAsync(PropertyDescriptor property, int index,
+        ConditionalExpression conditional, IServiceProvider serviceProvider, CancellationToken token) =>
+        property.ItemExpressions[index] = await conditional.ResolveAsync(serviceProvider, token);
+
     // To use merge-expression, we have to group by distributed key only, exclude expression as the older version!
     private static IEnumerable<DistributedKeyInfo> GetDistributedKeyInfos
         (IEnumerable<PropertyDescriptor> propertyDescriptors, IEnumerable<Type> distributedKeyTypes) =>
@@ -217,33 +246,69 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     private void MapResponseData(IEnumerable<PropertyDescriptor> mappableProperties,
         IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
     {
-        var dataWithExpression = dataFetched
-            .Select(a => a.ItemsResponse.Items
-                .Select(x => (x.Id, x.Values))
-                .Select(k => (a.DistributedKeyType, Data: k)))
-            .SelectMany(x => x);
-        mappableProperties.Join(dataWithExpression, ap => (ap.Property?.RuntimeDistributedKeyType, ap
-                .Property?
-                .RequiredAccessor?
-                .Get(ap.Model)?.ToString()),
-            dt => (dt.DistributedKeyType, dt.Data.Id), (ap, dt) =>
+        // The rows of one selector value, in the order they arrived. A unique key has one row; a key that matches
+        // several rows has one DataResponse per row, all with the same id.
+        var rowsByKeyAndId = new Dictionary<(Type, string), List<ValueResponse[]>>();
+        foreach (var (distributedKeyType, itemsResponse) in dataFetched)
+            foreach (var item in itemsResponse.Items)
             {
-                var value = dt.Data
-                    .Values
-                    .FirstOrDefault(a => a.Expression == ap.EffectiveExpression)?.Value;
-                if (value is null || ap.PropertyInfo is not { } propertyInfo) return value;
-                try
-                {
-                    var valueSet = JsonSerializer.DeserializeObject(value, propertyInfo.PropertyType);
-                    ap.Accessor.Set(ap.Model, valueSet);
-                }
-                catch (Exception)
-                {
-                    var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-                    if (fxMapConfiguration.ThrowIfExceptions) throw;
-                }
+                var key = (distributedKeyType, item.Id);
+                if (!rowsByKeyAndId.TryGetValue(key, out var rows)) rowsByKeyAndId[key] = rows = [];
+                rows.Add(item.Values);
+            }
 
-                return value;
-            }).Evaluate();
+        foreach (var property in mappableProperties)
+        {
+            if (property.Property?.RuntimeDistributedKeyType is not { } keyType) continue;
+            if (property.Property.RequiredAccessor?.Get(property.Model)?.ToString() is not { } selectorId) continue;
+            if (!rowsByKeyAndId.TryGetValue((keyType, selectorId), out var rows)) continue;
+
+            if (property.Property.CollectionPlan is { } plan) MapCollection(property, plan, rows);
+            // A plain rule on a key that matches several rows takes the first row.
+            else MapValue(property, rows[0]);
+        }
+    }
+
+    private void MapValue(PropertyDescriptor property, ValueResponse[] row)
+    {
+        var value = row.FirstOrDefault(a => a.Expression == property.EffectiveExpression)?.Value;
+        if (value is null) return;
+        SetValue(property.Accessor, property.Model, value, property.PropertyInfo.PropertyType);
+    }
+
+    // One element per row (up to the limit of the rule), each filled by the item rules from its own row.
+    private void MapCollection(PropertyDescriptor property, CollectionPlan plan, List<ValueResponse[]> rows)
+    {
+        var list = plan.CreateList();
+        var count = plan.Limit is { } limit ? Math.Min(limit, rows.Count) : rows.Count;
+        for (var r = 0; r < count; r++)
+        {
+            var item = plan.CreateItem();
+            for (var i = 0; i < plan.Rules.Length; i++)
+            {
+                var expression = property.ItemExpressions[i];
+                var value = rows[r].FirstOrDefault(a => a.Expression == expression)?.Value;
+                if (value is null) continue;
+                var rule = plan.Rules[i];
+                SetValue(rule.Accessor, item, value, rule.PropertyType);
+            }
+
+            list.Add(item);
+        }
+
+        property.Accessor.Set(property.Model, plan.ToContainer(list));
+    }
+
+    private void SetValue(IPropertyAccessor accessor, object instance, string json, Type propertyType)
+    {
+        try
+        {
+            accessor.Set(instance, JsonSerializer.DeserializeObject(json, propertyType));
+        }
+        catch (Exception)
+        {
+            var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+            if (fxMapConfiguration.ThrowIfExceptions) throw;
+        }
     }
 }

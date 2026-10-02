@@ -158,6 +158,43 @@ public class RequestedIdAnswersTests
         answer.Values.ShouldBeSameAs(row.Values);
     }
 
+    [Fact]
+    public void Rows_that_share_an_id_are_all_kept_in_their_original_order()
+    {
+        var rows = new[] { Row("A", "a1"), Row("B", "b1"), Row("B", "b2"), Row("B", "b3") };
+
+        var answers = RequestedIdAnswers.Align(["A", "B"], rows, ConverterOf<string>());
+
+        answers.ShouldBeSameAs(rows);
+    }
+
+    [Fact]
+    public void All_rows_of_a_key_are_answered_under_each_requested_spelling()
+    {
+        var id = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        var rows = new[] { Row(id, "r1"), Row(other, "o1"), Row(id, "r2"), Row(id, "r3") };
+        var upper = id.ToString().ToUpperInvariant();
+
+        var answers = RequestedIdAnswers.Align([upper, id.ToString("N"), other.ToString()], rows, ConverterOf<Guid>());
+
+        answers.Where(a => a.Id == upper).Select(a => a.Values.Single().Value).ShouldBe(["r1", "r2", "r3"]);
+        answers.Where(a => a.Id == id.ToString("N")).Select(a => a.Values.Single().Value).ShouldBe(["r1", "r2", "r3"]);
+        answers.Where(a => a.Id == other.ToString()).Select(a => a.Values.Single().Value).ShouldBe(["o1"]);
+        answers.Length.ShouldBe(7);
+    }
+
+    [Fact]
+    public void A_requested_key_with_one_row_among_keys_with_several_is_still_answered()
+    {
+        var rows = new[] { Row(1, "x"), Row(2, "y1"), Row(2, "y2") };
+
+        var answers = RequestedIdAnswers.Align(["1", "02"], rows, ConverterOf<int>());
+
+        answers.Select(a => (a.Id, a.Values.Single().Value)).OrderBy(x => x.Id).ShouldBe(
+            [("02", "y1"), ("02", "y2"), ("1", "x")]);
+    }
+
     private readonly record struct OrderNo(int Number)
     {
         public override string ToString() => $"ORD-{Number:0000}";
