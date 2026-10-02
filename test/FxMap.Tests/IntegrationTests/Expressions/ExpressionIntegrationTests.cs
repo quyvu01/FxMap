@@ -1107,6 +1107,37 @@ public sealed class ExpressionIntegrationTests : IDisposable
         orders.Count.ShouldBe(0);
     }
 
+    [Theory]
+    [InlineData("Orders:max(Total)")]
+    [InlineData("Orders:min(Total)")]
+    [InlineData("Orders:avg(Total)")]
+    public async Task EdgeCase_MinMaxAverageOnEmptyCollection_ReturnNull(string expression)
+    {
+        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var projection = builder.Build([expression]);
+
+        var results = await _dbContext.Customers
+            .Where(c => c.Id == "customer-bob") // Bob has no orders
+            .Select(projection)
+            .ToArrayAsync();
+
+        results[0][1].ShouldBeNull();
+    }
+
+    [Fact]
+    public async Task EdgeCase_EmptyCollectionDoesNotBreakAggregatesOfOtherRowsInTheSameQuery()
+    {
+        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var projection = builder.Build(["Orders:max(Total)", "Orders:avg(Total)", "Orders:sum(Total)"]);
+
+        var results = await _dbContext.Customers.Select(projection).ToArrayAsync();
+
+        var withOrders = results.Where(r => r[1] is not null).ToList();
+        withOrders.ShouldNotBeEmpty();
+        results.Single(r => (string)r[0] == "customer-bob")[1].ShouldBeNull();
+        results.Single(r => (string)r[0] == "customer-bob")[3].ShouldBe(0m);
+    }
+
     [Fact]
     public async Task EdgeCase_AnyOnEmptyCollection_ReturnsFalse()
     {

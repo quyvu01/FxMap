@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -5,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
 using FxMap.Delegates;
 using FxMap.Expressions.Building;
+using FxMap.Responses;
 
 namespace FxMap.Builders;
 
@@ -44,7 +46,7 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
     // Static cache per generic type combination - this is correct behavior in C#
     // Each QueryHandlerBuilder<User, UserOfAttribute> gets its own static fields
     private static readonly Lazy<FilterExpressionCache> FilterCache = new(() => new FilterExpressionCache());
-    private static readonly ConcurrentDictionary<int, Expression<Func<TModel, object[]>>> ProjectionCache = new();
+    private static readonly ConcurrentDictionary<string, Expression<Func<TModel, object[]>>> ProjectionCache = new();
 
     /// <summary>
     /// Builds a filter expression for the given query using native Expression building.
@@ -69,6 +71,42 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
     /// </summary>
     /// <param name="request">The request containing expression strings.</param>
     /// <returns>A projection expression and the list of expressions for transformation.</returns>
+    /// <summary>
+    /// Makes the response answer to the ids the way the caller wrote them.
+    /// </summary>
+    /// <remarks>
+    /// The rows come back keyed by the canonical text of the entity id (<c>Guid.ToString()</c> is lower case with
+    /// hyphens, <c>int</c> has no leading zeros...), while the caller matches a response to its object by comparing the
+    /// text it sent. An id the converter accepts in another spelling (upper case or braced Guid, <c>"007"</c> for 7,
+    /// surrounding spaces) is found by the query but its row would never be matched. This returns one entry per
+    /// requested spelling, pointing at the row of the entity it parses to.
+    /// </remarks>
+    protected DataResponse[] AnswerRequestedIds(MapRequest<TDistributedKey> query, DataResponse[] rows)
+    {
+        if (rows.Length == 0) return rows;
+        var requested = new HashSet<string>(query.SelectorIds.Where(id => id is not null));
+        // Common case: every requested text is itself the canonical id of a row, nothing to translate.
+        if (requested.Count == rows.Length && rows.All(r => requested.Contains(r.Id))) return rows;
+
+        var converter = FilterCache.Value.IdConverter;
+        var byCanonicalId = rows.ToDictionary(r => r.Id);
+        var answers = new List<DataResponse>(requested.Count);
+        foreach (var text in requested)
+        {
+            if (byCanonicalId.TryGetValue(text, out var exact))
+            {
+                answers.Add(exact);
+                continue;
+            }
+
+            var parsed = (converter.ConvertIds([text]) as IEnumerable)?.Cast<object>().FirstOrDefault();
+            if (parsed?.ToString() is { } canonical && byCanonicalId.TryGetValue(canonical, out var row))
+                answers.Add(new DataResponse { Id = text, Values = row.Values });
+        }
+
+        return [..answers];
+    }
+
     protected (Expression<Func<TModel, object[]>> Projection, IReadOnlyList<string> Expressions) BuildProjection(
         MapRequest<TDistributedKey> request)
     {
@@ -92,12 +130,9 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
         return (projection, expressionList);
     }
 
-    private static int ComputeCacheKey(IReadOnlyList<string> expressions)
-    {
-        var hash = new HashCode();
-        foreach (var expr in expressions) hash.Add(expr);
-        return hash.ToHashCode();
-    }
+    // The key is the expression list itself (order matters: values are returned by position). A hash code is not
+    // enough: two different lists with the same hash would silently share one projection.
+    private static string ComputeCacheKey(IReadOnlyList<string> expressions) => string.Join('\u001f', expressions);
 
     /// <summary>
     /// Caches all metadata needed for building filter expressions.

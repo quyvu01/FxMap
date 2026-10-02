@@ -40,13 +40,16 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         var currentNestingLevel = 0;
         while (true)
         {
+            var allPropertyDatas = DiscoverResolvableProperties(value);
+
+            // Nothing left to map (e.g. the next level only holds empty collections): done, whatever the depth.
+            if (allPropertyDatas.Count == 0) break;
+
             if (currentNestingLevel >= fxMapConfiguration.MaxNestingDepth)
             {
                 if (fxMapConfiguration.ThrowIfExceptions) throw new DistributedMapException.MaxNestingDepthReached();
                 return;
             }
-
-            var allPropertyDatas = DiscoverResolvableProperties(value);
 
             var distributedKeyTypes = fxMapConfiguration.DistributedKeyTypes;
             var typeData = GetDistributedKeyInfos(allPropertyDatas, distributedKeyTypes);

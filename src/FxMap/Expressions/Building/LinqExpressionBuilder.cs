@@ -1556,31 +1556,36 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
         if (!TryGetEnumerableElementType(source.Type, out var elementType))
             throw new InvalidOperationException($"Cannot apply aggregate to non-collection type '{source.Type.Name}'");
 
-        if (propertyName == null)
+        var parameter = Expression.Parameter(elementType, "s");
+        Expression selected = parameter;
+        if (propertyName != null)
         {
-            // Direct aggregate on numeric collection
-            var method = typeof(Enumerable).GetMethods()
-                .First(m => m.Name == methodName && m.GetParameters().Length == 1);
-
-            var aggregateCall = Expression.Call(method.MakeGenericMethod(elementType), source.Expression);
-            return new ExpressionBuildResult(aggregateCall.Type, aggregateCall);
+            var typeAccessor = context.TypeAccessorProvider(elementType);
+            var property = typeAccessor.GetPropertyInfo(propertyName)
+                           ?? throw new InvalidOperationException(
+                               $"Property '{propertyName}' not found on type '{elementType.Name}'");
+            selected = Expression.Property(parameter, property);
         }
 
-        // Aggregate with selector: Sum(x => x.Property)
-        var parameter = Expression.Parameter(elementType, "s");
-        var typeAccessor = context.TypeAccessorProvider(elementType);
-        var property = typeAccessor.GetPropertyInfo(propertyName)
-                       ?? throw new InvalidOperationException(
-                           $"Property '{propertyName}' not found on type '{elementType.Name}'");
+        // Min / Max / Average of an empty collection has no value. The overloads over a non-nullable value type
+        // throw ("Sequence contains no elements"), and because every id of a request shares one query, a single
+        // empty collection would fail the values of all the other ids too. Selecting the nullable type makes the
+        // result null for an empty collection (the Sum / Count of an empty collection stay 0).
+        var selectorType = selected.Type;
+        if (methodName is nameof(Enumerable.Min) or nameof(Enumerable.Max) or nameof(Enumerable.Average) &&
+            selectorType.IsValueType && Nullable.GetUnderlyingType(selectorType) is null)
+        {
+            selectorType = typeof(Nullable<>).MakeGenericType(selectorType);
+            selected = Expression.Convert(selected, selectorType);
+        }
 
-        var propertyAccess = Expression.Property(parameter, property);
-        var selectorLambda = Expression.Lambda(propertyAccess, parameter);
-        var propertyType = property.PropertyType;
+        var selectorLambda = Expression.Lambda(selected, parameter);
 
-        // Find the right Sum/Average/etc method with selector that matches the property type
+        // Find the right Sum/Average/etc method with selector that matches the selected type.
         // Methods like Sum, Min, Max have overloads for each numeric type (int, long, decimal, double, etc.)
         var aggregateMethod = typeof(Enumerable).GetMethods()
-            .Where(m => m.Name == methodName && m.GetParameters().Length == 2)
+            .Where(m => m.Name == methodName && m.GetParameters().Length == 2 &&
+                        m.GetGenericArguments().Length == 1)
             .FirstOrDefault(m =>
             {
                 var p = m.GetParameters()[1];
@@ -1588,50 +1593,31 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
                     p.ParameterType.GetGenericTypeDefinition() != typeof(Func<,>))
                     return false;
 
-                // Check if the Func's return type matches the property type
                 var funcArgs = p.ParameterType.GetGenericArguments();
-                if (funcArgs.Length != 2) return false;
-
-                // For generic methods, the first argument is TSource, the second is the selector return type
-                // We need to match the second type argument with our property type
-                var selectorReturnType = funcArgs[1];
-
-                // If the method is generic, check if we can substitute our property type
-                if (m.IsGenericMethod)
-                {
-                    // For methods like Sum<TSource>(IEnumerable<TSource>, Func<TSource, decimal>)
-                    // The return type of Func is fixed (int, long, decimal, etc.)
-                    return selectorReturnType == propertyType ||
-                           (selectorReturnType.IsGenericParameter && CanUseNumericType(propertyType, methodName));
-                }
-
-                return selectorReturnType == propertyType;
+                return funcArgs.Length == 2 && funcArgs[1] == selectorType;
             });
 
-        if (aggregateMethod == null)
-            throw new InvalidOperationException(
-                $"Cannot find {methodName} method for type '{property.PropertyType.Name}'");
+        if (aggregateMethod != null)
+        {
+            var call = Expression.Call(aggregateMethod.MakeGenericMethod(elementType), source.Expression,
+                selectorLambda);
+            return new ExpressionBuildResult(call.Type, call);
+        }
 
-        var genericMethod = aggregateMethod.MakeGenericMethod(elementType);
-        var call = Expression.Call(genericMethod, source.Expression, selectorLambda);
+        // Min / Max over any other comparable type (DateTime, string, Guid, ...):
+        // Max<TSource, TResult>(IEnumerable<TSource>, Func<TSource, TResult>)
+        if (methodName is nameof(Enumerable.Min) or nameof(Enumerable.Max))
+        {
+            var generic = typeof(Enumerable).GetMethods().First(m =>
+                m.Name == methodName && m.GetParameters().Length == 2 && m.GetGenericArguments().Length == 2 &&
+                m.GetParameters()[1].ParameterType.GetGenericTypeDefinition() == typeof(Func<,>));
+            var call = Expression.Call(generic.MakeGenericMethod(elementType, selectorType), source.Expression,
+                selectorLambda);
+            return new ExpressionBuildResult(call.Type, call);
+        }
 
-        return new ExpressionBuildResult(call.Type, call);
-    }
-
-    /// <summary>
-    /// Checks if a type can be used for a numeric aggregate method.
-    /// </summary>
-    private static bool CanUseNumericType(Type type, string methodName)
-    {
-        // For Min/Max, any IComparable type works
-        if (methodName is "Min" or "Max")
-            return true;
-
-        // For Sum/Average, only numeric types work
-        return type == typeof(int) || type == typeof(long) || type == typeof(float) ||
-               type == typeof(double) || type == typeof(decimal) ||
-               type == typeof(int?) || type == typeof(long?) || type == typeof(float?) ||
-               type == typeof(double?) || type == typeof(decimal?);
+        throw new InvalidOperationException(
+            $"Cannot find {methodName} method for type '{selectorType.Name}'");
     }
 
     private static bool TryGetEnumerableElementType(Type type, out Type elementType)

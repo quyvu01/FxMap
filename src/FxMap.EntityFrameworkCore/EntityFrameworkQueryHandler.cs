@@ -74,7 +74,7 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
                 .ToArrayAsync(context.CancellationToken);
 
             // Step 2: Transform to FxMapDataResponse in memory
-            var data = ProjectionTransformer.TransformToArray(rawResults, expressions);
+            var data = AnswerRequestedIds(context.Query, ProjectionTransformer.TransformToArray(rawResults, expressions));
             var itemCount = data.Length;
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
