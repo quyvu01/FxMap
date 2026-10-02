@@ -1,4 +1,5 @@
 using FxMap.Abstractions;
+using FxMap.Delegates;
 using FxMap.Implementations;
 using FxMap.Responses;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,7 +25,7 @@ internal sealed class SendPipelineRoutingBehavior<TDistributedKey>(
     private static Type _receivedPipelinesOrchestratorType;
 
     public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
-        Func<Task<ItemsResponse<DataResponse>>> next)
+        SendHandlerDelegate next)
     {
         // Check if we have the inner handler for `TDistributedKey` or not. If have, we will call the ReceivedPipelinesOrchestrator<,> instead of sending via the message!
         var fxConfig = serviceProvider.GetRequiredService<IMapperConfiguration>();

@@ -1,3 +1,4 @@
+using FxMap.Delegates;
 using FxMap.Responses;
 
 namespace FxMap.Abstractions;
@@ -43,8 +44,6 @@ public interface ISendPipelineBehavior<TDistributedKey> : IMapperBase<TDistribut
     /// A task resolving to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing 
     /// the result of the pipeline execution and final response from the server.
     /// </returns>
-    Task<ItemsResponse<DataResponse>> HandleAsync(
-        RequestContext<TDistributedKey> requestContext,
-        Func<Task<ItemsResponse<DataResponse>>> next
-    );
+    Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
+        SendHandlerDelegate next);
 }

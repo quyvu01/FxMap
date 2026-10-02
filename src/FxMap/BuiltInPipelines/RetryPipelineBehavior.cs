@@ -1,4 +1,5 @@
 using FxMap.Abstractions;
+using FxMap.Delegates;
 using FxMap.Responses;
 using FxMap.Models;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,7 +24,7 @@ internal sealed class RetryPipelineBehavior<TDistributedKey>(IServiceProvider se
     where TDistributedKey : IDistributedKey
 {
     public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
-        Func<Task<ItemsResponse<DataResponse>>> next)
+        SendHandlerDelegate next)
     {
         var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
         var retryPolicy = fxMapConfiguration.RetryPolicy;

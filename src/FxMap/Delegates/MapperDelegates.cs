@@ -1,6 +1,7 @@
 using FxMap.Abstractions;
 using FxMap.Accessors.TypeAccessors;
 using FxMap.Fluent;
+using FxMap.Responses;
 
 namespace FxMap.Delegates;
 
@@ -19,3 +20,7 @@ public delegate IFluentProfileConfig GetProfileConfig(Type profileType);
 public delegate IFluentEntityConfig GetEntityConfig(Type entityType);
 
 public delegate ITypeAccessor GetTypeAccessor(Type type);
+
+public delegate Task<ItemsResponse<DataResponse>> SendHandlerDelegate();
+
+public delegate Task<ItemsResponse<DataResponse>> ReceivedHandlerDelegate();

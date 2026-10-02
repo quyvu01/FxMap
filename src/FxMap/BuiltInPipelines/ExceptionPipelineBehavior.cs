@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FxMap.Abstractions;
+using FxMap.Delegates;
 using FxMap.Responses;
 
 namespace FxMap.BuiltInPipelines;
@@ -22,7 +23,7 @@ internal sealed class ExceptionPipelineBehavior<TDistributedKey>(IServiceProvide
         serviceProvider.GetService<ILogger<ExceptionPipelineBehavior<TDistributedKey>>>();
 
     public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
-        Func<Task<ItemsResponse<DataResponse>>> next)
+        SendHandlerDelegate next)
     {
         try
         {

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
+using FxMap.Delegates;
 using FxMap.Models;
 using FxMap.Responses;
 
@@ -40,7 +41,8 @@ internal abstract class SendPipelinesOrchestrator
 internal sealed class SendPipelinesOrchestrator<TDistributedKey>(IServiceProvider serviceProvider) :
     SendPipelinesOrchestrator where TDistributedKey : IDistributedKey
 {
-    internal override async Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message, IContext context)
+    internal override async Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message,
+        IContext context)
     {
         var handler = serviceProvider.GetRequiredService<IClientRequestHandler<TDistributedKey>>();
         var cancellationToken = context?.CancellationToken ?? CancellationToken.None;
@@ -53,7 +55,7 @@ internal sealed class SendPipelinesOrchestrator<TDistributedKey>(IServiceProvide
         var result = await serviceProvider
             .GetServices<ISendPipelineBehavior<TDistributedKey>>()
             .Reverse()
-            .Aggregate(() => handler.RequestAsync(requestContext),
+            .Aggregate((SendHandlerDelegate)(() => handler.RequestAsync(requestContext)),
                 (acc, pipeline) => () => pipeline.HandleAsync(requestContext, acc)).Invoke();
         return result;
     }

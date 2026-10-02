@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FxMap.Abstractions;
+using FxMap.Delegates;
 using FxMap.Models;
 using FxMap.Exceptions;
 using FxMap.Extensions;
@@ -61,7 +62,8 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
         {
             0 => throw new DistributedMapException.CannotFindHandlerForDistributedKey(typeof(TDistributedKey)),
             1 => executableHandlers.First(),
-            _ => throw new DistributedMapException.DistributedKeyHasBeenConfiguredForModel(typeof(TModel), typeof(TDistributedKey)),
+            _ => throw new DistributedMapException.DistributedKeyHasBeenConfiguredForModel(typeof(TModel),
+                typeof(TDistributedKey)),
         };
 
         // Deserialize expressions from Expression, we handle the custom expressions and original expression as well
@@ -77,7 +79,7 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
             requestContext.CancellationToken);
 
         var resultTask = behaviors.Reverse()
-            .Aggregate(() => handler.GetDataAsync(newRequestContext),
+            .Aggregate((ReceivedHandlerDelegate)(() => handler.GetDataAsync(newRequestContext)),
                 (acc, pipeline) => () => pipeline.HandleAsync(newRequestContext, acc)).Invoke();
 
         if (newExpressions.Length == expressions.Length) return await resultTask;
@@ -86,10 +88,11 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
         var customResults = customExpressionHandlers
             .Where(a => customExpressionsToExecute.Contains(a.CustomExpression()))
             .Select(a => (Expression: a.CustomExpression(), ResultTask: a.HandleAsync(
-                new RequestContextImpl<TDistributedKey>(requestContext.Query with { Expressions = [a.CustomExpression()] },
+                new RequestContextImpl<TDistributedKey>(
+                    requestContext.Query with { Expressions = [a.CustomExpression()] },
                     requestContext.Headers, requestContext.CancellationToken)))).ToList();
 
-        await Task.WhenAll([resultTask, ..customResults.Select(a => a.ResultTask)]);
+        await Task.WhenAll([resultTask, .. customResults.Select(a => a.ResultTask)]);
         var result = await resultTask;
 
         var customResultsMerged = customResults
@@ -106,7 +109,7 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
             if (customResult is null) return;
             var customValues = customResult.Select(k => new ValueResponse
                 { Expression = k.Expression, Value = JsonSerializer.Serialize(k.Value) });
-            it.Values = [..it.Values, ..customValues];
+            it.Values = [.. it.Values, .. customValues];
         });
         return result;
     }
