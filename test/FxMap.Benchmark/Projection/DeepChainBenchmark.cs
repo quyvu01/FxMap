@@ -15,7 +15,7 @@ public class ChainNode
 {
     public string UserId { get; set; } = "";
     public string UserName { get; set; } = "";
-    public ChainNode? Next { get; set; }
+    public ChainNode Next { get; set; }
 }
 
 internal sealed class ChainNodeProfile : ProfileOf<ChainNode>

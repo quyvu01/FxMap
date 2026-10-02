@@ -12,11 +12,11 @@ public class LeafBlobDto
 {
     public string UserId { get; set; } = "";
     public string UserName { get; set; } = "";
-    public byte[]? Payload { get; set; }
-    public List<string>? Tags { get; set; }
-    public Dictionary<string, string>? Labels { get; set; }
-    public int[]? Numbers { get; set; }
-    public Uri? Link { get; set; }
+    public byte[] Payload { get; set; }
+    public List<string> Tags { get; set; }
+    public Dictionary<string, string> Labels { get; set; }
+    public int[] Numbers { get; set; }
+    public Uri Link { get; set; }
 }
 
 // Internal: other benchmarks scan exported types only, so this profile stays private to this benchmark.

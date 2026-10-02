@@ -35,7 +35,7 @@ public sealed class ComplexFixture : IDisposable
         _provider = provider;
     }
 
-    public static ComplexFixture Create(int seed, int orderCount, Action<FxMap.Registries.MapConfigurator>? configure = null)
+    public static ComplexFixture Create(int seed, int orderCount, Action<FxMap.Registries.MapConfigurator> configure = null)
     {
         var data = DomainData.Generate(seed, orderCount);
         var mode = new DisplayMode();

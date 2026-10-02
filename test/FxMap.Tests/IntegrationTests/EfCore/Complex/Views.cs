@@ -31,7 +31,7 @@ public class CustomerSummaryView
     public string Name { get; set; } = "";
     public string Email { get; set; } = "";
     public string CityId { get; set; } = "";
-    public string? CityName { get; set; }
+    public string CityName { get; set; }
 }
 
 public class OrderItemView
@@ -41,14 +41,14 @@ public class OrderItemView
     public int Quantity { get; set; }
     public decimal UnitPrice { get; set; }
 
-    public string? ProductName { get; set; }
+    public string ProductName { get; set; }
     public decimal ProductPrice { get; set; }
     public int CategoryId { get; set; }
-    public string? CategoryName { get; set; }
-    public string? CategoryParentName { get; set; }
+    public string CategoryName { get; set; }
+    public string CategoryParentName { get; set; }
     public double? ProductAvgRating { get; set; }
     public int ReviewCount { get; set; }
-    public List<TagView>? Tags { get; set; }
+    public List<TagView> Tags { get; set; }
 }
 
 public class OrderView
@@ -59,28 +59,28 @@ public class OrderView
     public decimal Total { get; set; }
     public DateTime OrderDate { get; set; }
 
-    public string? CustomerName { get; set; }
-    public string? CustomerEmail { get; set; }
+    public string CustomerName { get; set; }
+    public string CustomerEmail { get; set; }
     public Tier CustomerTier { get; set; }
     public bool CustomerIsVip { get; set; }
     public DateTime CustomerCreatedAt { get; set; }
     public int CustomerOrderCount { get; set; }
     public decimal CustomerLifetimeValue { get; set; }
-    public string? Display { get; set; }
+    public string Display { get; set; }
 
-    public string? CityId { get; set; }
-    public string? CityName { get; set; }
+    public string CityId { get; set; }
+    public string CityName { get; set; }
     public Guid ProvinceId { get; set; }
-    public string? ProvinceName { get; set; }
+    public string ProvinceName { get; set; }
     public int CountryId { get; set; }
-    public string? CountryName { get; set; }
-    public string? CountryNameDirect { get; set; }
+    public string CountryName { get; set; }
+    public string CountryNameDirect { get; set; }
 
     public Guid? ManagerId { get; set; }
-    public string? ManagerName { get; set; }
+    public string ManagerName { get; set; }
 
-    public CustomerSummaryView? Summary { get; set; }
-    public List<OrderBrief>? RecentOrders { get; set; }
+    public CustomerSummaryView Summary { get; set; }
+    public List<OrderBrief> RecentOrders { get; set; }
     public List<OrderItemView> Items { get; set; } = [];
 }
 
@@ -164,8 +164,8 @@ public class CustomerStatsView
     public decimal? Avg { get; set; }
     public bool AnyPending { get; set; }
     public bool AllPositive { get; set; }
-    public OrderBrief? Latest { get; set; }
-    public List<OrderBrief>? DoneOrders { get; set; }
+    public OrderBrief Latest { get; set; }
+    public List<OrderBrief> DoneOrders { get; set; }
 }
 
 internal sealed class CustomerStatsViewProfile : ProfileOf<CustomerStatsView>
@@ -199,11 +199,11 @@ public class ProvinceBrief
 public class CountryReportView
 {
     public int CountryId { get; set; }
-    public string? Name { get; set; }
+    public string Name { get; set; }
     public int ProvinceCount { get; set; }
     public long TotalArea { get; set; }
     public long? MaxArea { get; set; }
-    public List<ProvinceBrief>? BigProvinces { get; set; }
+    public List<ProvinceBrief> BigProvinces { get; set; }
 }
 
 internal sealed class CountryReportViewProfile : ProfileOf<CountryReportView>
@@ -224,9 +224,9 @@ internal sealed class CountryReportViewProfile : ProfileOf<CountryReportView>
 public class CategoryTreeView
 {
     public int CategoryId { get; set; }
-    public string? Name { get; set; }
-    public string? ParentName { get; set; }
-    public List<CategoryTreeView>? Children { get; set; }
+    public string Name { get; set; }
+    public string ParentName { get; set; }
+    public List<CategoryTreeView> Children { get; set; }
 }
 
 internal sealed class CategoryTreeViewProfile : ProfileOf<CategoryTreeView>
@@ -245,11 +245,11 @@ internal sealed class CategoryTreeViewProfile : ProfileOf<CategoryTreeView>
 public class ShipmentView
 {
     public Guid OrderId { get; set; }
-    public string? OrderStatus { get; set; }
+    public string OrderStatus { get; set; }
     public int ItemCount { get; set; }
     public int TotalQuantity { get; set; }
     public Guid CustomerId { get; set; }
-    public string? CustomerName { get; set; }
+    public string CustomerName { get; set; }
 }
 
 internal sealed class ShipmentViewProfile : ProfileOf<ShipmentView>
@@ -272,7 +272,7 @@ internal sealed class ShipmentViewProfile : ProfileOf<ShipmentView>
 public class TagCardView
 {
     public string TagId { get; set; } = "";
-    public string? TagName { get; set; }
+    public string TagName { get; set; }
     public int ProductCount { get; set; }
 }
 
@@ -288,7 +288,7 @@ public class ProductCardView
 {
     public long ProductId { get; set; }
     public decimal Cost { get; set; }
-    public string? Name { get; set; }
+    public string Name { get; set; }
 }
 
 internal sealed class ProductCardViewProfile : ProfileOf<ProductCardView>
@@ -304,7 +304,7 @@ public class OrderDateView
     public Guid CustomerId { get; set; }
     public DateTime? FirstOrder { get; set; }
     public DateTime? LastOrder { get; set; }
-    public string? MaxStatus { get; set; }
+    public string MaxStatus { get; set; }
     public Guid? MaxId { get; set; }
 }
 
@@ -326,11 +326,11 @@ internal sealed class OrderDateViewProfile : ProfileOf<OrderDateView>
 public class LooseIdView
 {
     public string CustomerId { get; set; } = "";
-    public string? CustomerName { get; set; }
+    public string CustomerName { get; set; }
     public string CountryId { get; set; } = "";
-    public string? CountryName { get; set; }
+    public string CountryName { get; set; }
     public string ProductId { get; set; } = "";
-    public string? ProductName { get; set; }
+    public string ProductName { get; set; }
 }
 
 internal sealed class LooseIdViewProfile : ProfileOf<LooseIdView>

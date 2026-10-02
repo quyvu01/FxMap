@@ -71,7 +71,7 @@ public class DCustomer
     public string CityId { get; set; } = "";
     public DCity City { get; set; } = null!;
     public Guid? ManagerId { get; set; }
-    public DCustomer? Manager { get; set; }
+    public DCustomer Manager { get; set; }
     public List<DOrder> Orders { get; set; } = [];
 }
 
@@ -80,7 +80,7 @@ public class DCategory
     public int Id { get; set; }
     public string Name { get; set; } = "";
     public int? ParentId { get; set; }
-    public DCategory? Parent { get; set; }
+    public DCategory Parent { get; set; }
     public List<DCategory> Children { get; set; } = [];
 }
 
