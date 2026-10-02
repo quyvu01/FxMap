@@ -21,18 +21,8 @@ public class Query
             },
             new MemberResponse
             {
-                Id = "3", UserId = "user-004", MemberAdditionalId = "member-003", MemberAddressId = "addr-005",
+                Id = "3", UserId = "user-0040912",
                 MemberSocialId = "3"
-            },
-            new MemberResponse
-            {
-                Id = "4", UserId = "user-013", MemberAdditionalId = "member-005", MemberAddressId = "addr-016",
-                MemberSocialId = "5"
-            },
-            new MemberResponse
-            {
-                Id = "5", UserId = "user-019", MemberAdditionalId = "member-010", MemberAddressId = "addr-022",
-                MemberSocialId = "7"
             }
         ];
     }

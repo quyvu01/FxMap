@@ -69,7 +69,8 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
     /// <summary>
     /// Builds a projection expression that returns object[].
     /// </summary>
-    /// <param name="request">The request containing expression strings.</param>
+    /// <param name="query">The request containing expression strings.</param>
+    /// <param name="rows">The response for each Id</param>
     /// <returns>A projection expression and the list of expressions for transformation.</returns>
     /// <summary>Makes the response answer to the ids the way the caller wrote them (see <see cref="RequestedIdAnswers"/>).</summary>
     protected DataResponse[] AnswerRequestedIds(MapRequest<TDistributedKey> query, DataResponse[] rows) =>

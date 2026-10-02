@@ -219,7 +219,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     {
         var dataWithExpression = dataFetched
             .Select(a => a.ItemsResponse.Items
-                .Select(x => (x.Id, FxMapValues: x.Values))
+                .Select(x => (x.Id, x.Values))
                 .Select(k => (a.DistributedKeyType, Data: k)))
             .SelectMany(x => x);
         mappableProperties.Join(dataWithExpression, ap => (ap.Property?.RuntimeDistributedKeyType, ap
@@ -229,7 +229,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             dt => (dt.DistributedKeyType, dt.Data.Id), (ap, dt) =>
             {
                 var value = dt.Data
-                    .FxMapValues
+                    .Values
                     .FirstOrDefault(a => a.Expression == ap.EffectiveExpression)?.Value;
                 if (value is null || ap.PropertyInfo is not { } propertyInfo) return value;
                 try
