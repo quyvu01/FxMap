@@ -6,6 +6,21 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [3.0.0]
+
+**Breaking release.** See the [full notes and migration guide](docs/changelogs/v3.0.0.md).
+
+### Breaking Changes
+
+- **Pipeline behaviors take a named delegate** — `ISendPipelineBehavior<T>.HandleAsync(context, SendHandlerDelegate next)` and
+  `IReceivedPipelineBehavior<T>.HandleAsync(context, ReceivedHandlerDelegate next)` replace
+  `Func<Task<ItemsResponse<DataResponse>>> next`. Add `using FxMap.Delegates;` and change the type of `next`.
+- **`SingleFlightBehavior<T>` and `SingleFlightGroup<TValue>` removed.** They were never registered by default.
+
+> Releases between 2.0.0 and 3.0.0 are described on the [GitHub releases page](https://github.com/quyvu01/FxMap/releases) where one was published.
+
+---
+
 ## [2.0.0] - 2026-04-05
 
 **Breaking release.** Upgrade from 1.x requires code changes — see the [full notes](docs/changelogs/v2.0.0.md).
