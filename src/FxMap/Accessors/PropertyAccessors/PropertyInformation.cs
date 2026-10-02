@@ -32,6 +32,12 @@ public sealed record PropertyInformation(
     /// </summary>
     internal ConditionalExpression ConditionalExpression { get; init; }
 
+    /// <summary>
+    /// The collection rule when the property receives one element per row found for the selector; null for a
+    /// property filled with a single value.
+    /// </summary>
+    public CollectionRule Collection { get; init; }
+
     public async ValueTask<string> ResolveExpression(IServiceProvider serviceProvider, CancellationToken token)
     {
         if (ConditionalExpression != null)

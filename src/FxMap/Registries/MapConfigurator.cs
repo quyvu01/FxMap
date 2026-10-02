@@ -92,10 +92,25 @@ public class MapConfigurator(IServiceCollection services)
 
     private void AddProfileConfig(Type profileType)
     {
-        var profile = (IFluentProfileConfig)Activator.CreateInstance(profileType)!;
+        var profile = Create<IFluentProfileConfig>(profileType);
         if (!_profileConfigs.TryAdd(profile.ModelType, profile))
             throw new DistributedMapException.AmbiguousProfileConfiguration(
                 _profileConfigs[profile.ModelType].GetType(), profileType, profile.ModelType);
+    }
+
+    // Profiles and entity configs do their work in the constructor (Configure), and Activator wraps what it throws in a
+    // TargetInvocationException. Surface the real configuration error at startup instead.
+    private static T Create<T>(Type type)
+    {
+        try
+        {
+            return (T)Activator.CreateInstance(type)!;
+        }
+        catch (TargetInvocationException e) when (e.InnerException is not null)
+        {
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(e.InnerException).Throw();
+            throw;
+        }
     }
 
     internal IFluentProfileConfig GetProfileConfig(Type modelType) => _profileConfigs
@@ -143,7 +158,7 @@ public class MapConfigurator(IServiceCollection services)
 
     private void AddEntityConfig(Type entityType)
     {
-        var config = (IFluentEntityConfig)Activator.CreateInstance(entityType)!;
+        var config = Create<IFluentEntityConfig>(entityType);
         if (!_entityConfigs.TryAdd(config.EntityType, config))
             throw new DistributedMapException.AmbiguousEntityConfiguration(
                 _entityConfigs[config.EntityType].GetType(), entityType, config.EntityType);

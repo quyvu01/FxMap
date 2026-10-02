@@ -95,6 +95,16 @@ public static class DistributedMapException
     public sealed class DistributedKeyNullOrEmpty()
         : Exception("DistributedKey cannot be null or empty.");
     
+    public sealed class CollectionPropertyTypeNotSupported(Type modelType, string propertyName, Type propertyType,
+        Type itemType)
+        : Exception(
+            $"{modelType.Name}.{propertyName} is a {propertyType.Name}, which cannot hold a collection of {itemType.Name}. " +
+            $"Use an array, List<{itemType.Name}>, IList<{itemType.Name}>, ICollection<{itemType.Name}>, " +
+            $"IReadOnlyList<{itemType.Name}>, IReadOnlyCollection<{itemType.Name}> or IEnumerable<{itemType.Name}>.");
+
+    public sealed class InvalidCollectionRule(Type modelType, string propertyName, string reason)
+        : Exception($"Invalid Collection rule for {modelType.Name}.{propertyName}: {reason}");
+
     public sealed class AmbiguousProfileConfiguration(
         Type existingProfileType,
         Type duplicateProfileType,

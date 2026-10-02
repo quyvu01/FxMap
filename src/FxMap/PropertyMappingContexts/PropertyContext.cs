@@ -39,4 +39,10 @@ public sealed class PropertyContext
     /// When set, the Expression is resolved dynamically at mapping time.
     /// </summary>
     internal ConditionalExpression ConditionalExpression { get; set; }
+
+    /// <summary>
+    /// Set when the target property is a collection filled with one element per row (see <see cref="Fluent.Builders.PropertyRuleBuilder{TModel}.Collection{TItem}"/>).
+    /// <see cref="Expression"/> is null in that case: the expressions come from the item rules.
+    /// </summary>
+    public CollectionRule Collection { get; set; }
 }

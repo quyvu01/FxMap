@@ -40,4 +40,7 @@ public sealed class KeyRuleGroup
     /// registered for this distributed key group.
     /// </summary>
     public List<PropertyMappingRule> Rules { get; } = [];
+
+    /// <summary>Collection rules of the group: one element of the target collection per row found for the selector.</summary>
+    public List<CollectionRule> Collections { get; } = [];
 }

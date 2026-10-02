@@ -58,6 +58,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
     public ProfileOf()
     {
         Configure();
+        CollectionRuleValidator.Validate(typeof(TModel), _ruleGroups);
         // Build DependencyGraph!
         var clrType = typeof(TModel);
         ClrType = clrType;
@@ -200,6 +201,23 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
                     ConditionalExpression = rule.ConditionalExpression
                 };
             }
+
+            // A collection property is a target like any other: it depends on the selector of its group, and
+            // its expressions come from the rules of its elements.
+            foreach (var collection in group.Collections)
+            {
+                var collectionProperty = properties.FirstOrDefault(p => p.Name == collection.TargetPropertyName);
+                if (collectionProperty is null) continue;
+
+                directDeps[collectionProperty] = new PropertyContext
+                {
+                    TargetPropertyInfo = collectionProperty,
+                    SelectorPropertyName = selectorProperty.Name,
+                    RuntimeDistributedKeyType = distributedKeyType,
+                    RequiredPropertyInfo = selectorProperty,
+                    Collection = collection
+                };
+            }
         }
 
         // Build recursive dependency graph
@@ -263,6 +281,9 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
         var requiredAccessor = GetAccessor(dependency.RequiredPropertyInfo);
         return new PropertyInformation(dependencies.Length - 1, dependency.Expression,
             dependency.RuntimeDistributedKeyType,
-            requiredAccessor) { ConditionalExpression = dependency.ConditionalExpression };
+            requiredAccessor)
+        {
+            ConditionalExpression = dependency.ConditionalExpression, Collection = dependency.Collection
+        };
     }
 }
