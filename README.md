@@ -140,24 +140,24 @@ ternary operators, and more, visit **[Expression Documentation](https://fxmapper
 
 ## Packages
 
-| Package                                                      | Description                      | .NET           |
-|--------------------------------------------------------------|----------------------------------|----------------|
-| **Core**                                                     |
-| [FxMap][FxMap.nuget]                                         | Core library                     | 8.0, 9.0, 10.0 |
-| **Data Providers**                                           |
-| [FxMap.EntityFrameworkCore][FxMap.EntityFrameworkCore.nuget] | Entity Framework Core provider   | 8.0, 9.0, 10.0 |
-| [FxMap.MongoDb][FxMap.MongoDb.nuget]                         | MongoDB provider                 | 8.0, 9.0, 10.0 |
-| **Integrations**                                             |
-| [FxMap.HotChocolate][FxMap.HotChocolate.nuget]               | HotChocolate GraphQL integration | 8.0, 9.0, 10.0 |
-| **Transports**                                               |
-| [FxMap.Grpc][FxMap.Grpc.nuget]                               | gRPC transport                   | 8.0, 9.0, 10.0 |
-| [FxMap.Nats][FxMap.Nats.nuget]                               | NATS transport                   | 8.0, 9.0, 10.0 |
-| [FxMap.RabbitMq][FxMap.RabbitMq.nuget]                       | RabbitMQ transport               | 8.0, 9.0, 10.0 |
-| [FxMap.Kafka][FxMap.Kafka.nuget]                             | Kafka transport                  | 8.0, 9.0, 10.0 |
-| [FxMap.Azure.ServiceBus][FxMap.Azure.ServiceBus.nuget]       | Azure Service Bus transport      | 8.0, 9.0, 10.0 |
-| [FxMap.Aws.Sqs][FxMap.Aws.Sqs.nuget]                         | Amazon SQS transport             | 8.0, 9.0, 10.0 |
-| **Tooling**                                                  |
-| [FxMap.Analyzers][FxMap.Analyzers.nuget]                     | Roslyn analyzers                 | 8.0, 9.0, 10.0 |
+| Package | Description | .NET | Documentation |
+|---|---|---|---|
+| **Core** | | | |
+| [FxMap](https://www.nuget.org/packages/FxMap) | FxMap core: profiles, entity configs, the mapper and the expression language | 8.0, 9.0, 10.0 | [fxmapper.net](https://fxmapper.net) |
+| **Data providers** | | | |
+| [FxMap.EntityFrameworkCore](https://www.nuget.org/packages/FxMap.EntityFrameworkCore) | Answers requests from an Entity Framework Core `DbContext` | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
+| [FxMap.MongoDb](https://www.nuget.org/packages/FxMap.MongoDb) | Answers requests from MongoDB collections | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.MongoDb/README.md) |
+| **Integrations** | | | |
+| [FxMap.HotChocolate](https://www.nuget.org/packages/FxMap.HotChocolate) | Fills GraphQL response types through HotChocolate | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.HotChocolate/README.md) |
+| **Transports** | | | |
+| [FxMap.Grpc](https://www.nuget.org/packages/FxMap.Grpc) | gRPC transport | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Grpc/README.md) |
+| [FxMap.Nats](https://www.nuget.org/packages/FxMap.Nats) | NATS transport | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md) |
+| [FxMap.RabbitMq](https://www.nuget.org/packages/FxMap.RabbitMq) | RabbitMQ transport | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md) |
+| [FxMap.Kafka](https://www.nuget.org/packages/FxMap.Kafka) | Apache Kafka transport | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md) |
+| [FxMap.Azure.ServiceBus](https://www.nuget.org/packages/FxMap.Azure.ServiceBus) | Azure Service Bus transport (Standard / Premium tiers) | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Azure.ServiceBus/README.md) |
+| [FxMap.Aws.Sqs](https://www.nuget.org/packages/FxMap.Aws.Sqs) | Amazon SQS transport | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Aws.Sqs/README.md) |
+| **Tooling** | | | |
+| [FxMap.Analyzers](https://www.nuget.org/packages/FxMap.Analyzers) | Roslyn analyzer that validates expression strings at compile time | 8.0, 9.0, 10.0 | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Analyzers/README.md) |
 
 ## Performance
 
@@ -214,25 +214,3 @@ Contributions are welcome! Please visit our [GitHub repository](https://github.c
 This project is licensed under the Apache-2.0 license.
 
 ---
-
-[FxMap.nuget]: https://www.nuget.org/packages/FxMap/
-
-[FxMap.EntityFrameworkCore.nuget]: https://www.nuget.org/packages/FxMap.EntityFrameworkCore/
-
-[FxMap.MongoDb.nuget]: https://www.nuget.org/packages/FxMap.MongoDb/
-
-[FxMap.HotChocolate.nuget]: https://www.nuget.org/packages/FxMap.HotChocolate/
-
-[FxMap.Grpc.nuget]: https://www.nuget.org/packages/FxMap.Grpc/
-
-[FxMap.Nats.nuget]: https://www.nuget.org/packages/FxMap.Nats/
-
-[FxMap.RabbitMq.nuget]: https://www.nuget.org/packages/FxMap.RabbitMq/
-
-[FxMap.Kafka.nuget]: https://www.nuget.org/packages/FxMap.Kafka/
-
-[FxMap.Azure.ServiceBus.nuget]: https://www.nuget.org/packages/FxMap.Azure.ServiceBus/
-
-[FxMap.Aws.Sqs.nuget]: https://www.nuget.org/packages/FxMap.Aws.Sqs/
-
-[FxMap.Analyzers.nuget]: https://www.nuget.org/packages/FxMap.Analyzers/
