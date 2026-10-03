@@ -1,18 +1,14 @@
 #!/bin/bash
 set -e
 
-psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
-    -- Create databases for OfX services
-    CREATE DATABASE "OfXTestService1";
-    CREATE DATABASE "OfXTestService2";
-    CREATE DATABASE "OfXTestService3";
-    CREATE DATABASE "OfXTestOtherService1";
-
-    -- Grant privileges
-    GRANT ALL PRIVILEGES ON DATABASE "OfXTestService1" TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE "OfXTestService2" TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE "OfXTestService3" TO $POSTGRES_USER;
-    GRANT ALL PRIVILEGES ON DATABASE "OfXTestOtherService1" TO $POSTGRES_USER;
+# Creates every database listed in POSTGRES_MULTIPLE_DATABASES (comma separated), as set in docker-compose.yml.
+# Service4 and Service5 also create their database themselves on first start (EnsureCreated).
+for database in $(echo "$POSTGRES_MULTIPLE_DATABASES" | tr ',' ' '); do
+    echo "Creating database $database"
+    psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+        CREATE DATABASE "$database";
+        GRANT ALL PRIVILEGES ON DATABASE "$database" TO $POSTGRES_USER;
 EOSQL
+done
 
 echo "All databases created successfully"

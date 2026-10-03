@@ -19,6 +19,8 @@
     <Project Path="sample/Service1/Service1.csproj" />
     <Project Path="sample/Service2/Service2.csproj" />
     <Project Path="sample/Service3/Service3.csproj" />
+    <Project Path="sample/Service4/Service4.csproj" />
+    <Project Path="sample/Service5/Service5.csproj" />
   </Folder>
   <Folder Name="/FxMap.Demo/Contracts/">
     <Project Path="sample/Service1.Contract/Service1.Contract.csproj" />

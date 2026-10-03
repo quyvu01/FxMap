@@ -7,6 +7,8 @@ This directory contains sample applications demonstrating the FxMap framework's 
 - **Service1** - GraphQL API service using HotChocolate, Entity Framework Core, and MongoDB
 - **Service2** - Worker service owning the User entity (NATS, SQS and gRPC transports, EF Core)
 - **Service3** - Worker service owning the Country and Province entities (NATS, SQS and gRPC transports, EF Core)
+- **Service4** - Web service owning data looked up by a **non-unique key** (items by `Code`, visits by `Mrn`) in PostgreSQL (NATS, EF Core)
+- **Service5** - Web API with its own PostgreSQL database (patients) that fills their visits from Service4 with `Collection(...)` (NATS)
 - **Shared** - Common models and utilities shared across services
 
 ## Quick Start Guides
@@ -266,6 +268,51 @@ The samples demonstrate FxMap's built-in telemetry capabilities:
   - Country and Province entities
   - Hierarchical data
   - Distributed tracing
+
+### Service4 (non-unique keys)
+- **Port**: 8004, database `FxMapTestService4` (created and seeded on first start)
+- **Role**: owns `Item` (looked up by `Code`) and `Visit` (looked up by `Mrn`); both keys match several rows
+- **Transport**: NATS. Raw rows for comparison: `GET /items`, `GET /visits`, `GET /visits/{mrn}`
+
+### Service5 (collections from a non-unique key)
+- **Port**: 8005, database `FxMapTestService5` (created and seeded on first start)
+- **Role**: reads patients from its own database, then fills their visits from Service4 with `Collection(...)` rules
+- **Endpoints**: `GET /patients`, `GET /patients/{mrn}`, `GET /item-groups?codes=A,B,C`
+
+## Trying the collection scenario (Service4 + Service5)
+
+Needs NATS (`localhost:4222`) and PostgreSQL (`localhost:5432`, user `postgres`, password `Abcd@2021`); each service creates and seeds its own database on first start.
+
+```bash
+cd Service4 && dotnet run     # terminal 1, http://localhost:8004
+cd Service5 && dotnet run     # terminal 2, http://localhost:8005
+```
+
+**Three items, two codes.** Service4 holds `A -> item-1`, `B -> item-2`, `B -> item-3`.
+
+```bash
+curl "localhost:8005/item-groups?codes=A,B,C"
+```
+```json
+[{"code":"A","name":"item-1","items":[{"itemId":1,"name":"item-1"}]},
+ {"code":"B","name":"item-2","items":[{"itemId":2,"name":"item-2"},{"itemId":3,"name":"item-3"}]},
+ {"code":"C","name":null,"items":null}]
+```
+Code `B` gets both rows as a collection, the plain `name` rule takes the first row, and the unknown code `C` is left untouched.
+
+**Patients and their visits.** Service4 holds ten visits (MRN0001 has six, two of them at the same time to show the tie-break; MRN0004 has none).
+
+```bash
+curl localhost:8005/patients
+curl localhost:8005/patients/MRN0001
+curl localhost:8004/visits/MRN0001      # the raw rows, for comparison
+```
+For every patient `PatientResponse` has three collections built from the same key with different options:
+`LatestVisits` (newest first, at most 3), `FirstVisit` (oldest, at most 1) and `AllVisits` (everything the database returns).
+The profile is in `Service5/Responses/VisitResponses.cs`; Service4's entities are in `Service4/Configs`.
+
+Things to try: change `Limit(...)` or `OrderBy(...)` in the profile, add rows to the `Visits` table in `FxMapTestService4`, or stop Service4 and
+call `/patients` to see how a failing key is reported (`ThrowIfException()` is on in both services).
 
 ## Troubleshooting
 
