@@ -73,7 +73,12 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
             string[] selectorIds = [..request.SelectorIds];
             var expressions = JsonSerializer.Deserialize<string[]>(request.Expression);
 
-            var message = new DistributedMapRequest(selectorIds, expressions);
+            var message = new DistributedMapRequest(selectorIds, expressions)
+            {
+                Collection = request.CollectionOptions is { Length: > 0 } collectionOptions
+                    ? JsonSerializer.Deserialize<CollectionOptions>(collectionOptions)
+                    : null
+            };
             var response = await receivedPipelinesOrchestrator
                 .ExecuteAsync(message, headers, cancellationToken);
 

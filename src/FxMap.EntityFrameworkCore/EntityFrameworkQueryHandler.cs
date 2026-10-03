@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
 using FxMap.Builders;
+using FxMap.Helpers;
 using FxMap.EntityFrameworkCore.Abstractions;
 using FxMap.Expressions.Building;
 using FxMap.Responses;
@@ -67,14 +68,16 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
             }
 
             // Step 1: Execute database query with object[] projection
-            var rawResults = await dbContextResolver.Set
-                .AsNoTracking()
-                .Where(filter)
+            var rawResults = await ApplyOrder(dbContextResolver.Set.AsNoTracking().Where(filter),
+                    context.Query.Collection)
                 .Select(projection)
                 .ToArrayAsync(context.CancellationToken);
 
             // Step 2: Transform to FxMapDataResponse in memory
-            var data = AnswerRequestedIds(context.Query, ProjectionTransformer.TransformToArray(rawResults, expressions));
+            // The rows of a collection request come sorted; keep the first ones of each id
+            var data = AnswerRequestedIds(context.Query,
+                RowLimiter.LimitPerId(ProjectionTransformer.TransformToArray(rawResults, expressions),
+                    context.Query.Collection?.Limit));
             var itemCount = data.Length;
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);

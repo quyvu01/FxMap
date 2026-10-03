@@ -32,13 +32,13 @@ public class NuGroupRow
 public class NuElement
 {
     public int ItemId { get; set; }
-    public string? Name { get; set; }
+    public string Name { get; set; }
 }
 
 public class NuView
 {
     public string Code { get; set; } = "";
-    public string? Name { get; set; }
+    public string Name { get; set; }
     public List<NuElement>? Items { get; set; }
 }
 

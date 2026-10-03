@@ -515,3 +515,28 @@ internal sealed class RowsChainDtoProfile : ProfileOf<RowsChainDto>
 }
 
 #endregion
+
+#region Collections with options (order / limit)
+
+public class RowsOptionsDto
+{
+    public string Code { get; set; }
+    public List<RowItem> Recent { get; set; }
+    public List<RowItem> Oldest { get; set; }
+    public List<RowItem> All { get; set; }
+    public string Name { get; set; }
+}
+
+internal sealed class RowsOptionsDtoProfile : ProfileOf<RowsOptionsDto>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserKey>().Of(x => x.Code)
+            .Collection(x => x.Recent, i => i.For(x => x.Name, "Name").For(x => x.RowId, "Id")
+                .OrderByDescending("Date").ThenBy("Id").Limit(2))
+            .Collection(x => x.Oldest, i => i.For(x => x.Name, "Name").For(x => x.RowId, "Id")
+                .OrderBy("Date").Limit(1))
+            .Collection(x => x.All, i => i.For(x => x.RowId, "Id"))
+            .For(x => x.Name, "Name");
+}
+
+#endregion

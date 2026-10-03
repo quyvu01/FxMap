@@ -117,7 +117,7 @@ public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
     public override Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message,
         Dictionary<string, string> headers, CancellationToken cancellationToken)
     {
-        var requestOf = new MapRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
+        var requestOf = message.ToMapRequest<TDistributedKey>();
         var requestContext = new RequestContextImpl<TDistributedKey>(requestOf, headers ?? [], cancellationToken);
         return ExecuteAsync(requestContext);
     }

@@ -152,7 +152,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
                 .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TDistributedKey>>();
 
             var message = messageUnWrapped.Message;
-            var query = new MapRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
+            var query = message.ToMapRequest<TDistributedKey>();
             var headers = consumeResult.Message.Headers?
                 .ToDictionary(a => a.Key, h => Encoding.UTF8.GetString(h.GetValueBytes())) ?? [];
 

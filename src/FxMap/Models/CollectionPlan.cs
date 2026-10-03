@@ -25,6 +25,9 @@ internal sealed class CollectionPlan
         CreateItem = createItem;
         CreateList = createList;
         ToContainer = toContainer;
+        Options = rule.OrderBy.Count > 0 || rule.Limit is not null
+            ? new CollectionOptions([..rule.OrderBy], rule.Limit)
+            : null;
     }
 
     internal CollectionRule Rule { get; }
@@ -33,6 +36,12 @@ internal sealed class CollectionPlan
 
     /// <summary>Maximum number of elements kept for one selector value, or null.</summary>
     internal int? Limit => Rule.Limit;
+
+    /// <summary>
+    /// Order and limit to send with the request so the server cuts the rows, or null when the rule sets neither.
+    /// Requests that need different options cannot share one query.
+    /// </summary>
+    internal CollectionOptions Options { get; }
 
     internal Func<object> CreateItem { get; }
 

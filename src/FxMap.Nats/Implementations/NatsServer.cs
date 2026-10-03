@@ -105,7 +105,7 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
                 .GetRequiredService<ReceivedPipelinesOrchestrator<TModel, TDistributedKey>>();
             var headers = message.Headers?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
-            var requestOf = new MapRequest<TDistributedKey>(message.Data.SelectorIds, message.Data.Expressions);
+            var requestOf = message.Data.ToMapRequest<TDistributedKey>();
             var requestContext = new RequestContextImpl<TDistributedKey>(requestOf, headers, cancellationToken);
 
             var data = await pipeline.ExecuteAsync(requestContext);

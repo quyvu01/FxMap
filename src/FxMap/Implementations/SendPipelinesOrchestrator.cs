@@ -50,7 +50,7 @@ internal sealed class SendPipelinesOrchestrator<TDistributedKey>(IServiceProvide
         var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
         cts.CancelAfter(fxMapConfiguration.DefaultRequestTimeout);
 
-        var request = new MapRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
+        var request = message.ToMapRequest<TDistributedKey>();
         var requestContext = new RequestContextImpl<TDistributedKey>(request, context?.Headers ?? [], cts.Token);
         var result = await serviceProvider
             .GetServices<ISendPipelineBehavior<TDistributedKey>>()

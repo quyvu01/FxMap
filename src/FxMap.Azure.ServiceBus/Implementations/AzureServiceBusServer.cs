@@ -110,7 +110,7 @@ internal class AzureServiceBusServer<TModel, TDistributedKey>(
             var headers = request.ApplicationProperties?
                 .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
             var requestOf =
-                new MapRequest<TDistributedKey>(requestDeserialize.SelectorIds, requestDeserialize.Expressions);
+                requestDeserialize.ToMapRequest<TDistributedKey>();
             var requestContext = new RequestContextImpl<TDistributedKey>(requestOf, headers, cancellationToken);
             var data = await pipeline.ExecuteAsync(requestContext);
             var response = Result.Success(data);

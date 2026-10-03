@@ -1,3 +1,5 @@
+using FxMap.Models;
+
 namespace FxMap.Abstractions;
 
 /// <summary>
@@ -25,4 +27,15 @@ namespace FxMap.Abstractions;
 /// </para>
 /// </remarks>
 public sealed record MapRequest<TDistributedKey>(string[] SelectorIds, string[] Expressions)
-    where TDistributedKey : IDistributedKey;
+    where TDistributedKey : IDistributedKey
+{
+    /// <summary>
+    /// How to order and limit the rows of each selector value when the request fills a collection; null when the
+    /// request expects one row per selector value. A handler that does not support it can ignore it: the caller
+    /// applies the limit again on what it receives.
+    /// </summary>
+    public CollectionOptions Collection { get; init; }
+
+    /// <summary>The same request as the untyped one that travels over a transport.</summary>
+    public DistributedMapRequest ToDistributedMapRequest() => new(SelectorIds, Expressions) { Collection = Collection };
+}

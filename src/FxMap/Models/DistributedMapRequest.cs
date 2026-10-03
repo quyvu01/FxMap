@@ -15,4 +15,16 @@ namespace FxMap.Models;
 /// The expressions defining how to map or project the data.
 /// Can be a simple property name or a complex expression with navigation and filtering.
 /// </param>
-public sealed record DistributedMapRequest(string[] SelectorIds, string[] Expressions);
+public sealed record DistributedMapRequest(string[] SelectorIds, string[] Expressions)
+{
+    /// <summary>
+    /// Order and limit of the rows of each selector value, set when the request fills a collection.
+    /// Null for requests that expect one row per selector value.
+    /// </summary>
+    public CollectionOptions Collection { get; init; }
+
+    /// <summary>The same request as the typed one that handlers and pipelines receive.</summary>
+    public Abstractions.MapRequest<TDistributedKey> ToMapRequest<TDistributedKey>()
+        where TDistributedKey : Abstractions.IDistributedKey =>
+        new(SelectorIds, Expressions) { Collection = Collection };
+}

@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using FxMap.Abstractions;
 using FxMap.Accessors.PropertyAccessors;
 using FxMap.Fluent.Rules;
@@ -56,21 +57,15 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             var distributedKeyTypes = fxMapConfiguration.DistributedKeyTypes;
             var typeData = GetDistributedKeyInfos(allPropertyDatas, distributedKeyTypes);
 
-            // Pre-group once by order — avoids O(N×M) re-scan per order level
-            var propertiesByOrder = allPropertyDatas
-                .GroupBy(x => x.Property.Order)
-                .ToDictionary(g => g.Key, IEnumerable<PropertyDescriptor> (g) => g);
-
             var typesDataGrouped = typeData
                 .GroupBy(a => a.Order)
                 .OrderBy(a => a.Key);
 
             foreach (var mappableTypes in typesDataGrouped)
             {
-                var orderedProperties = propertiesByOrder.GetValueOrDefault(mappableTypes.Key, []);
                 var tasks = mappableTypes.Select(async x =>
                 {
-                    var emptyResponse = (x.DistributedKeyType, Response: _emptyResponse);
+                    var emptyResponse = (Info: x, Response: _emptyResponse);
                     var properties = x.Properties.ToList();
                     if (properties is not { Count: > 0 }) return emptyResponse;
 
@@ -124,11 +119,14 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                             expressions.Add(property.EffectiveExpression);
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
-                        new DistributedMapRequest([.. selectorIds], [.. expressions]), requestCt);
-                    return (x.DistributedKeyType, Response: result);
+                        new DistributedMapRequest([.. selectorIds], [.. expressions]) { Collection = x.Collection }, requestCt);
+                    return (Info: x, Response: result);
                 });
                 var fetchedResult = await Task.WhenAll(tasks);
-                MapResponseData(orderedProperties, fetchedResult);
+                // Each fetch is mapped on its own: two requests for the same key (different order/limit of the rows)
+                // must not see each other's rows.
+                foreach (var (info, response) in fetchedResult)
+                    MapResponseData(info.Properties, [(info.DistributedKeyType, response)]);
             }
 
             var nextMappableData = allPropertyDatas
@@ -159,7 +157,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         string[] selectorIds = [.. new HashSet<string>(query.SelectorIds.Where(a => a is not null))];
         string[] expressions = [.. new HashSet<string>(query.Expressions)];
         var result = await sendPipelineWrapped
-            .ExecuteAsync(new DistributedMapRequest(selectorIds, expressions), context);
+            .ExecuteAsync(new DistributedMapRequest(selectorIds, expressions) { Collection = query.Collection }, context);
         return result;
     }
 
@@ -238,24 +236,23 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     private static IEnumerable<DistributedKeyInfo> GetDistributedKeyInfos
         (IEnumerable<PropertyDescriptor> propertyDescriptors, IEnumerable<Type> distributedKeyTypes) =>
         propertyDescriptors
+            // Rules whose rows must be cut differently (order, limit) cannot share a query with the others.
             .GroupBy(mdp => (DistributedKeyType: mdp.Property?.RuntimeDistributedKeyType,
-                Order: mdp.Property?.Order ?? 0))
+                Order: mdp.Property?.Order ?? 0,
+                Options: mdp.Property?.CollectionPlan?.Options?.Signature ?? ""))
             .Join(distributedKeyTypes, gr => gr.Key.DistributedKeyType, at => at,
-                (d, x) => new DistributedKeyInfo(x, d, d.Key.Order));
+                (d, x) => new DistributedKeyInfo(x, d, d.Key.Order, d.First().Property.CollectionPlan?.Options));
 
     private void MapResponseData(IEnumerable<PropertyDescriptor> mappableProperties,
         IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
     {
         // The rows of one selector value, in the order they arrived. A unique key has one row; a key that matches
         // several rows has one DataResponse per row, all with the same id.
-        var rowsByKeyAndId = new Dictionary<(Type, string), List<ValueResponse[]>>();
+        var rowsByKeyAndId = new Dictionary<(Type, string), RowSet>();
         foreach (var (distributedKeyType, itemsResponse) in dataFetched)
             foreach (var item in itemsResponse.Items)
-            {
-                var key = (distributedKeyType, item.Id);
-                if (!rowsByKeyAndId.TryGetValue(key, out var rows)) rowsByKeyAndId[key] = rows = [];
-                rows.Add(item.Values);
-            }
+                CollectionsMarshal.GetValueRefOrAddDefault(rowsByKeyAndId, (distributedKeyType, item.Id), out _)
+                    .Add(item.Values);
 
         foreach (var property in mappableProperties)
         {
@@ -265,7 +262,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
             if (property.Property.CollectionPlan is { } plan) MapCollection(property, plan, rows);
             // A plain rule on a key that matches several rows takes the first row.
-            else MapValue(property, rows[0]);
+            else MapValue(property, rows.First);
         }
     }
 
@@ -277,7 +274,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     }
 
     // One element per row (up to the limit of the rule), each filled by the item rules from its own row.
-    private void MapCollection(PropertyDescriptor property, CollectionPlan plan, List<ValueResponse[]> rows)
+    private void MapCollection(PropertyDescriptor property, CollectionPlan plan, RowSet rows)
     {
         var list = plan.CreateList();
         var count = plan.Limit is { } limit ? Math.Min(limit, rows.Count) : rows.Count;
@@ -297,6 +294,25 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         }
 
         property.Accessor.Set(property.Model, plan.ToContainer(list));
+    }
+
+    // The rows of one selector value. Almost every key has a single row, so the first one is kept inline and
+    // nothing is allocated unless a key matches several rows.
+    private struct RowSet
+    {
+        public ValueResponse[] First { get; private set; }
+        private List<ValueResponse[]> _more;
+
+        public int Count { get; private set; }
+
+        public ValueResponse[] this[int index] => index == 0 ? First : _more[index - 1];
+
+        public void Add(ValueResponse[] row)
+        {
+            if (Count == 0) First = row;
+            else (_more ??= []).Add(row);
+            Count++;
+        }
     }
 
     private void SetValue(IPropertyAccessor accessor, object instance, string json, Type propertyType)

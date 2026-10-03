@@ -187,7 +187,7 @@ public class CollectionRuleBuilderTests
     [InlineData("")]
     [InlineData("  ")]
     [InlineData(null)]
-    public void Order_property_name_is_required(string? name) =>
+    public void Order_property_name_is_required(string name) =>
         Should.Throw<ArgumentException>(() =>
             GroupOf(b => b.Collection(x => x.AsList, v => v.OrderBy(name!))));
 

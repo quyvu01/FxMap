@@ -68,7 +68,7 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             // Propagate W3C trace context
             var message = new KafkaMessageWrapped<DistributedMapRequest>
             {
-                Message = new DistributedMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
+                Message = requestContext.Query.ToDistributedMapRequest(),
                 ReplyTo = _replyTo
             };
 

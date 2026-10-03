@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FxMap.Tests.UnitTests.Mapping;
 
 public sealed record RemoteCall(int Seq, Type KeyType, string[] Ids, string[] Expressions, long StartTs, long EndTs,
-    bool CancellationRequested);
+    bool CancellationRequested, FxMap.Models.CollectionOptions Collection = null);
 
 /// <summary>A value the fake remote sends back verbatim (to simulate malformed payloads).</summary>
 public sealed record RawJson(string Json);
@@ -26,7 +26,7 @@ public sealed class FakeRemote
     private sealed record Resolver(Func<string, string, object> Value, Func<string, bool> Exists);
 
     private readonly ConcurrentDictionary<Type, Resolver> _resolvers = new();
-    private readonly ConcurrentDictionary<Type, Func<string, IReadOnlyList<Func<string, object>>>> _rowResolvers = new();
+    private readonly ConcurrentDictionary<Type, Func<string, FxMap.Models.CollectionOptions, IReadOnlyList<Func<string, object>>>> _rowResolvers = new();
     private readonly ConcurrentQueue<RemoteCall> _calls = new();
     private int _seq;
 
@@ -54,6 +54,12 @@ public sealed class FakeRemote
     /// DataResponse per row, all with that id; an id with no row gets none.
     /// </summary>
     public FakeRemote SetupRows<TKey>(Func<string, IReadOnlyList<Func<string, object>>> rowsOf)
+        where TKey : IDistributedKey =>
+        SetupRows<TKey>((id, _) => rowsOf(id));
+
+    /// <summary>Same, for a server that reads the order and limit of the request.</summary>
+    public FakeRemote SetupRows<TKey>(
+        Func<string, FxMap.Models.CollectionOptions, IReadOnlyList<Func<string, object>>> rowsOf)
         where TKey : IDistributedKey
     {
         _rowResolvers[typeof(TKey)] = rowsOf;
@@ -61,7 +67,7 @@ public sealed class FakeRemote
     }
 
     internal async Task<ItemsResponse<DataResponse>> HandleAsync(Type keyType, string[] ids, string[] expressions,
-        CancellationToken token)
+        CancellationToken token, FxMap.Models.CollectionOptions collection = null)
     {
         var seq = Interlocked.Increment(ref _seq);
         var start = Stopwatch.GetTimestamp();
@@ -69,7 +75,7 @@ public sealed class FakeRemote
         var responses = new List<DataResponse>();
         if (_rowResolvers.TryGetValue(keyType, out var rowsOf))
             foreach (var id in ids)
-            foreach (var row in rowsOf(id))
+            foreach (var row in rowsOf(id, collection))
                 responses.Add(new DataResponse
                 {
                     Id = id,
@@ -107,7 +113,7 @@ public sealed class FakeRemote
                     ]
                 });
         _calls.Enqueue(new RemoteCall(seq, keyType, ids, expressions, start, Stopwatch.GetTimestamp(),
-            token.IsCancellationRequested));
+            token.IsCancellationRequested, collection));
         return new ItemsResponse<DataResponse>([..responses]);
     }
 }
@@ -117,7 +123,7 @@ internal sealed class FakeClientHandler<TKey>(FakeRemote remote) : IClientReques
 {
     public Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TKey> requestContext) =>
         remote.HandleAsync(typeof(TKey), requestContext.Query.SelectorIds, requestContext.Query.Expressions,
-            requestContext.CancellationToken);
+            requestContext.CancellationToken, requestContext.Query.Collection);
 }
 
 public sealed class MappingHarness : IDisposable
@@ -132,7 +138,7 @@ public sealed class MappingHarness : IDisposable
         typeof(DiamondDtoProfile), typeof(ItemDtoProfile), typeof(OrderDtoProfile), typeof(NodeProfile),
         typeof(DerivedItemProfile), typeof(BlobDtoProfile), typeof(AddressDtoProfile), typeof(ProfileDtoProfile),
         typeof(ConditionalDtoProfile), typeof(GNodeProfile), typeof(LeafHolderDtoProfile), typeof(RowItemProfile), typeof(RowsDtoProfile), typeof(RowsArrayDtoProfile),
-        typeof(RowsInterfaceDtoProfile), typeof(RowsConditionalDtoProfile), typeof(RowsChainDtoProfile)
+        typeof(RowsInterfaceDtoProfile), typeof(RowsConditionalDtoProfile), typeof(RowsChainDtoProfile), typeof(RowsOptionsDtoProfile)
     ];
 
     private readonly ServiceProvider _provider;

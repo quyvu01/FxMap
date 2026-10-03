@@ -39,7 +39,7 @@ public sealed class GrpcRequestClient(GetMapperResponseFunc mapperResponseFunc) 
 
             var func = mapperResponseFunc.Invoke(typeof(TDistributedKey).AssemblyQualifiedName);
             var result = await func.Invoke(
-                new DistributedMapRequest(requestContext.Query.SelectorIds, requestContext.Query.Expressions),
+                requestContext.Query.ToDistributedMapRequest(),
                 new GrpcClientContext(requestContext.Headers, requestContext.CancellationToken));
 
             var itemCount = result?.Items?.Length ?? 0;

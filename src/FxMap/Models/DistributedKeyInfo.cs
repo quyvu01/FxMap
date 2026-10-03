@@ -9,4 +9,5 @@ namespace FxMap.Models;
 internal sealed record DistributedKeyInfo(
     Type DistributedKeyType,
     IEnumerable<PropertyDescriptor> Properties,
-    int Order);
+    int Order,
+    CollectionOptions Collection = null);

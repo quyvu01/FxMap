@@ -15,6 +15,8 @@ message GetFxMapGrpcQuery {
   repeated string selector_ids = 1;
   google.protobuf.StringValue expression = 2;
   google.protobuf.StringValue distributed_key_assembly_type = 3;
+  // JSON of CollectionOptions (order and limit of the rows of each selector value); unset for single-row requests.
+  google.protobuf.StringValue collection_options = 4;
 }
 
 message FxMapItemsGrpcResponse {

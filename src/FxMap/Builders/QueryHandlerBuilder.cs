@@ -6,6 +6,7 @@ using FxMap.Abstractions;
 using FxMap.Delegates;
 using FxMap.Expressions.Building;
 using FxMap.Helpers;
+using FxMap.Models;
 using FxMap.Responses;
 
 namespace FxMap.Builders;
@@ -75,6 +76,44 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>(IServiceProvi
     /// <summary>Makes the response answer to the ids the way the caller wrote them (see <see cref="RequestedIdAnswers"/>).</summary>
     protected DataResponse[] AnswerRequestedIds(MapRequest<TDistributedKey> query, DataResponse[] rows) =>
         RequestedIdAnswers.Align(query.SelectorIds, rows, FilterCache.Value.IdConverter);
+
+    /// <summary>
+    /// Sorts the query by the order of a collection request (property names of the entity, or exposed names, with
+    /// dots to go through navigations). Returns the query as it is when the request sets no order.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">A property of the order does not exist on the entity.</exception>
+    protected IQueryable<TModel> ApplyOrder(IQueryable<TModel> query, CollectionOptions options)
+    {
+        if (options?.OrderBy is not { Length: > 0 } order) return query;
+        var getTypeAccessor = serviceProvider.GetRequiredService<GetTypeAccessor>();
+        var ordered = query;
+        for (var i = 0; i < order.Length; i++)
+        {
+            var parameter = Expression.Parameter(typeof(TModel), ParameterName);
+            Expression body = parameter;
+            foreach (var segment in order[i].PropertyName.Split('.'))
+            {
+                var property = getTypeAccessor.Invoke(body.Type).GetPropertyInfo(segment)
+                               ?? throw new InvalidOperationException(
+                                   $"Cannot order by '{order[i].PropertyName}': property '{segment}' not found on type '{body.Type.Name}'");
+                body = Expression.Property(body, property);
+            }
+
+            var methodName = (i == 0, order[i].Descending) switch
+            {
+                (true, false) => nameof(Queryable.OrderBy),
+                (true, true) => nameof(Queryable.OrderByDescending),
+                (false, false) => nameof(Queryable.ThenBy),
+                (false, true) => nameof(Queryable.ThenByDescending)
+            };
+            var method = typeof(Queryable).GetMethods()
+                .First(m => m.Name == methodName && m.GetParameters().Length == 2)
+                .MakeGenericMethod(typeof(TModel), body.Type);
+            ordered = (IQueryable<TModel>)method.Invoke(null, [ordered, Expression.Lambda(body, parameter)])!;
+        }
+
+        return ordered;
+    }
 
     protected (Expression<Func<TModel, object[]>> Projection, IReadOnlyList<string> Expressions) BuildProjection(
         MapRequest<TDistributedKey> request)

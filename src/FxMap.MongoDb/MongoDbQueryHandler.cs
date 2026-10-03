@@ -80,15 +80,20 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
             }
 
             // Execute query
-            var rawResults = await _collectionInternal.Collection
-                .Find(filter)
+            var find = _collectionInternal.Collection.Find(filter);
+            // Sorting uses the actual property names, like the projection does.
+            if (context.Query.Collection?.OrderBy is { Length: > 0 } orderBy)
+                find = find.Sort(new BsonDocument(orderBy.Select(o =>
+                    new BsonElement(o.PropertyName, o.Descending ? -1 : 1))));
+            var rawResults = await find
                 .Project(projection)
                 .ToListAsync(context.CancellationToken);
 
             // Transform to FxMapDataResponse
             // Answer to the ids the way the caller wrote them (upper case Guid, leading zeros...).
             var data = RequestedIdAnswers.Align(context.Query.SelectorIds,
-                TransformResults(rawResults, expressions), FilterCacheInstance.Value.IdConverter);
+                RowLimiter.LimitPerId(TransformResults(rawResults, expressions), context.Query.Collection?.Limit),
+                FilterCacheInstance.Value.IdConverter);
 
             var itemCount = data.Length;
             activity?.SetFxMapTags(itemCount: itemCount);

@@ -144,6 +144,8 @@ public static class DependencyExtensions
         grpcQuery.SelectorIds.AddRange(query.SelectorIds ?? []);
         grpcQuery.Expression = JsonSerializer.Serialize(query.Expressions);
         grpcQuery.DistributedKeyAssemblyType = distributedKeyType;
+        if (query.Collection is { IsEmpty: false } collection)
+            grpcQuery.CollectionOptions = JsonSerializer.Serialize(collection);
         return await client.GetItemsAsync(grpcQuery, metadata, cancellationToken: cancellationTokenSource.Token);
     }
 
