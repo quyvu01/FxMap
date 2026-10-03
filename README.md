@@ -19,8 +19,9 @@
 
 <p align="center">
   <a href="https://fxmapper.net"><b>Documentation</b></a> ·
-  <a href="https://fxmapper.net/docs/getting-started"><b>Getting Started</b></a> ·
-  <a href="https://fxmapper.net/docs/expressions"><b>Expression Language</b></a>
+  <a href="https://fxmapper.net/docs/quick-start/"><b>Getting Started</b></a> ·
+  <a href="https://fxmapper.net/docs/expressions"><b>Expression Language</b></a> ·
+  <a href="https://discord.gg/XJNzPbqg7"><b>Discord</b></a>
 </p>
 
 ---
@@ -192,18 +193,23 @@ dotnet run -c Release -- --filter '*ProjectionBenchmark*' --launchCount 3
 
 ## Documentation
 
-Visit **[fxmapmapper.net](https://fxmapper.net)** for:
+Visit **[fxmapper.net](https://fxmapper.net)** for:
 
-- [Getting Started Guide](https://fxmapper.net/docs/getting-started)
-- [Configuration Options](https://fxmapper.net/docs/configuration)
+- [Getting Started Guide](https://fxmapper.net/docs/quick-start/)
+- [Configuration Options](https://fxmapper.net/docs/configuration/service-registration/)
 - [Expression Language Reference](https://fxmapper.net/docs/expressions)
-- [Data Provider Setup](https://fxmapper.net/docs/providers)
+- [Data Provider Setup](https://fxmapper.net/docs/data-providers/)
 - [Transport Configuration](https://fxmapper.net/docs/transports)
-- [API Reference](https://fxmapper.net/docs/api)
+
+## Community
+
+- Chat and get help on **[Discord](https://discord.gg/XJNzPbqg7)**
+- Ask questions and share ideas in [GitHub Discussions](https://github.com/quyvu01/FxMap/discussions)
+- Coming from OfX? Read the [migration guide](https://fxmapper.net/docs/migrate-from-ofx/)
 
 ## Contributing
 
-Contributions are welcome! Please visit our [GitHub repository](https://github.com/quyvu01/FxMap) to:
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) or visit our [GitHub repository](https://github.com/quyvu01/FxMap) to:
 
 - Report issues
 - Submit pull requests

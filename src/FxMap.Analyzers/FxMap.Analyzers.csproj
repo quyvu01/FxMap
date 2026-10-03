@@ -8,8 +8,10 @@
         <Authors>Quy Vu</Authors>
         <PackageId>FxMap.Analyzers</PackageId>
         <Description>The Expression Analyzers for FxMap</Description>
-        <PackageTags>FxMap;mappable;open-source;expression-analyzers</PackageTags>
+        <PackageTags>FxMap;mappable;open-source;expression-analyzers;microservices;distributed-systems;data-mapping;dto;dotnet;csharp</PackageTags>
         <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://fxmapper.net</PackageProjectUrl>
         <PackageIcon>FxMap.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>

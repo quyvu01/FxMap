@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Ask in the community (Discord)
+    url: https://discord.gg/XJNzPbqg7
+    about: Questions and help from other FxMap users.
+  - name: Documentation
+    url: https://fxmapper.net/docs
+    about: Guides, expression language and transport setup.

@@ -8,8 +8,10 @@
         <Authors>Quy Vu</Authors>
         <PackageId>FxMap.HotChocolate</PackageId>
         <Description>HotChocolate extension. Integrate with HotChocolate</Description>
-        <PackageTags>FxMap;mappable;open-source;HotChocolate</PackageTags>
+        <PackageTags>FxMap;mappable;open-source;HotChocolate;microservices;distributed-systems;data-mapping;dto;dotnet;csharp</PackageTags>
         <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://fxmapper.net</PackageProjectUrl>
         <PackageIcon>FxMap.png</PackageIcon>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageReadmeFile>README.md</PackageReadmeFile>

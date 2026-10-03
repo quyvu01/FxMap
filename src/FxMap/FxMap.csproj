@@ -7,9 +7,11 @@
         <Version>3.0.0</Version>
         <Authors>Quy Vu</Authors>
         <PackageId>FxMap</PackageId>
-        <Description>The high performance and easiest way to play with microservices for .NET</Description>
-        <PackageTags>FxMap;mappable;open-source</PackageTags>
+        <Description>Distributed data mapping for .NET microservices. Declare where a DTO property comes from and FxMap fetches it from the service that owns the data, over gRPC, NATS, RabbitMQ, Kafka, Azure Service Bus or Amazon SQS.</Description>
+        <PackageTags>FxMap;mappable;open-source;microservices;distributed-systems;data-mapping;dto;dotnet;csharp</PackageTags>
         <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://fxmapper.net</PackageProjectUrl>
         <PackageIcon>FxMap.png</PackageIcon>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseFile>LICENSE</PackageLicenseFile>

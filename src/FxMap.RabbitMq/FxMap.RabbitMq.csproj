@@ -8,8 +8,10 @@
         <Authors>Quy Vu</Authors>
         <PackageId>FxMap.RabbitMq</PackageId>
         <Description>FxMap.RabbitMq extension. Use RabbitMq as Data transporting</Description>
-        <PackageTags>FxMap;mappable;open-source;RabbitMq</PackageTags>
+        <PackageTags>FxMap;mappable;open-source;RabbitMq;microservices;distributed-systems;data-mapping;dto;dotnet;csharp</PackageTags>
         <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://fxmapper.net</PackageProjectUrl>
         <PackageIcon>FxMap.png</PackageIcon>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageReadmeFile>README.md</PackageReadmeFile>

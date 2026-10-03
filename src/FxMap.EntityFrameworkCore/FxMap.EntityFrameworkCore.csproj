@@ -8,8 +8,10 @@
         <Authors>Quy Vu</Authors>
         <PackageId>FxMap.EntityFrameworkCore</PackageId>
         <Description>FxMap extension. Use EntityFramework as Data Querying</Description>
-        <PackageTags>FxMap;mappable;open-source;entity-framework;ORM</PackageTags>
+        <PackageTags>FxMap;mappable;open-source;entity-framework;ORM;microservices;distributed-systems;data-mapping;dto;dotnet;csharp</PackageTags>
         <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://fxmapper.net</PackageProjectUrl>
         <PackageIcon>FxMap.png</PackageIcon>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageReadmeFile>README.md</PackageReadmeFile>

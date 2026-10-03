@@ -8,8 +8,10 @@
         <Authors>Quy Vu</Authors>
         <PackageId>FxMap.Kafka</PackageId>
         <Description>FxMap-Kafka extension. Use Kafka as Data transporting</Description>
-        <PackageTags>FxMap;mappable;open-source;Kafka</PackageTags>
+        <PackageTags>FxMap;mappable;open-source;Kafka;microservices;distributed-systems;data-mapping;dto;dotnet;csharp</PackageTags>
         <RepositoryUrl>https://github.com/quyvu01/FxMap</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageProjectUrl>https://fxmapper.net</PackageProjectUrl>
         <PackageIcon>FxMap.png</PackageIcon>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
         <PackageReadmeFile>README.md</PackageReadmeFile>
