@@ -369,3 +369,5 @@ FodyWeavers.xsd
 
 .DS_Store
 .DS_Store?
+# Local drafts (blog posts, etc.)
+docs/articles/
