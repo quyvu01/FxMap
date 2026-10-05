@@ -6,7 +6,7 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
-## [4.0.1]
+## [4.1.0]
 
 ### Added
 
