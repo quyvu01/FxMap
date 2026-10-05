@@ -98,6 +98,9 @@ public static class DistributedMapException
     public sealed class EntityIdNotConfigured(Type entityType)
         : Exception($"{entityType.Name} does not declare its identifier. Call Id(x => ...) in Configure().");
 
+    public sealed class InvalidProfileSelector(Type modelType, string reason)
+        : Exception($"Invalid Of(...) selector for {modelType.Name}: {reason}");
+
     public sealed class InvalidEntitySelector(Type entityType, string selectorName, string reason)
         : Exception($"Invalid {selectorName} selector for {entityType.Name}: {reason}");
 

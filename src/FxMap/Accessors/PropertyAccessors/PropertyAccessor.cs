@@ -14,17 +14,14 @@ namespace FxMap.Accessors.PropertyAccessors;
 /// providing near-native performance for property access operations.
 /// </para>
 /// <para>
-/// This approach is significantly faster than using <see cref="PropertyInfo.GetValue"/> and
-/// <see cref="PropertyInfo.SetValue"/> directly, especially in high-throughput mapping scenarios.
+/// This approach is significantly faster than using <see cref="IPropertyAccessor.Get"/> and
+/// <see cref="IPropertyAccessor.Set"/> directly, especially in high-throughput mapping scenarios.
 /// </para>
 /// </remarks>
 public class PropertyAccessor<T, TProp> : IPropertyAccessor
 {
     private readonly Action<T, TProp> _setter;
     private readonly Func<T, TProp> _getter;
-
-    /// <inheritdoc />
-    public PropertyInfo PropertyInfo { get; }
 
     /// <summary>
     /// Initializes a new instance of the <see cref="PropertyAccessor{T,TProp}"/> class.
@@ -36,7 +33,6 @@ public class PropertyAccessor<T, TProp> : IPropertyAccessor
     /// </remarks>
     public PropertyAccessor(PropertyInfo property)
     {
-        PropertyInfo = property;
         // compile getter
         var instanceParam = Expression.Parameter(typeof(T), "instance");
         var propertyExpr = Expression.Property(instanceParam, property);

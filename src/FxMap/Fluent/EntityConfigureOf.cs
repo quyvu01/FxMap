@@ -20,17 +20,13 @@ public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TMod
     }
 
     Type IFluentEntityConfig.EntityType => typeof(TModel);
-    // string IFluentEntityConfig.IdPropertyName => IdPropertyName;
     public LambdaExpression IdPropertySelector { get; private set; }
-    // string IFluentEntityConfig.DefaultPropertyName => DefaultPropertyName;
     public LambdaExpression DefaultPropertyNameSelector { get; private set; }
     IReadOnlyCollection<ExposedNameStore> IFluentEntityConfig.ExposedNameStores => [.. _exposedNameStores];
     Type IFluentEntityConfig.DistributedKeyType => DistributedKeyType;
     string IFluentEntityConfig.DistributedKey => DistributedKey;
-    // private string IdPropertyName { get; set; }
     private readonly List<ExposedNameStore> _exposedNameStores = [];
     private readonly HashSet<string> _exposedPropertyNames = [];
-    // private string DefaultPropertyName { get; set; }
     private Type DistributedKeyType { get; set; }
     private string DistributedKey { get; set; }
 
@@ -126,25 +122,8 @@ public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TMod
         ArgumentNullException.ThrowIfNull(selector);
         if (alreadyDeclared is not null)
             throw new DistributedMapException.InvalidEntitySelector(typeof(TModel), name, "it is declared more than once.");
-        if (!new ParameterUsage(selector.Parameters[0]).IsUsedIn(selector.Body))
+        if (!SelectorExpressions.ReadsParameter(selector))
             throw new DistributedMapException.InvalidEntitySelector(typeof(TModel), name,
                 $"the selector does not read the entity ('{selector}'). Use a property or an expression over it, such as x => x.Code.");
-    }
-
-    private sealed class ParameterUsage(ParameterExpression parameter) : ExpressionVisitor
-    {
-        private bool _used;
-
-        public bool IsUsedIn(Expression body)
-        {
-            Visit(body);
-            return _used;
-        }
-
-        protected override Expression VisitParameter(ParameterExpression node)
-        {
-            if (node == parameter) _used = true;
-            return node;
-        }
     }
 }

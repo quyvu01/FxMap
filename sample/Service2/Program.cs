@@ -1,11 +1,13 @@
 using System.Reflection;
 using Amazon;
+using FxMap.Abstractions;
 using FxMap.Aws.Sqs.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
 using FxMap.Grpc.Extensions;
+using FxMap.Models;
 using FxMap.Nats.Extensions;
 using FxMap.RabbitMq.Extensions;
 using FxMap.Supervision;
@@ -14,6 +16,8 @@ using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using Service2;
 using Service2.Contexts;
+using Service2.Dtos;
+using Shared.DistributedKeys;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,6 +43,7 @@ builder.Services.AddOpenTelemetry()
 builder.Services.AddFxMap(cfg =>
     {
         cfg.AddEntitiesFromAssemblyContaining<IAssemblyMarker>();
+        cfg.AddProfilesFromAssemblyContaining<IAssemblyMarker>();
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -48,12 +53,12 @@ builder.Services.AddFxMap(cfg =>
         });
         cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
         // cfg.AddRabbitMq(config => config.Host("localhost", "fx-map"));
-        cfg.AddSqs(sqs => sqs.Region(RegionEndpoint.USEast1, credential =>                                                                                                                                                      
-        {                                                                                                                                                                                                                       
-            credential.ServiceUrl("http://localhost:4566");                                                                                                                                                                     
-            credential.AccessKeyId("test");                                                                                                                                                                                     
-            credential.SecretAccessKey("test");                                                                                                                                                                                 
-        })); 
+        cfg.AddSqs(sqs => sqs.Region(RegionEndpoint.USEast1, credential =>
+        {
+            credential.ServiceUrl("http://localhost:4566");
+            credential.AccessKeyId("test");
+            credential.SecretAccessKey("test");
+        }));
         cfg.ThrowIfException();
     })
     .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service2Context)));
@@ -78,5 +83,15 @@ var app = builder.Build();
 using var scope = app.Services.CreateScope();
 var dbContext = scope.ServiceProvider.GetRequiredService<Service2Context>();
 await Service2.Data.Service2DataSeeder.SeedAsync(dbContext);
+app.MapGet("/test-get-user", async (IDistributedMapper mapper) =>
+{
+    var userResponse = new UserResponse
+    {
+        Id = "user-001",
+        Email = "john.smith@email.com"
+    };
+    await mapper.MapDataAsync(userResponse);
+    return userResponse;
+});
 app.MapFxMapperGrpc();
 app.Run();

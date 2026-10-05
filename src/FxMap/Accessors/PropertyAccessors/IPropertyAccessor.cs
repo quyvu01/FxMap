@@ -1,5 +1,3 @@
-using System.Reflection;
-
 namespace FxMap.Accessors.PropertyAccessors;
 
 /// <summary>
@@ -32,9 +30,4 @@ public interface IPropertyAccessor
     /// <returns>The current value of the property.</returns>
     /// <exception cref="InvalidOperationException">Thrown if the property does not have a getter.</exception>
     object Get(object instance);
-
-    /// <summary>
-    /// Gets the <see cref="System.Reflection.PropertyInfo"/> metadata for the property being accessed.
-    /// </summary>
-    PropertyInfo PropertyInfo { get; }
 }

@@ -1,4 +1,5 @@
 using System.Reflection;
+using FxMap.Accessors.PropertyAccessors;
 using FxMap.Fluent.Rules;
 
 namespace FxMap.PropertyMappingContexts;
@@ -28,6 +29,18 @@ public sealed class PropertyContext
     /// Gets or sets the property info of the required dependency property.
     /// </summary>
     public PropertyInfo RequiredPropertyInfo { get; set; }
+
+    /// <summary>
+    /// Gets or sets the accessor of the key when it is an expression over the DTO (<c>Of(x => x.Id + x.Email)</c>), in
+    /// which case <see cref="RequiredPropertyInfo"/> is null. Null for a key that is a single property.
+    /// </summary>
+    public IPropertyAccessor RequiredAccessor { get; set; }
+
+    /// <summary>
+    /// Gets or sets the properties the key expression reads and that are mapped by another rule (so those rules
+    /// must run first). Empty for a key that is a single property.
+    /// </summary>
+    public IReadOnlyList<PropertyInfo> RequiredPropertyInfos { get; set; } = [];
 
     /// <summary>
     /// Gets or sets the runtime type of the FxMap distributed key associated with the target property.

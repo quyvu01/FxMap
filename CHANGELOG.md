@@ -6,6 +6,29 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [4.0.1]
+
+### Added
+
+- **Computed keys in profiles** — `Of(...)` accepts an expression over the DTO, the counterpart of a computed entity `Id`:
+  `UseDistributedKey<UserDistributedKey>().Of(x => x.Id + x.Email)`. The value is read with `ToString()`; an expression that
+  goes through a null has no key. A key that reads a property mapped by another rule is resolved after that rule; reading a
+  property of its own group is not a dependency. `Of` throws `InvalidProfileSelector` when the expression does not read the
+  DTO. HotChocolate reads the key of a rule through its accessor, so computed keys work there too.
+
+### Removed
+
+- `IPropertyAccessor.PropertyInfo` (and `PropertyAccessor<T,TProp>.PropertyInfo`): the key of a rule can now be an expression, which has no
+  property. Nothing in FxMap read it; code that implements or reads `IPropertyAccessor` must drop it.
+
+### Fixed
+
+- A rule that overwrote a property read by the key of another rule of the same batch (`Of(x => x.Id)` with
+  `For(x => x.Id, ...)`) could make that other rule miss its row, because keys were read while values were being written.
+  Keys are now read before any value is written.
+
+---
+
 ## [4.0.0]
 
 **Breaking release.** See the [full notes and migration guide](docs/changelogs/v4.0.0.md). 3.0.1 was never released.

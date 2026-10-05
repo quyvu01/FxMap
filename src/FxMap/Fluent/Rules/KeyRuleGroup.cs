@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using FxMap.Abstractions;
 using FxMap.Helpers;
 
@@ -26,6 +27,12 @@ public sealed class KeyRuleGroup
     /// is sent as the distributed key lookup identifier.
     /// </summary>
     public string SelectorPropertyName { get; set; }
+
+    /// <summary>
+    /// Gets or sets the selector when the key is an expression over the DTO (<c>Of(x => x.Id + x.Email)</c>) rather than
+    /// a single property. Null when <see cref="SelectorPropertyName"/> is used.
+    /// </summary>
+    public LambdaExpression SelectorExpression { get; set; }
 
     /// <summary>
     /// Resolves the effective distributed key CLR type for this group, generating a dynamic

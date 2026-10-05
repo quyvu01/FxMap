@@ -231,12 +231,16 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 .Select(x => (x.Id, x.Values))
                 .Select(k => (a.DistributedKeyType, Data: k)))
             .SelectMany(x => x);
-        mappableProperties.Join(dataWithExpression, ap => (ap.Property?.RuntimeDistributedKeyType, ap
-                .Property?
-                .RequiredAccessor?
-                .Get(ap.Model)?.ToString()),
-            dt => (dt.DistributedKeyType, dt.Data.Id), (ap, dt) =>
+        // The keys are read before any value is written: a rule may fill a property that the key of another rule reads
+        // (Of(x => x.Id + x.Email) and For(x => x.Email, ...)), and the join is lazy.
+        var keyed = mappableProperties
+            .Select(ap => (Property: ap, Key: (ap.Property?.RuntimeDistributedKeyType, ap.Property?.RequiredAccessor?
+                .Get(ap.Model)?.ToString())))
+            .ToList();
+        keyed.Join(dataWithExpression, k => k.Key,
+            dt => (dt.DistributedKeyType, dt.Data.Id), (k, dt) =>
             {
+                var ap = k.Property;
                 var value = dt.Data
                     .Values
                     .FirstOrDefault(a => a.Expression == ap.EffectiveExpression)?.Value;
@@ -248,8 +252,8 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 }
                 catch (Exception)
                 {
-                    var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-                    if (fxMapConfiguration.ThrowIfExceptions) throw;
+                    var mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+                    if (mapperConfiguration.ThrowIfExceptions) throw;
                 }
 
                 return value;

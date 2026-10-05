@@ -2,7 +2,6 @@ using System.Reflection;
 using FxMap.Abstractions;
 using FxMap.Accessors.PropertyAccessors;
 using FxMap.Exceptions;
-using FxMap.Extensions;
 using FxMap.Fluent.Builders;
 using FxMap.Fluent.Rules;
 using FxMap.Helpers;
@@ -20,7 +19,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
 {
     private static readonly PropertyInformation NoInformation = new(0, null, null, null);
 
-    private readonly IReadOnlyDictionary<PropertyInfo, PropertyInformation> _information;
+    private readonly Dictionary<PropertyInfo, PropertyInformation> _information;
 
     ProfilePlan IProfilePlanSource.Plan => _plan;
     private readonly ProfilePlan _plan;
@@ -41,14 +40,14 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
     /// <summary>
     /// Gets the dictionary of compiled property accessors, keyed by their <see cref="PropertyInfo"/>.
     /// </summary>
-    public IReadOnlyDictionary<PropertyInfo, IPropertyAccessor> Accessors { get; private set; }
+    public IReadOnlyDictionary<PropertyInfo, IPropertyAccessor> Accessors { get; }
 
     /// <summary>
     /// Gets the dependency graph for properties decorated with <see cref="IDistributedKey"/>.
     /// Each key is a property that depends on other properties, and the value is an array
     /// of <see cref="PropertyContext"/> representing its dependencies in resolution order.
     /// </summary>
-    public IReadOnlyDictionary<PropertyInfo, PropertyContext[]> DependencyGraphs { get; private set; }
+    public IReadOnlyDictionary<PropertyInfo, PropertyContext[]> DependencyGraphs { get; }
 
     Type IFluentProfileConfig.ModelType => typeof(TModel);
 
@@ -68,7 +67,8 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
             .Keys
             .Concat(dependencyGraph.Values
                 .Select(a => a.Select(p => p.RequiredPropertyInfo))
-                .SelectMany(a => a))
+                .SelectMany(a => a)
+                .Where(p => p is not null))
             .Distinct()
             .ToArray();
 
@@ -173,7 +173,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
     /// A dictionary keyed by target property, where the value is the dependency chain
     /// in resolution order (deepest dependency first).
     /// </returns>
-    private Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraphFromFluentRules(
+    private static Dictionary<PropertyInfo, PropertyContext[]> BuildDependencyGraphFromFluentRules(
         PropertyInfo[] properties, List<KeyRuleGroup> ruleGroups)
     {
         // Build a lookup of target property → its direct PropertyContext
@@ -182,8 +182,30 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
         foreach (var group in ruleGroups)
         {
             var distributedKeyType = group.GetDistributedKeyType();
-            var selectorProperty = properties.FirstOrDefault(p => p.Name == group.SelectorPropertyName);
-            if (selectorProperty is null || distributedKeyType is null) continue;
+            if (distributedKeyType is null) continue;
+
+            // The key is a property of the DTO, or an expression over it (Of(x => x.Id + x.Email)).
+            PropertyInfo selectorProperty = null;
+            IPropertyAccessor computedAccessor = null;
+            IReadOnlyList<PropertyInfo> readProperties = [];
+            if (group.SelectorExpression is { } selectorExpression)
+            {
+                computedAccessor = new ComputedSelectorAccessor(typeof(TModel), selectorExpression);
+                // A property read by the key that this very group fills is not a dependency: the key must exist before
+                // the group is fetched. The others (filled by another group) must be mapped first.
+                var filledByGroup = group.Rules.Select(r => r.TargetPropertyName).ToHashSet();
+                readProperties =
+                [
+                    ..SelectorExpressions.PropertiesOfParameter(selectorExpression)
+                        .Select(r => properties.FirstOrDefault(p => p.Name == r.Name))
+                        .Where(p => p is not null && !filledByGroup.Contains(p.Name))
+                ];
+            }
+            else
+            {
+                selectorProperty = properties.FirstOrDefault(p => p.Name == group.SelectorPropertyName);
+                if (selectorProperty is null) continue;
+            }
 
             foreach (var rule in group.Rules)
             {
@@ -194,9 +216,11 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
                 {
                     TargetPropertyInfo = targetProperty,
                     Expression = rule.Expression,
-                    SelectorPropertyName = selectorProperty.Name,
+                    SelectorPropertyName = selectorProperty?.Name,
                     RuntimeDistributedKeyType = distributedKeyType,
                     RequiredPropertyInfo = selectorProperty,
+                    RequiredAccessor = computedAccessor,
+                    RequiredPropertyInfos = readProperties,
                     ConditionalExpression = rule.ConditionalExpression
                 };
             }
@@ -231,8 +255,18 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
         if (!visited.Add(property) || !directDeps.TryGetValue(property, out var context)) return [];
         var result = new List<PropertyContext> { context };
         // Recursively resolve if the selector property is itself a mapped target
-        result.AddRange(CollectDependencies(context.RequiredPropertyInfo, directDeps, visited));
-        return result.ToArray();
+        // A key that is a single property depends on one rule; an expression can read several mapped properties, and
+        // the rule must run after the deepest of them.
+        var required = context.RequiredPropertyInfo is { } single ? [single] : context.RequiredPropertyInfos;
+        PropertyContext[] deepest = [];
+        foreach (var next in required)
+        {
+            var chain = CollectDependencies(next, directDeps, [..visited]);
+            if (chain.Length > deepest.Length) deepest = chain;
+        }
+
+        result.AddRange(deepest);
+        return [.. result];
     }
 
     /// <summary>
@@ -260,7 +294,7 @@ public abstract class ProfileOf<TModel> : IFluentProfileConfig, IProfilePlanSour
     {
         var dependencies = DependencyGraphs[propertyInfo];
         var dependency = dependencies.First();
-        var requiredAccessor = GetAccessor(dependency.RequiredPropertyInfo);
+        var requiredAccessor = dependency.RequiredAccessor ?? GetAccessor(dependency.RequiredPropertyInfo);
         return new PropertyInformation(dependencies.Length - 1, dependency.Expression,
             dependency.RuntimeDistributedKeyType,
             requiredAccessor) { ConditionalExpression = dependency.ConditionalExpression };

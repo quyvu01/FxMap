@@ -62,8 +62,9 @@ public sealed class DataResolvers<TResponse> where TResponse : class
 
         async Task<string> FieldResultAsync(FieldContext fieldContext)
         {
+            // The accessor of the key of this rule: a property, or the expression of Of(x => x.Id + x.Email).
             var selectorId = profileConfig?
-                .Accessors.GetValueOrDefault(fieldContext.RequiredPropertyInfo)
+                .GetInformation(fieldContext.TargetPropertyInfo).RequiredAccessor?
                 .Get(response)?.ToString();
             // Fetch the dependency fields
             var fieldBearing = new FieldBearing(response, fieldContext.Expression, fieldContext.Order,
