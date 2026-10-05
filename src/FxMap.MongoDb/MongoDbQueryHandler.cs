@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Linq.Expressions;
@@ -40,7 +41,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     where TModel : class
     where TDistributedKey : IDistributedKey
 {
-    private readonly MapEntityConfig _fxMapEntityConfig = serviceProvider
+    private readonly IMapEntityConfig _entityConfig = serviceProvider
         .GetRequiredService<MapperDelegates>()
         .Invoke(typeof(TModel), typeof(TDistributedKey));
 
@@ -85,10 +86,10 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
                 .Project(projection)
                 .ToListAsync(context.CancellationToken);
 
-            // Transform to FxMapDataResponse
+            // Transform to DataResponse
             // Answer to the ids the way the caller wrote them (upper case Guid, leading zeros...).
             var data = RequestedIdAnswers.Align(context.Query.SelectorIds,
-                TransformResults(rawResults, expressions), FilterCacheInstance.Value.IdConverter);
+                TransformResults(rawResults, expressions), FilterCacheInstance.Value.CanonicalIdOf);
 
             var itemCount = data.Length;
             activity?.SetFxMapTags(itemCount: itemCount);
@@ -104,15 +105,29 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         }
     }
 
+    // MongoDB works with the names of the stored fields, so the Id and DefaultProperty selectors must be plain
+    // property selectors (x => x.Code). A missing default property selector gives a null name.
+    private static string PropertyNameOf(LambdaExpression selector)
+    {
+        if (selector is null) return null;
+        var body = selector.Body;
+        while (body is UnaryExpression { NodeType: ExpressionType.Convert or ExpressionType.ConvertChecked } convert)
+            body = convert.Operand;
+        return body is MemberExpression { Expression: ParameterExpression } member
+            ? member.Member.Name
+            : throw new NotSupportedException(
+                $"The MongoDB provider supports only property selectors for Id and DefaultProperty, got '{selector}'.");
+    }
+
     /// <summary>
     /// Builds a MongoDB filter expression.
     /// </summary>
     private FilterDefinition<TModel> BuildFilter(MapRequest<TDistributedKey> query)
     {
         var cache = FilterCacheInstance.Value;
-        cache.EnsureInitialized(_fxMapEntityConfig.IdProperty, serviceProvider);
+        cache.EnsureInitialized(PropertyNameOf(_entityConfig.IdPropertySelector), serviceProvider);
 
-        var idsConverted = cache.IdConverter.ConvertIds(query.SelectorIds);
+        var idsConverted = cache.ConvertIds(query.SelectorIds);
 
         // Use cached method to build filter
         return cache.BuildInFilter(idsConverted);
@@ -127,7 +142,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         // For null expressions, use defaultProperty (actual property name, not ExposedName)
         var expressionMap = expressions
             .Select((expr, idx) => (
-                Expression: expr ?? _fxMapEntityConfig.DefaultProperty,
+                Expression: expr ?? PropertyNameOf(_entityConfig.DefaultPropertySelector),
                 FieldName: $"_exp_{idx}",
                 IsDefault: expr == null))
             .ToDictionary(x => x.FieldName, x => x.Expression);
@@ -152,7 +167,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     }
 
     /// <summary>
-    /// Transforms MongoDB BsonDocument results to FxMapDataResponse array.
+    /// Transforms MongoDB BsonDocument results to DataResponse array.
     /// </summary>
     private static DataResponse[] TransformResults(
         List<BsonDocument> rawResults,
@@ -221,7 +236,10 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         private readonly object _initLock = new();
         private PropertyInfo IdPropertyInfo { get; set; }
         private Type IdPropertyType { get; set; }
-        public IIdConverter IdConverter { get; private set; }
+        // The id type is only known at runtime, so IIdConverter<TId> is called through reflection:
+        // ConvertIds returns the List<TId> as an object, CanonicalIdOf the canonical text of one requested id.
+        public Func<string[], object> ConvertIds { get; private set; }
+        public Func<string, string> CanonicalIdOf { get; private set; }
 
         // Cached delegate for building In filter
         private Func<object, FilterDefinition<TModel>> _buildInFilterDelegate;
@@ -247,7 +265,10 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
 
                 // Get IdConverter
                 var idConverterType = typeof(IIdConverter<>).MakeGenericType(IdPropertyType);
-                IdConverter = (IIdConverter)serviceProvider.GetService(idConverterType)!;
+                var idConverter = serviceProvider.GetService(idConverterType)!;
+                var convertIds = idConverterType.GetMethod(nameof(IIdConverter<object>.ConvertIds))!;
+                ConvertIds = ids => convertIds.Invoke(idConverter, [ids])!;
+                CanonicalIdOf = text => ((IEnumerable)ConvertIds([text])).Cast<object>().FirstOrDefault()?.ToString();
 
                 // Create the filter builder delegate using compiled expression
                 _buildInFilterDelegate = CreateFilterBuilderDelegate(idPropertyName);

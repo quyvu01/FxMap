@@ -9,7 +9,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace FxMap.Tests.UnitTests.Mapping;
 
 public sealed record RemoteCall(int Seq, Type KeyType, string[] Ids, string[] Expressions, long StartTs, long EndTs,
-    bool CancellationRequested);
+    bool CancellationRequested, IReadOnlyDictionary<string, string> Headers = null);
 
 /// <summary>A value the fake remote sends back verbatim (to simulate malformed payloads).</summary>
 public sealed record RawJson(string Json);
@@ -32,6 +32,9 @@ public sealed class FakeRemote
     /// <summary>Hook executed for every request, before the response is built (delay, gate, throw...).</summary>
     public Func<Type, Task> OnRequest { get; set; }
 
+    /// <summary>Like <see cref="OnRequest"/>, but also receives the token of the request (to wait until it is cancelled).</summary>
+    public Func<Type, CancellationToken, Task> OnRequestWithToken { get; set; }
+
     public IReadOnlyList<RemoteCall> Calls => [.._calls.OrderBy(c => c.Seq)];
 
     public IReadOnlyList<RemoteCall> CallsOf<TKey>() where TKey : IDistributedKey =>
@@ -49,11 +52,12 @@ public sealed class FakeRemote
     }
 
     internal async Task<ItemsResponse<DataResponse>> HandleAsync(Type keyType, string[] ids, string[] expressions,
-        CancellationToken token)
+        CancellationToken token, IReadOnlyDictionary<string, string> headers = null)
     {
         var seq = Interlocked.Increment(ref _seq);
         var start = Stopwatch.GetTimestamp();
         if (OnRequest is not null) await OnRequest(keyType);
+        if (OnRequestWithToken is not null) await OnRequestWithToken(keyType, token);
         var responses = new List<DataResponse>();
         if (_resolvers.TryGetValue(keyType, out var resolver))
             foreach (var id in ids.Where(id => resolver.Exists(id)))
@@ -75,7 +79,7 @@ public sealed class FakeRemote
                     ]
                 });
         _calls.Enqueue(new RemoteCall(seq, keyType, ids, expressions, start, Stopwatch.GetTimestamp(),
-            token.IsCancellationRequested));
+            token.IsCancellationRequested, headers));
         return new ItemsResponse<DataResponse>([..responses]);
     }
 }
@@ -85,7 +89,7 @@ internal sealed class FakeClientHandler<TKey>(FakeRemote remote) : IClientReques
 {
     public Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TKey> requestContext) =>
         remote.HandleAsync(typeof(TKey), requestContext.Query.SelectorIds, requestContext.Query.Expressions,
-            requestContext.CancellationToken);
+            requestContext.CancellationToken, requestContext.Headers);
 }
 
 public sealed class MappingHarness : IDisposable

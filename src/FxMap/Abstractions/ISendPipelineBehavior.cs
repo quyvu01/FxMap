@@ -41,7 +41,7 @@ public interface ISendPipelineBehavior<TDistributedKey> : IMapperBase<TDistribut
     /// Call <c>await next()</c> to continue the pipeline execution.
     /// </param>
     /// <returns>
-    /// A task resolving to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing 
+    /// A task resolving to an <see cref="ItemsResponse{DataResponse}"/> containing 
     /// the result of the pipeline execution and final response from the server.
     /// </returns>
     Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,

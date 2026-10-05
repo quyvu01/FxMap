@@ -1,4 +1,3 @@
-using System.Collections;
 using FxMap.Abstractions;
 using FxMap.Responses;
 
@@ -10,7 +9,7 @@ namespace FxMap.Helpers;
 /// <remarks>
 /// A provider returns rows keyed by the canonical text of the entity id (<c>Guid.ToString()</c> is lower case with
 /// hyphens, an <c>int</c> has no leading zeros, an <c>ObjectId</c> is lower case hex...), while the caller matches a
-/// response to its object by comparing the text it sent. An id that the <see cref="IIdConverter"/> accepts in another
+/// response to its object by comparing the text it sent. An id that the <see cref="IIdConverter{TId}"/> accepts in another
 /// spelling (upper case or braced Guid, <c>"007"</c> for 7, surrounding spaces) is found by the query, but its row
 /// would never be matched back. <see cref="Align"/> returns one answer per requested spelling.
 /// </remarks>
@@ -23,8 +22,22 @@ public static class RequestedIdAnswers
     /// <param name="requestedIds">The id texts of the request (nulls are ignored).</param>
     /// <param name="rows">The rows returned by the provider, keyed by the canonical id text.</param>
     /// <param name="idConverter">The converter used to parse the requested ids for the query.</param>
+    public static DataResponse[] Align<TId>(IEnumerable<string> requestedIds, DataResponse[] rows,
+        IIdConverter<TId> idConverter) =>
+        Align(requestedIds, rows, text =>
+        {
+            var ids = idConverter.ConvertIds([text]);
+            return ids.Count > 0 ? ids[0]?.ToString() : null;
+        });
+
+    /// <summary>
+    /// Same as the typed overload, for a provider that finds the canonical id text of a requested text by itself.
+    /// </summary>
+    /// <param name="requestedIds">The id texts of the request (nulls are ignored).</param>
+    /// <param name="rows">The rows returned by the provider, keyed by the canonical id text.</param>
+    /// <param name="canonicalIdOf">The canonical id text a requested text parses to, or null when it does not parse.</param>
     public static DataResponse[] Align(IEnumerable<string> requestedIds, DataResponse[] rows,
-        IIdConverter idConverter)
+        Func<string, string> canonicalIdOf)
     {
         if (rows.Length == 0) return rows;
         var requested = new HashSet<string>(requestedIds.Where(id => id is not null));
@@ -43,8 +56,7 @@ public static class RequestedIdAnswers
                 continue;
             }
 
-            var parsed = (idConverter.ConvertIds([text]) as IEnumerable)?.Cast<object>().FirstOrDefault();
-            if (parsed?.ToString() is { } canonical && byCanonicalId.TryGetValue(canonical, out var row))
+            if (canonicalIdOf(text) is { } canonical && byCanonicalId.TryGetValue(canonical, out var row))
                 answers.Add(new DataResponse { Id = text, Values = row.Values });
         }
 

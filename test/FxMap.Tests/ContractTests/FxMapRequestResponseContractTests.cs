@@ -32,7 +32,7 @@ public class FxMapRequestResponseContractTests
     }
 
     [Fact]
-    public void FxMapDataResponse_Should_Serialize_And_Deserialize_Correctly()
+    public void DataResponse_Should_Serialize_And_Deserialize_Correctly()
     {
         // Arrange
         var response = new DataResponse
@@ -102,7 +102,7 @@ public class FxMapRequestResponseContractTests
     }
 
     [Fact]
-    public void FxMapDataResponse_Should_Handle_Null_Values()
+    public void DataResponse_Should_Handle_Null_Values()
     {
         // Arrange
         var response = new DataResponse
@@ -174,7 +174,7 @@ public class FxMapRequestResponseContractTests
     }
 
     [Fact]
-    public void FxMapDataResponse_Json_Format_Should_Remain_Stable()
+    public void DataResponse_Json_Format_Should_Remain_Stable()
     {
         // Arrange
         var response = new DataResponse

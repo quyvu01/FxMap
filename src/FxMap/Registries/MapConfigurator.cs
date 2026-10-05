@@ -139,7 +139,7 @@ public class MapConfigurator(IServiceCollection services)
             .ForEach(AddEntityConfig);
     }
 
-    private void ScanEntityConfigs(Assembly assembly) => AddEntityConfigs([..assembly.ExportedTypes]);
+    private void ScanEntityConfigs(Assembly assembly) => AddEntityConfigs([..assembly.DefinedTypes]);
 
     private void AddEntityConfig(Type entityType)
     {

@@ -4,7 +4,7 @@ using BenchmarkDotNet.Running;
 using FxMap.Benchmark.FxMapPropertyAssessors;
 using FxMap.Benchmark.Projection;
 
-BenchmarkSwitcher.FromTypes([typeof(ProjectionBenchmark), typeof(EnrichPhaseBenchmark), typeof(LeafCollectionBenchmark), typeof(DeepChainBenchmark)]).Run(args);
+BenchmarkSwitcher.FromTypes([typeof(ProjectionBenchmark), typeof(EnrichPhaseBenchmark), typeof(LeafCollectionBenchmark), typeof(DeepChainBenchmark), typeof(IdPathBenchmark)]).Run(args);
 // BenchmarkRunner.Run<FxMapPropertyAccessorBenchmark>();
 // BenchmarkRunner.Run<MappingBenchmark>();
 // BenchmarkRunner.Run<MappablePropertiesBenchmark>(); // Old benchmark with Stack.Contains

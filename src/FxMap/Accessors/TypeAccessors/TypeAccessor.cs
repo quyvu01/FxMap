@@ -38,9 +38,6 @@ public sealed class TypeAccessor(Type objectType, GetEntityConfig getEntityConfi
         return result;
     }
 
-    public PropertyInfo GetPropertyInfoDirect(string propertyName)
-    {
-        return _directProperties.GetOrAdd(propertyName,
-            n => objectType.GetProperty(n, BindingFlags.Public | BindingFlags.Instance));
-    }
+    public PropertyInfo GetPropertyInfoDirect(string propertyName) => _directProperties.GetOrAdd(propertyName,
+        n => objectType.GetProperty(n, BindingFlags.Public | BindingFlags.Instance));
 }

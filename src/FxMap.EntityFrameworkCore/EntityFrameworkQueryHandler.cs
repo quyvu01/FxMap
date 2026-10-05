@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
 using FxMap.Builders;
+using FxMap.Delegates;
 using FxMap.EntityFrameworkCore.Abstractions;
 using FxMap.Expressions.Building;
 using FxMap.Responses;
@@ -21,7 +22,7 @@ namespace FxMap.EntityFrameworkCore;
 /// </para>
 /// <list type="bullet">
 ///   <item>Step 1: Query database with object[] projection (single query, all expressions)</item>
-///   <item>Step 2: Transform object[] to FxMapDataResponse in memory</item>
+///   <item>Step 2: Transform object[] to DataResponse in memory</item>
 /// </list>
 /// <para>
 /// Benefits:
@@ -34,12 +35,15 @@ namespace FxMap.EntityFrameworkCore;
 /// </list>
 /// </remarks>
 internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProvider serviceProvider)
-    : QueryHandlerBuilder<TModel, TDistributedKey>(serviceProvider), IQueryOfHandler<TModel, TDistributedKey>
+    : IQueryOfHandler<TModel, TDistributedKey>
     where TModel : class
     where TDistributedKey : IDistributedKey
 {
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
     private const string DbSystem = "efcore";
+
+    private readonly IMapEntityConfig _entityConfig = serviceProvider
+        .GetRequiredService<MapperDelegates>()
+        .Invoke(typeof(TModel), typeof(TDistributedKey));
 
     public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TDistributedKey> context)
     {
@@ -48,14 +52,19 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
 
         try
         {
+            var idSelector = _entityConfig.IdPropertySelector;
+            var idType = idSelector.Body.Type;
+            var queryHandler = (QueryHandlerBuilder<TModel, TDistributedKey>)serviceProvider
+                .GetRequiredService(typeof(QueryHandlerBuilder<,,>).MakeGenericType(typeof(TModel), idType,
+                    typeof(TDistributedKey)));
             // Build filter expression
-            var filter = BuildFilter(context.Query);
+            var filter = queryHandler.BuildFilter(context.Query);
 
             // Build projection expression
-            var (projection, expressions) = BuildProjection(context.Query);
+            var (projection, expressions) = queryHandler.BuildProjection(context.Query);
 
             // Get DbContext and execute query
-            using var scope = _serviceProvider.CreateScope();
+            using var scope = serviceProvider.CreateScope();
             var dbContextResolver = scope.ServiceProvider.GetRequiredService<IDbContextResolver<TModel>>();
 
             // Add database tags to activity
@@ -73,8 +82,9 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
                 .Select(projection)
                 .ToArrayAsync(context.CancellationToken);
 
-            // Step 2: Transform to FxMapDataResponse in memory
-            var data = AnswerRequestedIds(context.Query, ProjectionTransformer.TransformToArray(rawResults, expressions));
+            // Step 2: Transform to DataResponse in memory
+            var data = queryHandler.AnswerRequestedIds(context.Query,
+                ProjectionTransformer.TransformToArray(rawResults, expressions));
             var itemCount = data.Length;
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);

@@ -36,7 +36,7 @@ public interface IRequestClient
     /// The request context containing selector IDs, expressions, headers, and cancellation token.
     /// </param>
     /// <returns>
-    /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing
+    /// A task that resolves to an <see cref="ItemsResponse{DataResponse}"/> containing
     /// the data returned from the server.
     /// </returns>
     Task<ItemsResponse<DataResponse>> RequestAsync<TDistributedKey>(RequestContext<TDistributedKey> requestContext)

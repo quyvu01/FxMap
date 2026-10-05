@@ -35,7 +35,7 @@ public interface IReceivedPipelineBehavior<TDistributedKey> : IMapperBase<TDistr
     /// A delegate that invokes the next pipeline behavior or the final query handler.
     /// </param>
     /// <returns>
-    /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> 
+    /// A task that resolves to an <see cref="ItemsResponse{DataResponse}"/> 
     /// containing either the pipeline-generated result or the result from the underlying handler.
     /// </returns>
     Task<ItemsResponse<DataResponse>> HandleAsync(

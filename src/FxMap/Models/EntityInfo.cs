@@ -17,4 +17,4 @@ namespace FxMap.Models;
 /// The configuration that defines the ID and default property mappings for this model,
 /// specified via <c>AbstractFxMapConfig&lt;T&gt;</c>.
 /// </param>
-public sealed record EntityInfo(Type EntityType, Type DistributedKeyType, MapEntityConfig MapEntityConfig);
+public sealed record EntityInfo(Type EntityType, Type DistributedKeyType, IMapEntityConfig MapEntityConfig);

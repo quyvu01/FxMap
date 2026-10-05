@@ -36,7 +36,7 @@ public interface IReceivedPipelinesOrchestrator<TDistributedKey> : IMapperBase<T
     /// and the <see cref="CancellationToken"/>.
     /// </param>
     /// <returns>
-    /// A task that produces an <see cref="ItemsResponse{FxMapDataResponse}"/> representing the 
+    /// A task that produces an <see cref="ItemsResponse{DataResponse}"/> representing the 
     /// final result after all pipeline behaviors and the query handler have executed.
     /// </returns>
     Task<ItemsResponse<DataResponse>> ExecuteAsync(RequestContext<TDistributedKey> requestContext);

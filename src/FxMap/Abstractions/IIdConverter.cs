@@ -1,36 +1,29 @@
 namespace FxMap.Abstractions;
 
 /// <summary>
-/// Defines a contract for converting selector IDs into the correct ID type at runtime.
-/// </summary>
-/// <remarks>
-/// This interface is typically used internally by the FxMap to ensure that
-/// incoming selector IDs (received as <see cref="string"/> values) are converted
-/// into their proper type (e.g., <see cref="Guid"/>, <see cref="int"/>, or a strongly-typed ID).
-/// </remarks>
-public interface IIdConverter
-{
-    /// <summary>
-    /// Converts the given list of selector IDs into the appropriate ID type for the target model.
-    /// </summary>
-    /// <param name="selectorIds">A list of selector IDs as strings.</param>
-    /// <returns>
-    /// An <see cref="object"/> representing the converted ID or collection of IDs,
-    /// ready to be used in queries or lookups.
-    /// </returns>
-    object ConvertIds(string[] selectorIds);
-}
-
-/// <summary>
-/// A generic version of <see cref="IIdConverter"/> that provides type safety
-/// for the target ID type.
+/// Converts selector IDs into the ID type of the target model at runtime.
 /// </summary>
 /// <typeparam name="TId">
 /// The target type to which the selector IDs should be converted
 /// (e.g., <see cref="Guid"/>, <see cref="int"/>, or a custom strongly-typed ID).
 /// </typeparam>
 /// <remarks>
-/// Use this interface to implement type-specific ID conversion logic,
-/// ensuring that the FxMap framework can work with strongly-typed identifiers.
+/// This interface is used by FxMap to make sure that incoming selector IDs (received as <see cref="string"/> values)
+/// are converted into their proper type before they are used in a query. Implement it for type-specific ID
+/// conversion logic, so that FxMap can work with strongly-typed identifiers.
+/// <para>
+/// <typeparamref name="TId"/> is invariant (not <c>out</c>) because <see cref="ConvertIds"/> returns a
+/// <see cref="List{T}"/>, which is invariant itself.
+/// </para>
 /// </remarks>
-public interface IIdConverter<out TId> : IIdConverter;
+public interface IIdConverter<TId>
+{
+    /// <summary>
+    /// Converts the given selector IDs into the ID type of the target model.
+    /// </summary>
+    /// <param name="selectorIds">The selector IDs as strings.</param>
+    /// <returns>
+    /// The converted IDs, ready to be used in queries or lookups. Texts that cannot be converted are left out.
+    /// </returns>
+    List<TId> ConvertIds(string[] selectorIds);
+}

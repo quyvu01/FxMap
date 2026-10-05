@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using FxMap.Abstractions;
 
 namespace FxMap.Fluent;
@@ -11,13 +12,17 @@ public interface IFluentEntityConfig
     /// <summary>Gets the CLR type of the configured entity.</summary>
     Type EntityType { get; }
 
-    /// <summary>Gets the name of the property that acts as the entity's primary identifier.</summary>
-    string IdPropertyName { get; }
+    // /// <summary>Gets the name of the property that acts as the entity's primary identifier.</summary>
+    // string IdPropertyName { get; }
 
-    /// <summary>
-    /// Gets the name of the property returned when no explicit expression is specified in a mapping rule.
-    /// </summary>
-    string DefaultPropertyName { get; }
+    LambdaExpression IdPropertySelector { get; }
+
+    // /// <summary>
+    // /// Gets the name of the property returned when no explicit expression is specified in a mapping rule.
+    // /// </summary>
+    // string DefaultPropertyName { get; }
+
+    LambdaExpression DefaultPropertyNameSelector { get; }
 
     /// <summary>
     /// Gets the collection of exposed-name aliases registered via

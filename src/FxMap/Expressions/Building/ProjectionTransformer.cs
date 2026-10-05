@@ -4,16 +4,16 @@ using FxMap.Serializable;
 namespace FxMap.Expressions.Building;
 
 /// <summary>
-/// Transforms raw projection results (object[]) into FxMapDataResponse objects.
+/// Transforms raw projection results (object[]) into DataResponse objects.
 /// </summary>
 public static class ProjectionTransformer
 {
     /// <summary>
-    /// Transforms a collection of raw projection results into FxMapDataResponse objects.
+    /// Transforms a collection of raw projection results into DataResponse objects.
     /// </summary>
     /// <param name="rawResults">The raw results from database query (each row is object[]).</param>
     /// <param name="expressions">The original expression strings (in order).</param>
-    /// <returns>Collection of FxMapDataResponse objects.</returns>
+    /// <returns>Collection of DataResponse objects.</returns>
     public static IEnumerable<DataResponse> Transform(
         IEnumerable<object[]> rawResults,
         IReadOnlyList<string> expressions)
@@ -23,11 +23,11 @@ public static class ProjectionTransformer
     }
 
     /// <summary>
-    /// Transforms a single raw projection result into an FxMapDataResponse.
+    /// Transforms a single raw projection result into an DataResponse.
     /// </summary>
     /// <param name="row">The raw result row (object[]).</param>
     /// <param name="expressions">The original expression strings (in order).</param>
-    /// <returns>An FxMapDataResponse object.</returns>
+    /// <returns>An DataResponse object.</returns>
     private static DataResponse TransformRow(object[] row, IReadOnlyList<string> expressions)
     {
         // row[0] = Id
@@ -58,7 +58,7 @@ public static class ProjectionTransformer
     /// </summary>
     /// <param name="rawResults">The raw results from database query.</param>
     /// <param name="metadata">The projection metadata.</param>
-    /// <returns>Collection of FxMapDataResponse objects.</returns>
+    /// <returns>Collection of DataResponse objects.</returns>
     public static IEnumerable<DataResponse> TransformWithMetadata(
         IEnumerable<object[]> rawResults,
         IReadOnlyList<ProjectionMetadata> metadata)

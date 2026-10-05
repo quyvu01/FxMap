@@ -27,7 +27,7 @@ public interface IQueryOfHandler<TModel, TDistributedKey> where TModel : class w
     /// The request context containing selector IDs, expressions, headers, and cancellation token.
     /// </param>
     /// <returns>
-    /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing
+    /// A task that resolves to an <see cref="ItemsResponse{DataResponse}"/> containing
     /// the resulting data from the provider.
     /// </returns>
     Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TDistributedKey> context);
@@ -51,7 +51,7 @@ public class NoOpQueryOfHandler;
 /// The <see cref="IDistributedKey"/> type that describes the query mapping for <typeparamref name="TModel"/>.
 /// </typeparam>
 /// <remarks>
-/// This default implementation always returns an empty <see cref="ItemsResponse{FxMapDataResponse}"/>.
+/// This default implementation always returns an empty <see cref="ItemsResponse{DataResponse}"/>.
 /// It is typically used as a fallback when no specific query handler is registered.
 /// </remarks>
 public sealed class NoOpQueryOfHandler<TModel, TDistributedKey>

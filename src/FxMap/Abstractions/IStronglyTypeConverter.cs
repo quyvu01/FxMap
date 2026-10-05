@@ -20,7 +20,7 @@ public interface IStronglyTypeConverter;
 /// </typeparam>
 /// <remarks>
 /// <para>
-/// This interface is used in conjunction with <see cref="IIdConverter"/> to support 
+/// This interface is used in conjunction with <see cref="IIdConverter{TId}"/> to support 
 /// **strongly-typed identifiers** in FxMap.  
 /// </para>
 /// <para>

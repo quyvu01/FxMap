@@ -95,6 +95,12 @@ public static class DistributedMapException
     public sealed class DistributedKeyNullOrEmpty()
         : Exception("DistributedKey cannot be null or empty.");
     
+    public sealed class EntityIdNotConfigured(Type entityType)
+        : Exception($"{entityType.Name} does not declare its identifier. Call Id(x => ...) in Configure().");
+
+    public sealed class InvalidEntitySelector(Type entityType, string selectorName, string reason)
+        : Exception($"Invalid {selectorName} selector for {entityType.Name}: {reason}");
+
     public sealed class AmbiguousProfileConfiguration(
         Type existingProfileType,
         Type duplicateProfileType,

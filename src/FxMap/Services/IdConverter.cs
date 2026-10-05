@@ -15,66 +15,66 @@ namespace FxMap.Services;
 /// </remarks>
 internal abstract class AbstractIdConverter
 {
+    // Each parser returns a boxed List<T> of its own type, which IdConverter<TId> casts back to List<TId>.
     protected static readonly Dictionary<Type, Func<string[], object>> IdConverters = new()
     {
-        { typeof(string), ids => ids },
-        { typeof(Guid), ParseIdsToArray<Guid> },
-        { typeof(Guid?), ParseNullableIdsToArray<Guid> },
-        { typeof(int), ParseIdsToArray<int> },
-        { typeof(int?), ParseNullableIdsToArray<int> },
-        { typeof(long), ParseIdsToArray<long> },
-        { typeof(long?), ParseNullableIdsToArray<long> },
-        { typeof(ulong), ParseIdsToArray<ulong> },
-        { typeof(ulong?), ParseNullableIdsToArray<ulong> },
-        { typeof(short), ParseIdsToArray<short> },
-        { typeof(short?), ParseNullableIdsToArray<short> },
-        { typeof(ushort), ParseIdsToArray<ushort> },
-        { typeof(ushort?), ParseNullableIdsToArray<ushort> },
-        { typeof(float), ParseIdsToArray<float> },
-        { typeof(float?), ParseNullableIdsToArray<float> },
-        { typeof(double), ParseIdsToArray<double> },
-        { typeof(double?), ParseNullableIdsToArray<double> },
-        { typeof(decimal), ParseIdsToArray<decimal> },
-        { typeof(decimal?), ParseNullableIdsToArray<decimal> },
-        { typeof(sbyte), ParseIdsToArray<sbyte> },
-        { typeof(sbyte?), ParseNullableIdsToArray<sbyte> },
-        { typeof(uint), ParseIdsToArray<uint> },
-        { typeof(uint?), ParseNullableIdsToArray<uint> },
-        { typeof(byte), ParseIdsToArray<byte> },
-        { typeof(byte?), ParseNullableIdsToArray<byte> }
+        { typeof(string), ids => new List<string>(ids) },
+        { typeof(Guid), ParseIdsToList<Guid> },
+        { typeof(Guid?), ParseNullableIdsToList<Guid> },
+        { typeof(int), ParseIdsToList<int> },
+        { typeof(int?), ParseNullableIdsToList<int> },
+        { typeof(long), ParseIdsToList<long> },
+        { typeof(long?), ParseNullableIdsToList<long> },
+        { typeof(ulong), ParseIdsToList<ulong> },
+        { typeof(ulong?), ParseNullableIdsToList<ulong> },
+        { typeof(short), ParseIdsToList<short> },
+        { typeof(short?), ParseNullableIdsToList<short> },
+        { typeof(ushort), ParseIdsToList<ushort> },
+        { typeof(ushort?), ParseNullableIdsToList<ushort> },
+        { typeof(float), ParseIdsToList<float> },
+        { typeof(float?), ParseNullableIdsToList<float> },
+        { typeof(double), ParseIdsToList<double> },
+        { typeof(double?), ParseNullableIdsToList<double> },
+        { typeof(decimal), ParseIdsToList<decimal> },
+        { typeof(decimal?), ParseNullableIdsToList<decimal> },
+        { typeof(sbyte), ParseIdsToList<sbyte> },
+        { typeof(sbyte?), ParseNullableIdsToList<sbyte> },
+        { typeof(uint), ParseIdsToList<uint> },
+        { typeof(uint?), ParseNullableIdsToList<uint> },
+        { typeof(byte), ParseIdsToList<byte> },
+        { typeof(byte?), ParseNullableIdsToList<byte> }
     };
 
-    private static object ParseIdsToArray<T>(string[] selectorIds) where T : IParsable<T> =>
-        ParseIds<T>(selectorIds).ToArray();
-
-    private static object ParseNullableIdsToArray<T>(string[] selectorIds) where T : IParsable<T>
-        => ParseNullableIds<T>(selectorIds).ToArray();
-
-    private static IEnumerable<T> ParseIds<T>(string[] selectorIds)
-        where T : IParsable<T>
+    private static object ParseIdsToList<T>(string[] selectorIds) where T : IParsable<T>
     {
-        if (selectorIds is not { Length: > 0 }) yield break;
+        var ids = new List<T>(selectorIds?.Length ?? 0);
+        if (selectorIds is null) return ids;
         foreach (var id in selectorIds)
             if (T.TryParse(id, null, out var parsed))
-                yield return parsed;
+                ids.Add(parsed);
+        return ids;
     }
 
-    private static IEnumerable<T?> ParseNullableIds<T>(string[] selectorIds)
-        where T : IParsable<T>
+    private static object ParseNullableIdsToList<T>(string[] selectorIds) where T : struct, IParsable<T>
     {
-        if (selectorIds is not { Length: > 0 }) yield break;
+        var ids = new List<T?>(selectorIds?.Length ?? 0);
+        if (selectorIds is null) return ids;
         foreach (var id in selectorIds)
             if (T.TryParse(id, null, out var parsed))
-                yield return parsed;
+                ids.Add(parsed);
+        return ids;
     }
 
-    protected static IEnumerable<TId> ParseStronglyTypeIds<TId>(IServiceProvider serviceProvider, string[] selectorIds)
+    protected static List<TId> ParseStronglyTypeIds<TId>(IServiceProvider serviceProvider, string[] selectorIds)
     {
         var stronglyTypeService = serviceProvider.GetService<IStronglyTypeConverter<TId>>();
         if (stronglyTypeService is null) throw new DistributedMapException.CurrentIdTypeWasNotSupported();
-        return selectorIds
-            .Where(a => stronglyTypeService.CanConvert(a))
-            .Select(a => stronglyTypeService.Convert(a));
+        return
+        [
+            .. selectorIds
+                .Where(stronglyTypeService.CanConvert)
+                .Select(stronglyTypeService.Convert)
+        ];
     }
 }
 
@@ -90,7 +90,7 @@ internal abstract class AbstractIdConverter
 internal class IdConverter<TId>(IServiceProvider serviceProvider) : AbstractIdConverter, IIdConverter<TId>
 {
     /// <inheritdoc />
-    public object ConvertIds(string[] selectorIds) => IdConverters.TryGetValue(typeof(TId), out var converter)
-        ? converter(selectorIds)
+    public List<TId> ConvertIds(string[] selectorIds) => IdConverters.TryGetValue(typeof(TId), out var converter)
+        ? (List<TId>)converter(selectorIds)
         : ParseStronglyTypeIds<TId>(serviceProvider, selectorIds);
 }

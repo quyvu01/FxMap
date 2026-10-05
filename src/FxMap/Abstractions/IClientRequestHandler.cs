@@ -33,7 +33,7 @@ public interface IClientRequestHandler<TDistributedKey> : IMapperBase<TDistribut
     /// The request context containing selector IDs, expressions, headers, and cancellation token.
     /// </param>
     /// <returns>
-    /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing
+    /// A task that resolves to an <see cref="ItemsResponse{DataResponse}"/> containing
     /// the data returned from the server.
     /// </returns>
     Task<ItemsResponse<DataResponse>> RequestAsync(RequestContext<TDistributedKey> requestContext);
@@ -46,7 +46,7 @@ public interface IClientRequestHandler<TDistributedKey> : IMapperBase<TDistribut
 /// The type of <see cref="IDistributedKey"/> representing the model or entity being requested.
 /// </typeparam>
 /// <remarks>
-/// This default implementation always returns an empty <see cref="ItemsResponse{FxMapDataResponse}"/>.
+/// This default implementation always returns an empty <see cref="ItemsResponse{DataResponse}"/>.
 /// It is typically used when no specific handler has been registered for a given <typeparamref name="TDistributedKey"/>.
 /// </remarks>
 internal class NoOpClientRequestHandler<TDistributedKey> : IClientRequestHandler<TDistributedKey>

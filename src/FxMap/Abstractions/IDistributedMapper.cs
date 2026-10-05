@@ -30,6 +30,8 @@ public interface IDistributedMapper
     /// </returns>
     Task MapDataAsync(object value, CancellationToken token = default);
 
+    Task MapDataAsync(object value, IContext context, CancellationToken token = default);
+
     /// <summary>
     /// Fetches data for a given <typeparamref name="TDistributedKey"/> type.
     /// </summary>
@@ -43,7 +45,7 @@ public interface IDistributedMapper
     /// (Optional) The request context, including headers and a <see cref="CancellationToken"/>.
     /// </param>
     /// <returns>
-    /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing the fetched data.
+    /// A task that resolves to an <see cref="ItemsResponse{DataResponse}"/> containing the fetched data.
     /// </returns>
     Task<ItemsResponse<DataResponse>> FetchDataAsync<TDistributedKey>(DistributedMapRequest query,
         IContext context = null)
@@ -62,7 +64,7 @@ public interface IDistributedMapper
     /// (Optional) The request context, including headers and a <see cref="CancellationToken"/>.
     /// </param>
     /// <returns>
-    /// A task that resolves to an <see cref="ItemsResponse{FxMapDataResponse}"/> containing the fetched data.
+    /// A task that resolves to an <see cref="ItemsResponse{DataResponse}"/> containing the fetched data.
     /// </returns>
     Task<ItemsResponse<DataResponse>>
         FetchDataAsync(Type runtimeType, DistributedMapRequest query, IContext context = null);

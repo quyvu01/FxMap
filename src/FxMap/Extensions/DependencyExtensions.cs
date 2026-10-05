@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using FxMap.Abstractions;
 using FxMap.Accessors.TypeAccessors;
+using FxMap.Builders;
 using FxMap.Delegates;
 using FxMap.Handlers;
 using FxMap.Implementations;
@@ -38,31 +39,31 @@ public static class DependencyExtensions
     /// </example>
     public static ConfiguratorWrapped AddFxMap(this IServiceCollection services, Action<MapConfigurator> options)
     {
-        var newOfRegister = new MapConfigurator(services);
-        options.Invoke(newOfRegister);
+        var mapConfigurator = new MapConfigurator(services);
+        options.Invoke(mapConfigurator);
 
         var noOpClientRequestHandlerType = typeof(NoOpClientRequestHandler<>);
 
-        var entitiesInfos = GetEntitiesInfos(newOfRegister.EntityConfigs);
+        var entitiesInfos = GetEntitiesInfos(mapConfigurator.EntityConfigs);
 
-        var distributedKeyMapHandlers = GetDistributedKeyMapHandlers(newOfRegister.EntityConfigs);
+        var distributedKeyMapHandlers = GetDistributedKeyMapHandlers(mapConfigurator.EntityConfigs);
 
-        services.AddSingleton<GetProfileConfig>(newOfRegister.GetProfileConfig);
+        services.AddSingleton<GetProfileConfig>(mapConfigurator.GetProfileConfig);
 
         services.AddSingleton<GetEntityConfig>(entityType =>
-            newOfRegister.EntityConfigs.GetValueOrDefault(entityType));
+            mapConfigurator.EntityConfigs.GetValueOrDefault(entityType));
 
         services.AddSingleton<GetTypeAccessor>(sp =>
             type => new TypeAccessor(type, sp.GetRequiredService<GetEntityConfig>()));
 
-        var distributedKeyTypes = new HashSet<Type>(newOfRegister.ProfileConfigs
+        var distributedKeyTypes = new HashSet<Type>(mapConfigurator.ProfileConfigs
             .SelectMany(a => a.Value.RuleGroups)
             .Select(a => a.GetDistributedKeyType()));
 
         services.AddSingleton<IMapperConfiguration>(new MapperConfiguration(distributedKeyTypes, entitiesInfos,
-            distributedKeyMapHandlers, newOfRegister.MaxNestingDepth, newOfRegister.MaxConcurrentProcessing,
-            newOfRegister.ThrowIfExceptions, newOfRegister.DefaultRequestTimeout, newOfRegister.RetryPolicy,
-            newOfRegister.SupervisorOptions));
+            distributedKeyMapHandlers, mapConfigurator.MaxNestingDepth, mapConfigurator.MaxConcurrentProcessing,
+            mapConfigurator.ThrowIfExceptions, mapConfigurator.DefaultRequestTimeout, mapConfigurator.RetryPolicy,
+            mapConfigurator.SupervisorOptions));
 
         var clientHandlerGenericType = typeof(ClientRequestHandler<>);
         distributedKeyTypes
@@ -98,27 +99,27 @@ public static class DependencyExtensions
             var config = entitiesInfos
                 .First(a => a.EntityType == mt && a.DistributedKeyType == at)
                 .MapEntityConfig;
-            return new FxMapEntityConfig(config.IdProperty, config.DefaultProperty);
+            return new EntityConfiguration(config.IdPropertySelector, config.DefaultPropertySelector);
         });
 
-        newOfRegister.AddSendPipelines(c => c
+        mapConfigurator.AddSendPipelines(c => c
             .OfType(typeof(RetryPipelineBehavior<>))
             .OfType(typeof(SendPipelineRoutingBehavior<>))
             .OfType(typeof(ExceptionPipelineBehavior<>))
         );
 
-        return new ConfiguratorWrapped(newOfRegister);
+        services.AddSingleton(typeof(QueryHandlerBuilder<,,>));
+        return new ConfiguratorWrapped(mapConfigurator);
     }
 
-    private static EntityInfo[] GetEntitiesInfos(
-        IReadOnlyDictionary<Type, IFluentEntityConfig> entityConfigs)
+    private static EntityInfo[] GetEntitiesInfos(IReadOnlyDictionary<Type, IFluentEntityConfig> entityConfigs)
     {
         var models = entityConfigs.Select(cfg =>
         {
             var config = cfg.Value;
             var distributedKeyType = config.GetDistributedKeyType();
             return new EntityInfo(config.EntityType, distributedKeyType,
-                new FxMapEntityConfig(config.IdPropertyName, config.DefaultPropertyName));
+                new EntityConfiguration(config.IdPropertySelector, config.DefaultPropertyNameSelector));
         }).ToArray();
         // Validate if one attribute is assigned to multiple models.
         models.GroupBy(a => a.DistributedKeyType)
@@ -126,7 +127,7 @@ public static class DependencyExtensions
             {
                 if (a.Count() <= 1) return;
                 throw new DistributedMapException.DistributedKeyAssignedToMultipleEntities(a.Key,
-                    [..a.Select(o => o.EntityType)]);
+                    [.. a.Select(o => o.EntityType)]);
             });
         return models;
     }

@@ -1,3 +1,4 @@
+using System.Linq.Expressions;
 using FxMap.Accessors.TypeAccessors;
 using FxMap.Analyzers;
 using FxMap.Delegates;
@@ -406,6 +407,19 @@ public sealed class ExpressionIntegrationTests : IDisposable
 
     #region Indexer Tests - All 4 Formats
 
+    // Projections of the test entities: the id is Id and the default property is Name.
+    private ProjectionBuilder<TestCustomer> Customers() => new(
+        (Expression<Func<TestCustomer, string>>)(x => x.Id), (Expression<Func<TestCustomer, string>>)(x => x.Name),
+        _getTypeAccessor);
+
+    private ProjectionBuilder<TestProvince> Provinces() => new(
+        (Expression<Func<TestProvince, string>>)(x => x.Id), (Expression<Func<TestProvince, string>>)(x => x.Name),
+        _getTypeAccessor);
+
+    private ProjectionBuilder<TestCountry> Countries() => new(
+        (Expression<Func<TestCountry, string>>)(x => x.Id), (Expression<Func<TestCountry, string>>)(x => x.Name),
+        _getTypeAccessor);
+
     [Fact]
     public async Task Indexer_OrderOnly_AscName_ReturnsOrderedCollection()
     {
@@ -416,7 +430,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
         indexerNode.IsOrderOnly.ShouldBeTrue();
 
         // Execute via ProjectionBuilder
-        var builder = new ProjectionBuilder<TestProvince>("Id", "Name", _getTypeAccessor);
+        var builder = Provinces();
         var expressions = new List<string> { "Cities[asc Name].{Id, Name}" };
         var projection = builder.Build(expressions);
 
@@ -439,7 +453,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Indexer_OrderOnly_DescPopulation_ReturnsOrderedCollection()
     {
         // Format: [desc Population] - Order only descending
-        var builder = new ProjectionBuilder<TestProvince>("Id", "Name", _getTypeAccessor);
+        var builder = Provinces();
         var expressions = new List<string> { "Cities[desc Population].{Name, Population}" };
         var projection = builder.Build(expressions);
 
@@ -462,7 +476,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Indexer_SingleItem_FirstItem_ReturnsFirstOrderedItem()
     {
         // Format: [0 asc Name] - First item after ordering
-        var builder = new ProjectionBuilder<TestProvince>("Id", "Name", _getTypeAccessor);
+        var builder = Provinces();
         var expressions = new List<string> { "Cities[0 asc Name].{Id, Name}" };
         var projection = builder.Build(expressions);
 
@@ -481,7 +495,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Indexer_SingleItem_LastItem_ReturnsLastOrderedItem()
     {
         // Format: [-1 desc Population] - Last item (using negative index)
-        var builder = new ProjectionBuilder<TestProvince>("Id", "Name", _getTypeAccessor);
+        var builder = Provinces();
         var expressions = new List<string> { "Cities[-1 desc Population].{Name, Population}" };
         var projection = builder.Build(expressions);
 
@@ -501,7 +515,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Indexer_Range_SkipTake_ReturnsPagedCollection()
     {
         // Format: [0 2 asc Name] - Skip 0, Take 2, ordered by Name
-        var builder = new ProjectionBuilder<TestProvince>("Id", "Name", _getTypeAccessor);
+        var builder = Provinces();
         var expressions = new List<string> { "Cities[0 2 asc Name].{Name}" };
         var projection = builder.Build(expressions);
 
@@ -520,7 +534,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Indexer_Range_WithSkip_ReturnsPaginatedResults()
     {
         // Format: [1 2 asc Name] - Skip 1, Take 2
-        var builder = new ProjectionBuilder<TestProvince>("Id", "Name", _getTypeAccessor);
+        var builder = Provinces();
         var expressions = new List<string> { "Cities[1 2 asc Name].{Name}" };
         var projection = builder.Build(expressions);
 
@@ -544,7 +558,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Filter_SimpleEquals_ReturnsMatchingItems()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Completed'):count" };
         var projection = builder.Build(expressions);
 
@@ -559,7 +573,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Filter_GreaterThan_ReturnsMatchingItems()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Total > 1000):count" };
         var projection = builder.Build(expressions);
 
@@ -574,7 +588,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Filter_LessThanOrEqual_ReturnsMatchingItems()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Total <= 500):count" };
         var projection = builder.Build(expressions);
 
@@ -589,7 +603,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Filter_NotEquals_ReturnsNonMatchingItems()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status != 'Cancelled'):count" };
         var projection = builder.Build(expressions);
 
@@ -605,7 +619,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_Contains_ReturnsMatchingItems()
     {
         // Test contains filter on string property - Orders where Status contains 'end'
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status contains 'end'):count" };
         var projection = builder.Build(expressions);
 
@@ -621,7 +635,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_StartsWith_ReturnsMatchingItems()
     {
         // Test startswith filter - Orders where Status starts with 'C'
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status startswith 'C'):count" };
         var projection = builder.Build(expressions);
 
@@ -637,7 +651,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_EndsWith_ReturnsMatchingItems()
     {
         // Test endswith filter - Orders where Status ends with 'ed'
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status endswith 'ed'):count" };
         var projection = builder.Build(expressions);
 
@@ -652,7 +666,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Filter_AndCondition_ReturnsMatchingItems()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Completed', Total > 500):count" };
         var projection = builder.Build(expressions);
 
@@ -667,7 +681,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Filter_OrCondition_ReturnsMatchingItems()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Pending' || Status = 'Cancelled'):count" };
         var projection = builder.Build(expressions);
 
@@ -686,7 +700,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Count_ReturnsCollectionCount()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:count" };
         var projection = builder.Build(expressions);
 
@@ -701,7 +715,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Sum_ReturnsSum()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:sum(Total)" };
         var projection = builder.Build(expressions);
 
@@ -716,7 +730,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Avg_ReturnsAverage()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:avg(Total)" };
         var projection = builder.Build(expressions);
 
@@ -731,7 +745,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Min_ReturnsMinimum()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:min(Total)" };
         var projection = builder.Build(expressions);
 
@@ -746,7 +760,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Max_ReturnsMaximum()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:max(Total)" };
         var projection = builder.Build(expressions);
 
@@ -761,7 +775,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Any_ReturnsTrue_WhenMatchExists()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:any(Status = 'Pending')" };
         var projection = builder.Build(expressions);
 
@@ -776,7 +790,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Any_ReturnsFalse_WhenNoMatch()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:any(Status = 'Shipped')" };
         var projection = builder.Build(expressions);
 
@@ -791,7 +805,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_All_ReturnsTrue_WhenAllMatch()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:all(Total > 0)" };
         var projection = builder.Build(expressions);
 
@@ -806,7 +820,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_All_ReturnsFalse_WhenNotAllMatch()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:all(Total > 200)" };
         var projection = builder.Build(expressions);
 
@@ -825,7 +839,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Upper_ReturnsUppercase()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Name:upper" };
         var projection = builder.Build(expressions);
 
@@ -840,7 +854,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_Lower_ReturnsLowercase()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Email:lower" };
         var projection = builder.Build(expressions);
 
@@ -855,7 +869,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Function_StringCount_ReturnsLength()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Name:count" };
         var projection = builder.Build(expressions);
 
@@ -875,7 +889,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Complex_FilterThenIndexerThenProjection()
     {
         // Orders(Status = 'Completed')[0 asc OrderDate].{Id, Total}
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Completed')[0 asc OrderDate].{Id, Total}" };
         var projection = builder.Build(expressions);
 
@@ -896,7 +910,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Complex_FilterThenAggregate()
     {
         // Orders(Status = 'Completed'):sum(Total)
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Completed'):sum(Total)" };
         var projection = builder.Build(expressions);
 
@@ -912,7 +926,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Complex_FilteredCollectionMax()
     {
         // Orders(Status = 'Completed'):max(Total)
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Completed'):max(Total)" };
         var projection = builder.Build(expressions);
 
@@ -929,7 +943,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Complex_FilteredCollectionMin()
     {
         // Orders(Status = 'Completed'):min(Total)
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Completed'):min(Total)" };
         var projection = builder.Build(expressions);
 
@@ -946,7 +960,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Complex_FilteredProvincesCount()
     {
         // Provinces(Area > 200000):count - Texas and California
-        var builder = new ProjectionBuilder<TestCountry>("Id", "Name", _getTypeAccessor);
+        var builder = Countries();
         var expressions = new List<string> { "Provinces(Area > 200000):count" };
         var projection = builder.Build(expressions);
 
@@ -963,7 +977,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Complex_OrderThenTakeWithProjection()
     {
         // Provinces[0 2 desc Area].{Name, Area}
-        var builder = new ProjectionBuilder<TestCountry>("Id", "Name", _getTypeAccessor);
+        var builder = Countries();
         var expressions = new List<string> { "Provinces[0 2 desc Area].{Name, Area}" };
         var projection = builder.Build(expressions);
 
@@ -982,7 +996,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_MultipleExpressions_MixedTypes()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string>
         {
             "Name",
@@ -1016,7 +1030,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_EmptyCollection_CountReturnsZero()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:count" };
         var projection = builder.Build(expressions);
 
@@ -1031,7 +1045,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_EmptyCollection_SumReturnsZero()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:sum(Total)" };
         var projection = builder.Build(expressions);
 
@@ -1046,7 +1060,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_FilterReturnsEmpty_CountReturnsZero()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'NonExistent'):count" };
         var projection = builder.Build(expressions);
 
@@ -1061,7 +1075,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_IndexerOnEmptyCollection_ReturnsDictionaryWithNullValues()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders[0 asc OrderDate].{Id}" };
         var projection = builder.Build(expressions);
 
@@ -1079,7 +1093,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_EmptyProvincesCollection_CountReturnsZero()
     {
-        var builder = new ProjectionBuilder<TestCountry>("Id", "Name", _getTypeAccessor);
+        var builder = Countries();
         var expressions = new List<string> { "Provinces:count" };
         var projection = builder.Build(expressions);
 
@@ -1094,7 +1108,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_ProjectionOnEmptyCollection_ReturnsEmptyList()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders.{Id, Status}" };
         var projection = builder.Build(expressions);
 
@@ -1113,7 +1127,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [InlineData("Orders:avg(Total)")]
     public async Task EdgeCase_MinMaxAverageOnEmptyCollection_ReturnNull(string expression)
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var projection = builder.Build([expression]);
 
         var results = await _dbContext.Customers
@@ -1127,7 +1141,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_EmptyCollectionDoesNotBreakAggregatesOfOtherRowsInTheSameQuery()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var projection = builder.Build(["Orders:max(Total)", "Orders:avg(Total)", "Orders:sum(Total)"]);
 
         var results = await _dbContext.Customers.Select(projection).ToArrayAsync();
@@ -1141,7 +1155,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task EdgeCase_AnyOnEmptyCollection_ReturnsFalse()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:any(Status = 'Completed')" };
         var projection = builder.Build(expressions);
 
@@ -1157,7 +1171,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task EdgeCase_AllOnEmptyCollection_ReturnsTrue()
     {
         // All on empty collection returns true (vacuous truth)
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders:all(Status = 'Completed')" };
         var projection = builder.Build(expressions);
 
@@ -1176,7 +1190,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task RootProjection_SimpleFields()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "{Id, Name, Email, Age}" };
         var projection = builder.Build(expressions);
 
@@ -1196,7 +1210,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task RootProjection_WithAlias()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "{Id, Name as CustomerName, Age as CustomerAge}" };
         var projection = builder.Build(expressions);
 
@@ -1219,7 +1233,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Coalesce_ReturnsFirstNonNull()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Email ?? Name" };
         var projection = builder.Build(expressions);
 
@@ -1234,7 +1248,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Ternary_ReturnsCorrectBranch_WhenTrue()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "IsVip = true ? 'VIP Customer' : 'Regular Customer'" };
         var projection = builder.Build(expressions);
 
@@ -1249,7 +1263,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Ternary_ReturnsCorrectBranch_WhenFalse()
     {
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "IsVip = true ? 'VIP Customer' : 'Regular Customer'" };
         var projection = builder.Build(expressions);
 
@@ -1269,7 +1283,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public void BuildWithMetadata_ReturnsCorrectMetadata()
     {
         // Arrange
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Name", "Age", null };
 
         // Act
@@ -1297,10 +1311,10 @@ public sealed class ExpressionIntegrationTests : IDisposable
     #region Transformer Tests
 
     [Fact]
-    public async Task Transform_ConvertsRawResultsToFxMapDataResponse()
+    public async Task Transform_ConvertsRawResultsToDataResponse()
     {
         // Arrange
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Name", "Age" };
         var projection = builder.Build(expressions);
 
@@ -1328,7 +1342,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task CollectionProjection_ReturnsProjectedProperties()
     {
         // Arrange
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders.{Id, Status}" };
         var projection = builder.Build(expressions);
 
@@ -1356,7 +1370,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task CollectionProjection_WithFilter_ReturnsFilteredProjectedProperties()
     {
         // Arrange
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders(Status = 'Completed').{Id, Total}" };
         var projection = builder.Build(expressions);
 
@@ -1382,7 +1396,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task CollectionProjection_MultipleFields_ReturnsAllFields()
     {
         // Arrange
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders.{Id, Status, Total}" };
         var projection = builder.Build(expressions);
 
@@ -1409,7 +1423,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task CollectionProjection_EmptyCollection_ReturnsEmptyList()
     {
         // Arrange
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { "Orders.{Id, Status}" };
         var projection = builder.Build(expressions);
 
@@ -1436,7 +1450,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task NullExpression_UsesDefaultProperty()
     {
         // Arrange
-        var builder = new ProjectionBuilder<TestCustomer>("Id", "Name", _getTypeAccessor);
+        var builder = Customers();
         var expressions = new List<string> { null }; // null should use defaultProperty "Name"
         var projection = builder.Build(expressions);
 

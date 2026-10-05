@@ -34,8 +34,19 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
     private static readonly ConcurrentDictionary<Type, Type> SendOrchestratorTypes = new();
 
-    public async Task MapDataAsync(object value, CancellationToken token = default)
+    public async Task MapDataAsync(object value, CancellationToken token = default) =>
+        await MapDataAsync(value, null, token);
+
+    public async Task MapDataAsync(object value, IContext context, CancellationToken token = default)
     {
+        // Cancelling either the caller's token or the token of the context cancels the requests; the headers of the
+        // context travel with them. Without a context this is the caller's token and no headers.
+        using var linked = context is { CancellationToken.CanBeCanceled: true } && token.CanBeCanceled
+            ? CancellationTokenSource.CreateLinkedTokenSource(token, context.CancellationToken)
+            : null;
+        token = linked?.Token ?? (context is not null && !token.CanBeCanceled ? context.CancellationToken : token);
+        var requestContext = new RequestContext(context?.Headers ?? [], token);
+
         var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
         var currentNestingLevel = 0;
         while (true)
@@ -78,8 +89,6 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                         if (property.Property.RequiredAccessor?.Get(property.Model)?.ToString() is { } id)
                             selectorIds.Add(id);
 
-                    var requestCt = new RequestContext([], token);
-
                     // Resolve conditional expressions and store on PropertyDescriptor (request-scoped).
                     // Plain expressions need no resolution, so no task is created for them.
                     var conditionalTasks = new List<Task>();
@@ -99,7 +108,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                     var expressions = new HashSet<string>(properties.Select(p => p.EffectiveExpression));
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
-                        new DistributedMapRequest([.. selectorIds], [.. expressions]), requestCt);
+                        new DistributedMapRequest([.. selectorIds], [.. expressions]), requestContext);
                     return (x.DistributedKeyType, Response: result);
                 });
                 var fetchedResult = await Task.WhenAll(tasks);

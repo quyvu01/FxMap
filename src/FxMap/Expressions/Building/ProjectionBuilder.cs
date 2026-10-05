@@ -25,23 +25,45 @@ namespace FxMap.Expressions.Building;
 /// }
 /// </para>
 /// <para>
-/// The result can then be transformed to FxMapDataResponse in memory.
+/// The result can then be transformed to DataResponse in memory.
 /// </para>
 /// </remarks>
-public sealed class ProjectionBuilder<TModel>(
-    string idProperty,
-    string defaultProperty,
-    GetTypeAccessor typeAccessorProvider)
-    where TModel : class
+public sealed class ProjectionBuilder<TModel> where TModel : class
 {
     private readonly ParameterExpression _parameter = Expression.Parameter(typeof(TModel), "x");
+    private readonly GetTypeAccessor _typeAccessor;
+    private readonly Func<Expression> _buildId;
+    private readonly Func<Expression> _buildDefault;
 
     /// <summary>
-    /// Builds a projection expression that returns object[].
-    /// Index 0 is always the Id, followed by each expression value.
+    /// Creates a builder whose id and default property are given by selector lambdas, as declared with
+    /// <c>Id(x => ...)</c> and <c>DefaultProperty(x => ...)</c> in an entity configuration.
     /// </summary>
-    /// <param name="expressions">The expression strings to project.</param>
-    /// <returns>A lambda expression projecting TModel to object[].</returns>
+    /// <param name="idSelector">
+    /// The id selector, a lambda from <typeparamref name="TModel"/> to the id. It is not checked here: entity
+    /// configurations validate their selectors when they are configured.
+    /// </param>
+    /// <param name="defaultPropertySelector">The default property selector, or null for none.</param>
+    /// <param name="typeAccessor">Provides the type accessors used to resolve names in expressions.</param>
+    public ProjectionBuilder(LambdaExpression idSelector, LambdaExpression defaultPropertySelector,
+        GetTypeAccessor typeAccessor)
+    {
+        _typeAccessor = typeAccessor;
+        _buildId = () => Rebind(idSelector);
+        _buildDefault = () => defaultPropertySelector is null
+            ? Expression.Constant(null, typeof(object))
+            : Rebind(defaultPropertySelector);
+    }
+
+    // The body of a selector uses the selector's own parameter; the projection uses a single parameter of its own.
+    private Expression Rebind(LambdaExpression selector) =>
+        new ParameterReplacer(selector.Parameters[0], _parameter).Visit(selector.Body);
+
+    private sealed class ParameterReplacer(ParameterExpression from, ParameterExpression to) : ExpressionVisitor
+    {
+        protected override Expression VisitParameter(ParameterExpression node) => node == from ? to : node;
+    }
+
     public Expression<Func<TModel, object[]>> Build(IEnumerable<string> expressions)
     {
         var expressionList = expressions.ToList();
@@ -54,9 +76,7 @@ public sealed class ProjectionBuilder<TModel>(
         // [1..n] = Expression values
         foreach (var expr in expressionList)
         {
-            var isDefaultProperty = expr == null;
-            var actualExpr = expr ?? defaultProperty;
-            var valueExpr = BuildExpressionValue(actualExpr, isDefaultProperty);
+            var valueExpr = expr is null ? BuildDefaultPropertyExpression() : BuildExpressionValue(expr);
             projections.Add(Expression.Convert(valueExpr, typeof(object)));
         }
 
@@ -85,12 +105,10 @@ public sealed class ProjectionBuilder<TModel>(
         for (var i = 0; i < expressionList.Count; i++)
         {
             var expr = expressionList[i];
-            var isDefaultProperty = expr == null;
-            var actualExpr = expr ?? defaultProperty;
 
             try
             {
-                var valueExpr = BuildExpressionValue(actualExpr, isDefaultProperty);
+                var valueExpr = expr is null ? BuildDefaultPropertyExpression() : BuildExpressionValue(expr);
                 projections.Add(Expression.Convert(valueExpr, typeof(object)));
                 metadata.Add(new ProjectionMetadata(i + 1, expr, false));
             }
@@ -108,48 +126,20 @@ public sealed class ProjectionBuilder<TModel>(
         return new ProjectionResult<TModel>(lambda, metadata);
     }
 
-    private Expression BuildIdExpression()
-    {
-        var typeAccessor = typeAccessorProvider(typeof(TModel));
-        // Use GetPropertyInfoDirect to bypass ExposedName for Id property
-        var idPropertyInfo = typeAccessor.GetPropertyInfoDirect(idProperty)
-                             ?? throw new InvalidOperationException(
-                                 $"Id property '{idProperty}' not found on type '{typeof(TModel).Name}'");
+    private Expression BuildIdExpression() => _buildId();
 
-        return Expression.Property(_parameter, idPropertyInfo);
-    }
+    private Expression BuildDefaultPropertyExpression() => _buildDefault();
 
-    /// <summary>
-    /// Builds expression for defaultProperty, bypassing ExposedName.
-    /// </summary>
-    private Expression BuildDefaultPropertyExpression()
-    {
-        if (string.IsNullOrEmpty(defaultProperty))
-            return Expression.Constant(null, typeof(object));
-
-        var typeAccessor = typeAccessorProvider(typeof(TModel));
-        // Use GetPropertyInfoDirect to bypass ExposedName for defaultProperty
-        var propertyInfo = typeAccessor.GetPropertyInfoDirect(defaultProperty)
-                           ?? throw new InvalidOperationException(
-                               $"Default property '{defaultProperty}' not found on type '{typeof(TModel).Name}'");
-
-        return Expression.Property(_parameter, propertyInfo);
-    }
-
-    private Expression BuildExpressionValue(string expression, bool isDefaultProperty = false)
+    private Expression BuildExpressionValue(string expression)
     {
         if (string.IsNullOrEmpty(expression))
             return Expression.Constant(null, typeof(object));
-
-        // If this is the default property (expression was null, using _defaultProperty),
-        // bypass ExposedName and access property directly
-        if (isDefaultProperty) return BuildDefaultPropertyExpression();
 
         // Parse the expression using our new parser
         var node = ExpressionParser.Parse(expression);
 
         // Build context
-        var context = new ExpressionBuildContext(typeof(TModel), _parameter, _parameter, typeAccessorProvider);
+        var context = new ExpressionBuildContext(typeof(TModel), _parameter, _parameter, _typeAccessor);
 
         // Build the LINQ expression
         var builder = new LinqExpressionBuilder();
@@ -179,20 +169,4 @@ public sealed record ProjectionResult<TModel>(
 public sealed record ProjectionMetadata(int Index, string Expression, bool IsId, string Error = null)
 {
     public bool HasError => Error != null;
-}
-
-/// <summary>
-/// Static factory methods for ProjectionBuilder.
-/// </summary>
-public static class ProjectionBuilder
-{
-    /// <summary>
-    /// Creates a new ProjectionBuilder for the specified model type.
-    /// </summary>
-    public static ProjectionBuilder<TModel> Create<TModel>(
-        string idProperty,
-        string defaultProperty = null,
-        GetTypeAccessor typeAccessorProvider = null)
-        where TModel : class =>
-        new(idProperty, defaultProperty, typeAccessorProvider);
 }

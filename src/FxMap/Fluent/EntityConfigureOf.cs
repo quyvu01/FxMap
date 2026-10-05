@@ -13,18 +13,24 @@ namespace FxMap.Fluent;
 /// <typeparam name="TModel">The entity type being configured.</typeparam>
 public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TModel : class
 {
-    protected EntityConfigureOf() => Configure();
+    protected EntityConfigureOf()
+    {
+        Configure();
+        if (IdPropertySelector is null) throw new DistributedMapException.EntityIdNotConfigured(typeof(TModel));
+    }
 
     Type IFluentEntityConfig.EntityType => typeof(TModel);
-    string IFluentEntityConfig.IdPropertyName => IdPropertyName;
-    string IFluentEntityConfig.DefaultPropertyName => DefaultPropertyName;
-    IReadOnlyCollection<ExposedNameStore> IFluentEntityConfig.ExposedNameStores => [.._exposedNameStores];
+    // string IFluentEntityConfig.IdPropertyName => IdPropertyName;
+    public LambdaExpression IdPropertySelector { get; private set; }
+    // string IFluentEntityConfig.DefaultPropertyName => DefaultPropertyName;
+    public LambdaExpression DefaultPropertyNameSelector { get; private set; }
+    IReadOnlyCollection<ExposedNameStore> IFluentEntityConfig.ExposedNameStores => [.. _exposedNameStores];
     Type IFluentEntityConfig.DistributedKeyType => DistributedKeyType;
     string IFluentEntityConfig.DistributedKey => DistributedKey;
-    private string IdPropertyName { get; set; }
+    // private string IdPropertyName { get; set; }
     private readonly List<ExposedNameStore> _exposedNameStores = [];
     private readonly HashSet<string> _exposedPropertyNames = [];
-    private string DefaultPropertyName { get; set; }
+    // private string DefaultPropertyName { get; set; }
     private Type DistributedKeyType { get; set; }
     private string DistributedKey { get; set; }
 
@@ -33,16 +39,28 @@ public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TMod
     /// </summary>
     /// <typeparam name="TProp">The type of the identifier property.</typeparam>
     /// <param name="selector">A lambda that selects the identifier property.</param>
+    /// <exception cref="DistributedMapException.InvalidEntitySelector">
+    /// Thrown when the selector does not read the entity, or the identifier is declared more than once.
+    /// </exception>
     protected void Id<TProp>(Expression<Func<TModel, TProp>> selector)
-        => IdPropertyName = GetPropertyName(selector);
+    {
+        ValidateSelector(selector, "Id", IdPropertySelector);
+        IdPropertySelector = selector;
+    }
 
     /// <summary>
     /// Declares the default property returned when no explicit expression is specified in a mapping rule.
     /// </summary>
     /// <typeparam name="TProp">The type of the default property.</typeparam>
     /// <param name="selector">A lambda that selects the default property.</param>
+    /// <exception cref="DistributedMapException.InvalidEntitySelector">
+    /// Thrown when the selector does not read the entity, or the default property is declared more than once.
+    /// </exception>
     protected void DefaultProperty<TProp>(Expression<Func<TModel, TProp>> selector)
-        => DefaultPropertyName = GetPropertyName(selector);
+    {
+        ValidateSelector(selector, "DefaultProperty", DefaultPropertyNameSelector);
+        DefaultPropertyNameSelector = selector;
+    }
 
     /// <summary>
     /// Registers an alternative name under which a property is exposed to consuming services.
@@ -99,18 +117,34 @@ public abstract class EntityConfigureOf<TModel> : IFluentEntityConfig where TMod
     protected abstract void Configure();
 
     /// <summary>
-    /// Extracts the property name from a member-access lambda expression.
+    /// The one place where the Id and DefaultProperty selectors are checked: the rest of FxMap relies on them.
+    /// A selector is any lambda over the entity (a property, or a computed value such as <c>x => x.Code + x.Site</c>),
+    /// declared once.
     /// </summary>
-    /// <typeparam name="TProp">The property type.</typeparam>
-    /// <param name="expression">A lambda of the form <c>x => x.Property</c>.</param>
-    /// <returns>The name of the selected property.</returns>
-    /// <exception cref="ArgumentException">
-    /// Thrown when <paramref name="expression"/> is not a simple property accessor.
-    /// </exception>
-    private static string GetPropertyName<TProp>(Expression<Func<TModel, TProp>> expression)
+    private static void ValidateSelector(LambdaExpression selector, string name, LambdaExpression alreadyDeclared)
     {
-        if (expression.Body is MemberExpression member)
-            return member.Member.Name;
-        throw new ArgumentException("Expression must be a property accessor.");
+        ArgumentNullException.ThrowIfNull(selector);
+        if (alreadyDeclared is not null)
+            throw new DistributedMapException.InvalidEntitySelector(typeof(TModel), name, "it is declared more than once.");
+        if (!new ParameterUsage(selector.Parameters[0]).IsUsedIn(selector.Body))
+            throw new DistributedMapException.InvalidEntitySelector(typeof(TModel), name,
+                $"the selector does not read the entity ('{selector}'). Use a property or an expression over it, such as x => x.Code.");
+    }
+
+    private sealed class ParameterUsage(ParameterExpression parameter) : ExpressionVisitor
+    {
+        private bool _used;
+
+        public bool IsUsedIn(Expression body)
+        {
+            Visit(body);
+            return _used;
+        }
+
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            if (node == parameter) _used = true;
+            return node;
+        }
     }
 }

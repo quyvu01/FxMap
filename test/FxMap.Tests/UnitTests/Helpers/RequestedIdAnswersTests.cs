@@ -20,7 +20,7 @@ public class RequestedIdAnswersTests
         Id = id.ToString()!, Values = [new ValueResponse { Expression = "Name", Value = value }]
     };
 
-    private static IIdConverter ConverterOf<TId>(IServiceProvider sp = null) =>
+    private static IIdConverter<TId> ConverterOf<TId>(IServiceProvider sp = null) =>
         new IdConverter<TId>(sp ?? EmptyServices);
 
     private static string[] Ids(DataResponse[] answers) => [..answers.Select(a => a.Id).OrderBy(x => x, StringComparer.Ordinal)];
