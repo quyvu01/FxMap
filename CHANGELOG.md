@@ -6,6 +6,29 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [4.0.0]
+
+**Breaking release.** See the [full notes and migration guide](docs/changelogs/v4.0.0.md). 3.0.1 was never released.
+
+### Breaking Changes
+
+- **Entity configurations are validated when configured** — `EntityConfigureOf<T>` must call `Id(...)` exactly once, `Id` /
+  `DefaultProperty` can be declared once, and their selector must read the entity (`EntityIdNotConfigured`,
+  `InvalidEntitySelector`). Selectors may now be any expression over the entity (`Id(x => x.Code + ":" + x.Site)`).
+- **Internal entity configurations are registered by assembly scans** (`DefinedTypes` instead of `ExportedTypes`).
+- **`IDistributedMapper`** gains `MapDataAsync(value, IContext, token)`; implementers must add it.
+- **Data provider API:** `IIdConverter` (non-generic) removed and `IIdConverter<TId>.ConvertIds` returns `List<TId>`;
+  `MapEntityConfig` -> `IMapEntityConfig` with `IdPropertySelector` / `DefaultPropertySelector`; `QueryHandlerBuilder` is
+  a contract implemented by `QueryHandlerBuilder<TModel, TId, TKey>`; `FilterContext` removed; `ProjectionBuilder` takes
+  selectors; `RequestedIdAnswers.Align` is generic.
+
+### Added
+
+- `MapDataAsync(value, context, token)`: the caller's token and the token of the context are linked, and the headers of the
+  context are sent with every request.
+
+---
+
 ## [3.0.0]
 
 **Breaking release.** See the [full notes and migration guide](docs/changelogs/v3.0.0.md).
