@@ -16,6 +16,13 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
   property of its own group is not a dependency. `Of` throws `InvalidProfileSelector` when the expression does not read the
   DTO. HotChocolate reads the key of a rule through its accessor, so computed keys work there too.
 
+### Notes
+
+- **Conditional expressions run concurrently** (and may run once for each mapped object) on the `IServiceProvider` of the
+  mapper; FxMap does not serialize them. Do not use a scoped `DbContext` directly in a condition: use
+  `IDbContextFactory<T>` or your own scope. With HotChocolate the provider is the scope of the field. See
+  [the notes](docs/changelogs/v4.1.0.md#things-to-know-about-conditional-expressions).
+
 ### Removed
 
 - `IPropertyAccessor.PropertyInfo` (and `PropertyAccessor<T,TProp>.PropertyInfo`): the key of a rule can now be an expression, which has no
