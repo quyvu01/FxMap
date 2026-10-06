@@ -54,7 +54,7 @@ public sealed class HotChocolateConfigurator
             var profileConfig = getProfileConfig.Invoke(objectType);
             if (profileConfig?.DependencyGraphs is not { Count: > 0 }) return;
             builder
-                .AddType(typeof(FxMapObjectTypeExtension<>).MakeGenericType(objectType))
+                .AddType(typeof(MapObjectTypeExtension<>).MakeGenericType(objectType))
                 .AddResolver(typeof(DataResolvers<>).MakeGenericType(objectType));
         });
     }

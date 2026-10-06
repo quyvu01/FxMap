@@ -17,7 +17,7 @@ namespace FxMap.HotChocolate.Resolvers;
 ///   <item><description>Configures resolvers to use the <see cref="DataResolvers{TResponse}"/></description></item>
 /// </list>
 /// </remarks>
-internal class FxMapObjectTypeExtension<T>(GetProfileConfig getProfileConfig) : ObjectTypeExtension<T> where T : class
+internal class MapObjectTypeExtension<T>(GetProfileConfig getProfileConfig) : ObjectTypeExtension<T> where T : class
 {
     protected override void Configure(IObjectTypeDescriptor<T> descriptor)
     {
@@ -41,8 +41,10 @@ internal class FxMapObjectTypeExtension<T>(GetProfileConfig getProfileConfig) : 
 
                     // Check and resolve for dependencies too, just not for selectors only!
                     var props = profileConfig.GetInformation(data.TargetPropertyInfo);
-                    var expression = await props.ResolveExpression(context.Services, context.RequestAborted);
-
+                    var expression = props.ConditionalExpression is null
+                        ? props.Expression
+                        : await props.ResolveExpression(context.RequestServices, context.RequestAborted);
+                    
                     var ctx = new FieldContext
                     {
                         TargetPropertyInfo = data.TargetPropertyInfo,

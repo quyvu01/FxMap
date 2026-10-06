@@ -6,6 +6,16 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [4.1.1]
+
+### Changed
+
+- **HotChocolate: conditional expressions receive `RequestServices`** (the scope of the request) instead of the scope of the
+  field, so scoped services filled by your middleware for the request are visible. The fields of a query run in parallel on
+  that scope: do not use a scoped `DbContext` directly in a condition. See [the notes](docs/changelogs/v4.1.1.md).
+
+---
+
 ## [4.1.0]
 
 ### Added

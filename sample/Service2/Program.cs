@@ -53,12 +53,12 @@ builder.Services.AddFxMap(cfg =>
         });
         cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
         // cfg.AddRabbitMq(config => config.Host("localhost", "fx-map"));
-        cfg.AddSqs(sqs => sqs.Region(RegionEndpoint.USEast1, credential =>
-        {
-            credential.ServiceUrl("http://localhost:4566");
-            credential.AccessKeyId("test");
-            credential.SecretAccessKey("test");
-        }));
+        // cfg.AddSqs(sqs => sqs.Region(RegionEndpoint.USEast1, credential =>
+        // {
+        //     credential.ServiceUrl("http://localhost:4566");
+        //     credential.AccessKeyId("test");
+        //     credential.SecretAccessKey("test");
+        // }));
         cfg.ThrowIfException();
     })
     .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service2Context)));

@@ -80,19 +80,19 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 var tasks = mappableTypes.Select(async x =>
                 {
                     var emptyResponse = (x.DistributedKeyType, Response: _emptyResponse);
-                    var properties = x.Properties.ToList();
-                    if (properties is not { Count: > 0 }) return emptyResponse;
+                    var propertyDescriptors = x.Properties.ToList();
+                    if (propertyDescriptors is not { Count: > 0 }) return emptyResponse;
 
                     // Collect each distinct id once instead of one entry per object: many objects share few ids.
                     var selectorIds = new HashSet<string>();
-                    foreach (var property in properties)
+                    foreach (var property in propertyDescriptors)
                         if (property.Property.RequiredAccessor?.Get(property.Model)?.ToString() is { } id)
                             selectorIds.Add(id);
 
                     // Resolve conditional expressions and store on PropertyDescriptor (request-scoped).
                     // Plain expressions need no resolution, so no task is created for them.
                     var conditionalTasks = new List<Task>();
-                    foreach (var property in properties)
+                    foreach (var property in propertyDescriptors)
                     {
                         if (property.Property.ConditionalExpression is null)
                         {
@@ -105,7 +105,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
 
                     if (conditionalTasks.Count > 0) await Task.WhenAll(conditionalTasks);
 
-                    var expressions = new HashSet<string>(properties.Select(p => p.EffectiveExpression));
+                    var expressions = new HashSet<string>(propertyDescriptors.Select(p => p.EffectiveExpression));
 
                     var result = await FetchDataAsync(x.DistributedKeyType,
                         new DistributedMapRequest([.. selectorIds], [.. expressions]), requestContext);

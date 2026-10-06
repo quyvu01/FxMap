@@ -18,8 +18,9 @@ namespace FxMap.Fluent.Builders;
 /// Keep conditions cheap and free of side effects.
 /// </para>
 /// <para>
-/// With <c>FxMap.HotChocolate</c> the provider is the scope of the field being resolved, so scoped services start empty
-/// (state that your own middleware put in the scope of the request is not visible there).
+/// With <c>FxMap.HotChocolate</c> the provider is the scope of the request (<c>RequestServices</c>), so scoped services your
+/// middleware filled for the request are visible. The fields of a query are resolved in parallel on that same scope: the
+/// advice above about a scoped <c>DbContext</c> applies between fields too.
 /// </para>
 /// </remarks>
 public sealed class ConditionalExpressionBuilder
