@@ -2,7 +2,7 @@
 
 name: Build FxMap and Publish
 env:
-  VERSION: 4.1.0
+  VERSION: 4.1.1
 
 on:
   push:
