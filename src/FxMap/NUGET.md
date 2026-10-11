@@ -2,8 +2,6 @@
 
 Distributed data mapping for .NET — declare where a property comes from, and FxMap fetches it from the service that owns the data, over the transport you already run.
 
-[![Build](https://github.com/quyvu01/FxMap/actions/workflows/build.yml/badge.svg)](https://github.com/quyvu01/FxMap/actions/workflows/build.yml)
-
 [**Documentation**](https://fxmapper.net) · [**Getting Started**](https://fxmapper.net/docs/quick-start/) · [**Expression Language**](https://fxmapper.net/docs/expressions)
 
 ---
