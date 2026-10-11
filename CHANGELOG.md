@@ -6,7 +6,7 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
-## [Unreleased]
+## [4.1.2]
 
 ### Fixed
 
@@ -15,12 +15,13 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 - **MongoDB: values were returned as extended JSON** (`{ "$numberDecimal": "4350.00" }` for `Orders:sum(Total)`, `{ "$oid": ... }`,
   `{ "$date": ... }`), which cannot be deserialized into a `decimal`, a `string` or a `DateTime`. They are now plain JSON
   (numbers, strings, ISO dates, arrays, objects). Values that were already plain (strings, ints, booleans, doubles) are unchanged.
-
 - **RabbitMQ: the headers of the context reached the owner as `"System.Byte[]"`.** RabbitMQ delivers string headers as UTF-8
   bytes and the server called `ToString()` on the array, so a header such as a tenant id was lost on this transport.
 - **gRPC: `ThrowIfException()` had no effect on the clients when it was called after `AddGrpcClients(...)`** (the order of the
   samples): the flag was copied when the clients were registered. An unreachable owner was then answered with no rows and no
   error. It is read when a request is made.
+
+Details: [the notes of 4.1.2](docs/changelogs/v4.1.2.md).
 
 ### Added
 
