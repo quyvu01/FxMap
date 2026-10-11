@@ -6,6 +6,29 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **MongoDB: a `Guid` id was never answered.** The id of the response was `BsonValue.ToString()` of the stored id
+  (`UuidStandard:0x0a1b...`), which the caller (and `RequestedIdAnswers`) could not match, so the rows were dropped.
+- **MongoDB: values were returned as extended JSON** (`{ "$numberDecimal": "4350.00" }` for `Orders:sum(Total)`, `{ "$oid": ... }`,
+  `{ "$date": ... }`), which cannot be deserialized into a `decimal`, a `string` or a `DateTime`. They are now plain JSON
+  (numbers, strings, ISO dates, arrays, objects). Values that were already plain (strings, ints, booleans, doubles) are unchanged.
+
+### Added
+
+- Provider tests against real MongoDB and PostgreSQL (`FXMAP_TEST_MONGO`, `FXMAP_TEST_POSTGRES`; skipped when not set) and a
+  `provider-tests` job in the workflow. The Expressions integration tests (`IntegrationTests.Expressions`) now run in CI too:
+  no workflow step matched their namespace before.
+
+### Known limits
+
+- MongoDB: `Id(x => x.Mrn + x.Code)` (a computed id) throws `NotSupportedException` when the first request arrives, not when
+  the service starts. Only a property can be the `Id` and the `DefaultProperty` of a MongoDB entity.
+
+---
+
 ## [4.1.1]
 
 ### Changed

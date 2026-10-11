@@ -26,6 +26,19 @@ reproduces it.
    dotnet test test/FxMap.Analyzers.Tests/FxMap.Analyzers.Tests.csproj
    ```
 
+   The provider tests (`test/FxMap.Tests/ProviderTests`) run the MongoDB and EF Core providers against real
+   databases and are **skipped** unless you point them to one:
+
+   ```bash
+   export FXMAP_TEST_MONGO="mongodb://localhost:27017"
+   export FXMAP_TEST_POSTGRES="Host=localhost;Username=postgres;Password=<password>"   # no database: each run creates its own
+   dotnet test test/FxMap.Tests/FxMap.Tests.csproj --filter "FullyQualifiedName~ProviderTests"
+   ```
+
+   Any MongoDB and PostgreSQL will do, for example
+   `docker run -d -p 27017:27017 mongo:7` and `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:17`
+   (or `podman run ...`). CI runs them with service containers.
+
 3. Add or update tests for what you change. Tests use xUnit and Shouldly and live in
    `test/FxMap.Tests` (`UnitTests`, `ContractTests`, `IntegrationTests`).
 4. Keep the change focused and describe the why in the pull request.
