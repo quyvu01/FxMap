@@ -1,3 +1,4 @@
+using Shared.Transports;
 using System.Reflection;
 using Amazon;
 using FxMap.Abstractions;
@@ -51,14 +52,8 @@ builder.Services.AddFxMap(cfg =>
             opts.EnableCircuitBreaker = true;
             opts.CircuitBreakerThreshold = 3;
         });
-        cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
-        // cfg.AddRabbitMq(config => config.Host("localhost", "fx-map"));
-        // cfg.AddSqs(sqs => sqs.Region(RegionEndpoint.USEast1, credential =>
-        // {
-        //     credential.ServiceUrl("http://localhost:4566");
-        //     credential.AccessKeyId("test");
-        //     credential.SecretAccessKey("test");
-        // }));
+        // Grpc, Nats, RabbitMq, Kafka, Sqs or ServiceBus: see the launch profiles and appsettings.{Environment}.json
+        cfg.AddConfiguredTransport(builder.Configuration);
         cfg.ThrowIfException();
     })
     .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(Service2Context)));

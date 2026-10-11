@@ -15,6 +15,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using Serilog;
+using Shared.Transports;
 using Service1;
 using Service1.Contexts;
 using Service1.Contract;
@@ -64,14 +65,8 @@ builder.Services.AddFxMap(cfg =>
         cfg.AddEntitiesFromAssemblyContaining<IAssemblyMarker>();
         cfg.AddProfilesFromAssemblyContaining<IService1ContractAssembly>();
 
-        // cfg.AddRabbitMq(config => config.Host("localhost", "fx-map"));
-        // cfg.AddSqs(sqs => sqs.Region(RegionEndpoint.USEast1, credential =>                                                                                                                                                      
-        // {                                                                                                                                                                                                                       
-        //     credential.ServiceUrl("http://localhost:4566");                                                                                                                                                                     
-        //     credential.AccessKeyId("test");                                                                                                                                                                                     
-        //     credential.SecretAccessKey("test");                                                                                                                                                                                 
-        // }));  
-        cfg.AddNats(c => c.NatsOpts(opts => opts.Url = "nats://localhost:4222"));
+        // Grpc, Nats, RabbitMq, Kafka, Sqs or ServiceBus: see the launch profiles and appsettings.{Environment}.json
+        cfg.AddConfiguredTransport(builder.Configuration);
         cfg.ConfigureSupervisor(opts =>
         {
             opts.Strategy = SupervisionStrategy.OneForOne;
@@ -123,7 +118,7 @@ var otherDbContext = scope.ServiceProvider.GetRequiredService<OtherService1Conte
 await Service1.Data.Service1DataSeeder.SeedMemberAdditionalDataAsync(dbContext);
 await Service1.Data.Service1DataSeeder.SeedServiceMemberAddressAsync(otherDbContext);
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+if (!app.Environment.IsProduction())
 {
     app.MapOpenApi();
 }

@@ -9,6 +9,36 @@ This directory contains sample applications demonstrating the FxMap framework's 
 - **Service3** - Worker service owning the Country and Province entities (NATS, SQS and gRPC transports, EF Core)
 - **Shared** - Common models and utilities shared across services
 
+## Choosing the transport
+
+The services read the transport from the configuration, so the same code runs on any of them. Each launch profile of
+`Service1`, `Service2` and `Service3` sets `ASPNETCORE_ENVIRONMENT`, which selects `appsettings.{Environment}.json`:
+
+| Launch profile | Environment | Needs |
+|---|---|---|
+| `http` | `Development` | NATS (`nats://localhost:4222`) |
+| `grpc` | `Grpc` | nothing: Service2 serves HTTP/2 on 8022, Service3 on 8013, Service1 calls both |
+| `nats` | `Nats` | NATS on 4222 |
+| `rabbitmq` | `RabbitMq` | RabbitMQ on 5672 with the virtual host `fx-map` (user and password `guest`) |
+| `kafka` | `Kafka` | Kafka on `localhost:9092` |
+| `sqs` | `Sqs` | LocalStack with SQS on 4566 |
+| `servicebus` | `ServiceBus` | an Azure Service Bus namespace: set `FxMap:ServiceBus:ConnectionString` (user secrets or `FxMap__ServiceBus__ConnectionString`) |
+
+```bash
+cd sample
+dotnet run --launch-profile nats --project Service3
+dotnet run --launch-profile nats --project Service2
+dotnet run --launch-profile nats --project Service1     # then GET http://localhost:5062/api/Test/GetMembers
+```
+
+Use the same profile for the three services. The section read by `Shared.Transports.AddConfiguredTransport` looks like this:
+
+```json
+{ "FxMap": { "Transport": "RabbitMq", "RabbitMq": { "Host": "localhost", "VirtualHost": "fx-map", "Port": 5672 } } }
+```
+
+Service1 and the other services still need PostgreSQL and MongoDB, as before.
+
 ## Quick Start Guides
 
 Choose the guide that matches your setup:
