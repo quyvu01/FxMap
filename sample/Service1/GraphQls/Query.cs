@@ -35,8 +35,6 @@ public class Query
     ];
 }
 
-public sealed record GetMembersParameters(string UserAlias = "Email", int Skip = 0, int Take = 1);
-
 public sealed class MembersType : ObjectTypeExtension<MemberResponse>
 {
     protected override void Configure(IObjectTypeDescriptor<MemberResponse> descriptor)
