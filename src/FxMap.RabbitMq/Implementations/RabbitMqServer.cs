@@ -131,8 +131,9 @@ internal class RabbitMqServer : IRabbitMqServer
                 .GetService(receivedPipelineOrchestrator) as ReceivedPipelinesOrchestrator;
             ArgumentNullException.ThrowIfNull(server);
 
+            // RabbitMQ delivers the string headers as UTF-8 bytes: ToString() of the array is "System.Byte[]"
             var headers = props.Headers?
-                .ToDictionary(a => a.Key, b => b.Value.ToString()) ?? [];
+                .ToDictionary(a => a.Key, b => b.Value is byte[] bytes ? Encoding.UTF8.GetString(bytes) : b.Value?.ToString()) ?? [];
             var data = await server.ExecuteAsync(message, headers, cancellationToken);
             var response = Result.Success(data);
             var responseAsString = JsonSerializer.Serialize(response);

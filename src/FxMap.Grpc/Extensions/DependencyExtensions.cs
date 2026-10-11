@@ -61,7 +61,6 @@ public static class DependencyExtensions
         ConcurrentDictionary<HostProbe, string[]> hostMapDistributedKeys = [];
         serviceHosts.ForEach(h => hostMapDistributedKeys.TryAdd(new HostProbe(h, false), []));
         var semaphore = new SemaphoreSlim(1, 1);
-        var throwIfExceptions = mapRegister.ThrowIfExceptions;
         var services = mapRegister.Services;
         services.AddSingleton<GetMapperResponseFunc>(distributedKeyType => async (query, context) =>
         {
@@ -74,7 +73,8 @@ public static class DependencyExtensions
                     var probeHosts = hostMapDistributedKeys
                         .Where(a => !a.Key.IsProbed)
                         .Select(a => a.Key.ServiceHost);
-                    var missingTypes = await GetHostMapAttributesAsync(probeHosts, context, throwIfExceptions);
+                    var missingTypes = await GetHostMapAttributesAsync(probeHosts, context,
+                        mapRegister.ThrowIfExceptions); // read when it runs: ThrowIfException() may be called after AddGrpcClients
                     missingTypes.Where(a => a.Key.IsProbed)
                         .ForEach(x =>
                         {
