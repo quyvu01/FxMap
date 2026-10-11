@@ -35,6 +35,17 @@ reproduces it.
    dotnet test test/FxMap.Tests/FxMap.Tests.csproj --filter "FullyQualifiedName~ProviderTests"
    ```
 
+   The transport tests (`test/FxMap.Tests/TransportTests`) run two services in one process, an owner of the data and a
+   consumer, that only talk through the real transport. gRPC needs nothing (the owner is a Kestrel server on a free port);
+   the others are skipped unless you point them to a broker:
+
+   ```bash
+   export FXMAP_TEST_NATS="nats://localhost:4222"
+   export FXMAP_TEST_RABBITMQ="localhost"              # host[:amqpPort[:managementPort]], user and password guest
+   export FXMAP_TEST_SQS="http://localhost:4566"        # LocalStack with SQS
+   dotnet test test/FxMap.Tests/FxMap.Tests.csproj --filter "FullyQualifiedName~TransportTests"
+   ```
+
    Any MongoDB and PostgreSQL will do, for example
    `docker run -d -p 27017:27017 mongo:7` and `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:17`
    (or `podman run ...`). CI runs them with service containers.

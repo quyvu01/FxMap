@@ -126,6 +126,75 @@ jobs:
       - name: Run Provider Tests
         run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.ProviderTests" --logger "console;verbosity=normal"
 
+  # The transports between two services (NATS, RabbitMQ, SQS on LocalStack, gRPC in process). The owner and the consumer
+  # are two containers of dependency injection in the test process; the messages go through the real broker.
+  transport-tests:
+    needs: build
+    name: "Run Transport Tests (gRPC, NATS, RabbitMQ, SQS)"
+    timeout-minutes: 15
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - dotnet-version: '8.0.x'
+            framework: 'net8.0'
+          - dotnet-version: '9.0.x'
+            framework: 'net9.0'
+          - dotnet-version: '10.0.x'
+            framework: 'net10.0'
+    services:
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - 5672:5672
+          - 15672:15672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 5s
+          --health-timeout 10s
+          --health-retries 12
+      localstack:
+        image: localstack/localstack:3.0
+        env:
+          SERVICES: sqs
+        ports:
+          - 4566:4566
+        options: >-
+          --health-cmd "curl -sf http://localhost:4566/_localstack/health"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    env:
+      FXMAP_TEST_NATS: "nats://localhost:4222"
+      FXMAP_TEST_RABBITMQ: "localhost"
+      FXMAP_TEST_SQS: "http://localhost:4566"
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      # The nats image has no shell, so a service container cannot have a health check: start it here and wait for the port.
+      - name: Start NATS
+        run: |
+          docker run -d --name nats -p 4222:4222 nats:2
+          for i in $(seq 1 30); do
+            (echo > /dev/tcp/localhost/4222) 2>/dev/null && exit 0
+            sleep 1
+          done
+          echo "NATS did not start" && docker logs nats && exit 1
+
+      - name: Install .NET Core SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            ${{ matrix.dotnet-version }}
+            10.0.x
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Run Transport Tests
+        run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.TransportTests" --logger "console;verbosity=normal"
+
   calc-version:
     name: Calculate Version
     runs-on: ubuntu-latest
@@ -133,6 +202,7 @@ jobs:
       - build
       - testing
       - provider-tests
+      - transport-tests
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:

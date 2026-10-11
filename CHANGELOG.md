@@ -16,8 +16,17 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
   `{ "$date": ... }`), which cannot be deserialized into a `decimal`, a `string` or a `DateTime`. They are now plain JSON
   (numbers, strings, ISO dates, arrays, objects). Values that were already plain (strings, ints, booleans, doubles) are unchanged.
 
+- **RabbitMQ: the headers of the context reached the owner as `"System.Byte[]"`.** RabbitMQ delivers string headers as UTF-8
+  bytes and the server called `ToString()` on the array, so a header such as a tenant id was lost on this transport.
+- **gRPC: `ThrowIfException()` had no effect on the clients when it was called after `AddGrpcClients(...)`** (the order of the
+  samples): the flag was copied when the clients were registered. An unreachable owner was then answered with no rows and no
+  error. It is read when a request is made.
+
 ### Added
 
+- Transport tests (`TransportTests`): an owner and a consumer in one process that only talk through the real transport, for gRPC
+  (in process), NATS, RabbitMQ and SQS (skipped unless `FXMAP_TEST_NATS`, `FXMAP_TEST_RABBITMQ`, `FXMAP_TEST_SQS` are set),
+  and a `transport-tests` job in the workflow with the brokers as containers. Kafka and Azure Service Bus are not covered yet.
 - Provider tests against real MongoDB and PostgreSQL (`FXMAP_TEST_MONGO`, `FXMAP_TEST_POSTGRES`; skipped when not set) and a
   `provider-tests` job in the workflow. The Expressions integration tests (`IntegrationTests.Expressions`) now run in CI too:
   no workflow step matched their namespace before.
