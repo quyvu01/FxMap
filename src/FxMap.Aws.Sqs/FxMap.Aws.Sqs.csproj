@@ -21,7 +21,7 @@
     <ItemGroup>
         <ProjectReference Include="..\FxMap\FxMap.csproj"/>
         <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
-        <None Include="README.md" Pack="true" PackagePath="\"/>
+        <None Include="NUGET.md" Pack="true" PackagePath="\README.md"/>
         <None Include="..\..\FxMap.png">
             <Pack>True</Pack>
             <PackagePath/>

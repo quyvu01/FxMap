@@ -1,0 +1,249 @@
+![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
+
+# FxMap.Analyzers
+
+Roslyn analyzer for FxMap — validates expression strings at compile time, before they can fail at runtime.
+
+[**FxMap**](https://github.com/quyvu01/FxMap) · [**Documentation**](https://fxmapper.net) · [**Demo project**](https://github.com/quyvu01/TestFxMap-Demo)
+
+---
+
+## Overview
+
+FxMap.Analyzers provides comprehensive syntax validation for FxMap Expression strings used in `ProfileOf<T>` configurations. It catches expression syntax errors during compilation, preventing runtime failures.
+
+## Diagnostic Rules
+
+### OFX001: Expression Syntax Invalid
+
+**Severity:** Error
+**Category:** Syntax
+
+This analyzer validates FxMap Expression strings for correct syntax including:
+
+#### 1. **Balanced Delimiters**
+- Brackets `[]` for indexers
+- Braces `{}` for projections
+- Parentheses `()` for filters
+
+#### 2. **Property Navigation**
+- Projection requires dot: `Country.{Id, Name}` not `Country{Id, Name}`
+- Navigation after filter requires dot: `Orders(Status = 'Done').Items` not `Orders(Status = 'Done')Items`
+- Navigation after indexer requires dot: `Provinces[0 asc Name].Name` not `Provinces[0 asc Name]Name`
+
+#### 3. **Function Validation**
+- Function names must be valid (count, sum, avg, min, max, upper, lower, etc.)
+- Functions requiring arguments must have them (e.g., `substring`, `replace`)
+
+#### 4. **Computed Expressions**
+- Computed expressions in projections must have alias: `{Id, (Name:upper) as UpperName}` not `{Id, (Name:upper)}`
+
+#### 5. **Operators**
+- Must use valid operators: `=`, `!=`, `>`, `<`, `>=`, `<=`, `contains`, `startswith`, `endswith`
+- Logical operators: `&&`, `||`, `!`, `and`, `or`, `not`
+
+## Examples
+
+### Valid Expressions
+
+```csharp
+// In a ProfileOf<T> configuration:
+public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
+{
+    protected override void Configure()
+    {
+        // Simple property navigation
+        UseDistributedKey<CountryDistributedKey>()
+            .Of(x => x.CountryId)
+            .For(x => x.CountryName, "Country.Name");
+
+        // Projection with proper dot
+        UseDistributedKey<CountryDistributedKey>()
+            .Of(x => x.CountryId)
+            .For(x => x.CountryInfo, "Country.{Id, Name}");
+    }
+}
+
+// Root projection
+.For(x => x.MemberInfo, "{Id, Name, Email}")
+
+// Projection with alias
+.For(x => x.Data, "{Id, Country.Name as CountryName}")
+
+// Filter with proper navigation
+.For(x => x.OrderItems, "Orders(Status = 'Done').Items")
+
+// Indexer with proper navigation
+.For(x => x.ProvinceName, "Provinces[0 asc Name].Name")
+
+// Complex filter with string operations
+.For(x => x.ProvinceName, "Provinces(Name endswith 'a')[0 desc Name].Name")
+
+// Functions with arguments
+.For(x => x.ShortName, "{Id, Name:substring(0, 3) as Short}")
+
+// Computed expressions with alias
+.For(x => x.Data, "{Id, (Name:upper) as UpperName}")
+
+// Ternary with alias
+.For(x => x.Status, "{Id, (Active = true ? 'Yes' : 'No') as StatusText}")
+```
+
+### Invalid Expressions (Analyzer Errors)
+
+```csharp
+// Missing closing brace
+.For(x => x.CountryInfo, "Country.{Id, Name")
+// Error: Expected '}' after projection
+
+// Missing closing bracket
+.For(x => x.ProvinceInfo, "Provinces[asc Name")
+// Error: Expected ']' after indexer
+
+// Missing closing parenthesis
+.For(x => x.OrderInfo, "Orders(Status = 'Done'")
+// Error: Expected ')' after filter condition
+
+// Missing dot before projection
+.For(x => x.CountryInfo, "Country{Id, Name}")
+// Error: Projection requires '.' before '{'
+
+// Missing dot after filter
+.For(x => x.OrderItems, "Orders(Status = 'Done')Items")
+// Error: Property navigation requires '.' before identifier
+
+// Missing dot after indexer
+.For(x => x.ProvinceName, "Provinces[0 asc Name]Name")
+// Error: Property navigation requires '.' before identifier
+
+// Unknown function
+.For(x => x.Name, "Name:invalid")
+// Error: Unknown function 'invalid'
+
+// Function missing required arguments
+.For(x => x.Name, "Name:substring")
+// Error: Function 'substring' requires arguments
+
+// Computed expression without alias
+.For(x => x.Data, "{Id, (Name:upper)}")
+// Error: Expected 'as' keyword after computed expression - alias is required
+
+// Invalid operator
+.For(x => x.Users, "Users(Age >> 18)")
+// Error: Expected value ('>>' is not a valid operator)
+```
+
+## Installation
+
+### Via NuGet Package
+
+```bash
+dotnet add package FxMap.Analyzers
+```
+
+### Via Project Reference
+
+Add to your `.csproj`:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="../path/to/FxMap.Analyzers/FxMap.Analyzers.csproj" />
+</ItemGroup>
+```
+
+## How It Works
+
+1. **Compile-Time Analysis:** The analyzer runs during compilation and inspects all FluentAPI configurations
+2. **Expression Parsing:** Each expression string passed to `.For()`, `.Expression()`, or `.Else()` is validated using the full FxMap ExpressionParser
+3. **Immediate Feedback:** Syntax errors are reported as compiler errors with detailed messages including position information
+
+## Features
+
+### Current Validations
+
+- **Syntax Structure:** All brackets, braces, parentheses must be balanced
+- **Navigation Syntax:** Dot requirements for property navigation
+- **Function Names:** Validates against known function list
+- **Function Arguments:** Ensures required arguments are provided
+- **Operator Validation:** Only valid operators are allowed
+- **Alias Requirements:** Computed expressions must have aliases in projections
+- **Position Information:** Error messages include exact position of syntax errors
+
+### Current Limitations
+
+This is a **syntax-only analyzer**. It does NOT validate:
+- Whether property names exist in your entities
+- Whether navigation paths are valid for your data model
+- Data types or type compatibility
+- Semantic correctness of expressions
+
+These semantic validations happen at runtime when expressions are executed.
+
+## Demo Project
+
+See the demo project at `sample/Service1.Contract` for comprehensive examples of both valid and invalid expressions.
+
+```bash
+cd sample/Service1.Contract
+dotnet build
+```
+
+The demo build will show analyzer errors for all invalid expressions.
+
+## Error Message Format
+
+```
+error OFX001: Expression '{expression}' is invalid: {detailed-error-message}
+```
+
+Example:
+```
+error OFX001: Expression 'Country{Id, Name}' is invalid: Projection requires '.' before '{' at position 7
+```
+
+## Supported FxMap Expression Features
+
+- Property navigation: `Country.Name`, `Country.Province.Name`
+- Projections: `Country.{Id, Name}`, `{Id, Name as UserName}`
+- Root projections: `{Id, Email, Country.Name as CountryName}`
+- Filters: `Countries(Active = true)`, `Provinces(Name contains 'land')`
+- Indexers: `Provinces[0 10 asc Name]`, `Items[0 10 desc Price]`
+- Functions: `Name:upper`, `Price:round(2)`, `Items:count`
+- String functions: `upper`, `lower`, `trim`, `substring`, `replace`, `concat`, `split`
+- Math functions: `round`, `floor`, `ceil`, `abs`, `add`, `subtract`, `multiply`, `divide`
+- Date functions: `year`, `month`, `day`, `format`
+- Aggregate functions: `count`, `sum`, `avg`, `min`, `max`, `distinct`
+- Collection functions: `any`, `all`, `groupBy`
+- Boolean functions: `any(condition)`, `all(condition)`
+- Ternary operator: `(Status = 'Active' ? 'Yes' : 'No') as StatusText`
+- Null coalescing: `(Nickname ?? Name) as DisplayName`
+- Chained functions: `Name:trim:upper`, `Price:add(10):round(2)`
+
+## Related packages
+
+| Package | Description | Documentation |
+|---|---|---|
+| **Core** | | |
+| [FxMap](https://www.nuget.org/packages/FxMap) | FxMap core: profiles, entity configs, the mapper and the expression language | [README](https://github.com/quyvu01/FxMap/blob/main/README.md) |
+| **Data providers** | | |
+| [FxMap.EntityFrameworkCore](https://www.nuget.org/packages/FxMap.EntityFrameworkCore) | Answers requests from an Entity Framework Core `DbContext` | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.EntityFrameworkCore/README.md) |
+| [FxMap.MongoDb](https://www.nuget.org/packages/FxMap.MongoDb) | Answers requests from MongoDB collections | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.MongoDb/README.md) |
+| **Integrations** | | |
+| [FxMap.HotChocolate](https://www.nuget.org/packages/FxMap.HotChocolate) | Fills GraphQL response types through HotChocolate | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.HotChocolate/README.md) |
+| **Transports** | | |
+| [FxMap.Grpc](https://www.nuget.org/packages/FxMap.Grpc) | gRPC transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Grpc/README.md) |
+| [FxMap.Nats](https://www.nuget.org/packages/FxMap.Nats) | NATS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Nats/README.md) |
+| [FxMap.RabbitMq](https://www.nuget.org/packages/FxMap.RabbitMq) | RabbitMQ transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.RabbitMq/README.md) |
+| [FxMap.Kafka](https://www.nuget.org/packages/FxMap.Kafka) | Apache Kafka transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Kafka/README.md) |
+| [FxMap.Azure.ServiceBus](https://www.nuget.org/packages/FxMap.Azure.ServiceBus) | Azure Service Bus transport (Standard / Premium tiers) | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Azure.ServiceBus/README.md) |
+| [FxMap.Aws.Sqs](https://www.nuget.org/packages/FxMap.Aws.Sqs) | Amazon SQS transport | [README](https://github.com/quyvu01/FxMap/blob/main/src/FxMap.Aws.Sqs/README.md) |
+| **Tooling** | | |
+| [FxMap.Analyzers](https://www.nuget.org/packages/FxMap.Analyzers) | Roslyn analyzer that validates expression strings at compile time | This document |
+
+## Contributing
+
+Found a bug or want to contribute? Please visit [GitHub Repository](https://github.com/quyvu01/FxMap).
+
+## License
+
+This project is licensed under the Apache-2.0 license.

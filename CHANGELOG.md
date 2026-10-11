@@ -6,6 +6,18 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [Unreleased]
+
+### Changed
+
+- **The README of each NuGet package is Markdown only.** NuGet.org does not render the HTML of the GitHub header, so the page of a
+  package showed `<p align="center">` as text. Each package now ships a `NUGET.md` (packed as its `README.md`): the header is in
+  Markdown, the links and images are absolute, the GitHub alerts are block quotes, and what the NuGet page shows itself is left out
+  (the badges of the version, the downloads, the license and the frameworks) together with the Discord invitation. The logo is a
+  128 px file (`docs/assets/FxMap-128.png`) because Markdown cannot set the size of an image. The README of GitHub is unchanged.
+
+---
+
 ## [4.1.2]
 
 ### Fixed
