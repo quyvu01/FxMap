@@ -9,8 +9,8 @@ namespace FxMap.Tests.TransportTests;
 /// <summary>
 /// The Azure Service Bus transport between two services, on the Service Bus emulator (see
 /// <c>test/servicebus-emulator</c>; set FXMAP_TEST_SERVICEBUS to its connection string). The emulator has no management
-/// API, so the queues are declared in its Config.json: a request queue and a reply queue for each prefix sbtest1..sbtest4,
-/// and each test uses a prefix of its own.
+/// API, so the queues are declared in its Config.json: a request queue and a reply queue (both require sessions) for each
+/// prefix sbtest1..sbtest4, and each test uses a prefix of its own.
 /// </summary>
 [Collection(TransportTestsCollection.Name)]
 public class ServiceBusTransportTests
@@ -24,7 +24,9 @@ public class ServiceBusTransportTests
 
     private static Task<TransportHarness> StartAsync(string prefix, bool startOwner = true, TimeSpan? timeout = null) =>
         TransportHarness.StartAsync(
-            r => OwnerHosts.BrokerAsync(r, ServiceBus(prefix), startOwner, ready: TimeSpan.FromSeconds(3)),
+            // Before it listens, the owner tries to create its queues with the administration client, which the emulator does
+            // not serve: the SDK retries for about 10 s per queue and the warning is harmless (Config.json has the queues).
+            r => OwnerHosts.BrokerAsync(r, ServiceBus(prefix), startOwner, ready: TimeSpan.FromSeconds(25)),
             _ => ServiceBus(prefix), timeout);
 
     private sealed class TestContext(Dictionary<string, string> headers) : IContext

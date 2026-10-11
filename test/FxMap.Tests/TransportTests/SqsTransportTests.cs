@@ -26,7 +26,9 @@ public class SqsTransportTests
     private static string NewAccount() => Random.Shared.NextInt64(100_000_000_000, 999_999_999_999).ToString();
 
     private static Task<TransportHarness> StartAsync(string account, bool startOwner = true, TimeSpan? timeout = null) =>
-        TransportHarness.StartAsync(r => OwnerHosts.BrokerAsync(r, Sqs(account), startOwner), _ => Sqs(account), timeout);
+        // The owner creates its queue when it starts, and the client fails fast when the queue does not exist yet: wait for it.
+        TransportHarness.StartAsync(
+            r => OwnerHosts.BrokerAsync(r, Sqs(account), startOwner, ready: TimeSpan.FromSeconds(3)), _ => Sqs(account), timeout);
 
     private sealed class TestContext(Dictionary<string, string> headers) : IContext
     {
