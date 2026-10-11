@@ -43,8 +43,13 @@ reproduces it.
    export FXMAP_TEST_NATS="nats://localhost:4222"
    export FXMAP_TEST_RABBITMQ="localhost"              # host[:amqpPort[:managementPort]], user and password guest
    export FXMAP_TEST_SQS="http://localhost:4566"        # LocalStack with SQS
+   export FXMAP_TEST_KAFKA="localhost:9092"            # a Kafka broker (its FxMap topics are deleted before each test)
+   export FXMAP_TEST_SERVICEBUS="Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
    dotnet test test/FxMap.Tests/FxMap.Tests.csproj --filter "FullyQualifiedName~TransportTests"
    ```
+
+   The Service Bus emulator needs SQL Server and does not run on an ARM machine; its compose file and the queues it
+   declares are in `test/servicebus-emulator`.
 
    Any MongoDB and PostgreSQL will do, for example
    `docker run -d -p 27017:27017 mongo:7` and `docker run -d -p 5432:5432 -e POSTGRES_PASSWORD=postgres postgres:17`

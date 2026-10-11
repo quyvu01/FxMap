@@ -6,6 +6,27 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **Kafka: the consumer of the owner was disposed while its consume loop was still running, which crashed the whole process**
+  (librdkafka) every time a service using Kafka stopped. The server now waits for the loop before it closes the consumer.
+- **Kafka: the headers of the context were never sent.** Only the trace headers went with the request, so the owner never
+  saw a tenant id or any other header. They are sent now.
+- **Kafka: a reply could be lost, and the request then timed out.** The reply consumer started at `Latest`, but a consumer is
+  assigned its partition a few seconds after it subscribes, so a reply sent by a fast owner in the meantime was skipped. The reply
+  topic belongs to the client alone: it is read from the start.
+- **Kafka: disposing a client waited 10 seconds and then threw.** Nothing cancelled its consume loop, and a task that had not
+  completed was disposed.
+
+### Added
+
+- Transport tests for Kafka (broker as a service container) and Azure Service Bus (on its emulator, in a job of its own that does
+  not block the publish yet). `test/servicebus-emulator` has the compose file and the queues it declares.
+
+---
+
 ## [4.1.2]
 
 ### Fixed
