@@ -1,5 +1,3 @@
-![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
-
 # FxMap.Nats
 
 NATS transport for FxMap — request/reply between services over NATS.

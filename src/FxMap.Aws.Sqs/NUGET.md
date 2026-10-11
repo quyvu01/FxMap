@@ -1,5 +1,3 @@
-![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
-
 # FxMap.Aws.Sqs
 
 Amazon SQS transport for FxMap — request/response between services over SQS queues.

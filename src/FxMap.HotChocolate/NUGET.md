@@ -1,5 +1,3 @@
-![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
-
 # FxMap.HotChocolate
 
 HotChocolate integration for FxMap — GraphQL fields declared in a profile are resolved through FxMap.

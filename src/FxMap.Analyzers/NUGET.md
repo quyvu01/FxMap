@@ -1,5 +1,3 @@
-![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
-
 # FxMap.Analyzers
 
 Roslyn analyzer for FxMap — validates expression strings at compile time, before they can fail at runtime.

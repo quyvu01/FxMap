@@ -1,5 +1,3 @@
-![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
-
 # FxMap
 
 Distributed data mapping for .NET — declare where a property comes from, and FxMap fetches it from the service that owns the data, over the transport you already run.

@@ -1,5 +1,3 @@
-![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
-
 # FxMap.EntityFrameworkCore
 
 Entity Framework Core data provider for FxMap — answers FxMap requests straight from your `DbContext`.

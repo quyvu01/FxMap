@@ -1,5 +1,3 @@
-![FxMap](https://raw.githubusercontent.com/quyvu01/FxMap/main/docs/assets/FxMap-128.png)
-
 # FxMap.Kafka
 
 Apache Kafka transport for FxMap — request/response between services over Kafka topics.
