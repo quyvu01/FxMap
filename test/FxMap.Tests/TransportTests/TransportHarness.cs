@@ -29,6 +29,12 @@ public static class TransportEnvironment
     /// <summary>The endpoint of an SQS compatible service, e.g. LocalStack: <c>http://localhost:4566</c>.</summary>
     public const string Sqs = "FXMAP_TEST_SQS";
 
+    /// <summary>The bootstrap servers of a Kafka broker, e.g. <c>localhost:9092</c>.</summary>
+    public const string Kafka = "FXMAP_TEST_KAFKA";
+
+    /// <summary>The connection string of a Service Bus emulator with the queues of <c>servicebus-emulator-config.json</c>.</summary>
+    public const string ServiceBus = "FXMAP_TEST_SERVICEBUS";
+
     public static string Get(string variable) => Environment.GetEnvironmentVariable(variable);
 
     internal static string SkipReason(string variable) => string.IsNullOrWhiteSpace(Get(variable))
@@ -44,6 +50,16 @@ public sealed class NatsFactAttribute : FactAttribute
 public sealed class RabbitMqFactAttribute : FactAttribute
 {
     public RabbitMqFactAttribute() => Skip = TransportEnvironment.SkipReason(TransportEnvironment.RabbitMq);
+}
+
+public sealed class KafkaFactAttribute : FactAttribute
+{
+    public KafkaFactAttribute() => Skip = TransportEnvironment.SkipReason(TransportEnvironment.Kafka);
+}
+
+public sealed class ServiceBusFactAttribute : FactAttribute
+{
+    public ServiceBusFactAttribute() => Skip = TransportEnvironment.SkipReason(TransportEnvironment.ServiceBus);
 }
 
 public sealed class SqsFactAttribute : FactAttribute
@@ -143,7 +159,7 @@ public static class OwnerHosts
     /// With <paramref name="start"/> false nobody listens (a request has no owner to answer it).
     /// </summary>
     public static async Task<OwnerHandle> BrokerAsync(OwnerRecorder recorder, Action<MapConfigurator> configureTransport,
-        bool start = true)
+        bool start = true, TimeSpan? ready = null)
     {
         var builder = Host.CreateApplicationBuilder();
         builder.Services.AddSingleton(recorder);
@@ -159,7 +175,7 @@ public static class OwnerHosts
         {
             await host.StartAsync();
             // The subscription of the owner is made by its worker after the host started: give it a moment.
-            await Task.Delay(500);
+            await Task.Delay(ready ?? TimeSpan.FromMilliseconds(500));
         }
 
         return new OwnerHandle(new Stoppable(host));

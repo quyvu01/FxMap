@@ -46,7 +46,9 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
         _kafkaBootstrapServers = kafkaConfiguration.KafkaHost;
 
         _consumer = kafkaConnection.CreateConsumer($"{KafkaConstants.ClientGroupId}-{Guid.NewGuid():N}",
-            AutoOffsetReset.Latest, enableAutoCommit: true);
+            // The reply topic is created for this client alone: read it from the start. With Latest, a reply that arrives before the
+            // consumer has been assigned its partition (a few seconds after Subscribe) is lost and the request times out.
+            AutoOffsetReset.Earliest, enableAutoCommit: true);
         _replyTo =
             $"{KafkaConstants.ResponseTopicPrefix}-{AppDomain.CurrentDomain.FriendlyName.ToLower()}-{Guid.NewGuid():N}";
     }
@@ -73,6 +75,9 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             };
 
             var headers = new Headers();
+            // The headers of the context travel with the request (they were not sent at all)
+            foreach (var (key, value) in requestContext.Headers ?? [])
+                headers.Add(key, System.Text.Encoding.UTF8.GetBytes(value ?? ""));
             if (activity != null)
             {
                 if (!string.IsNullOrEmpty(activity.Id))
@@ -224,6 +229,16 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
 
     public async ValueTask DisposeAsync()
     {
+        // Nothing else stops the consume loop: without this the wait below always ends by its time-out (10 s)
+        try
+        {
+            await _consumerCts.CancelAsync();
+        }
+        catch (ObjectDisposedException)
+        {
+            // already disposed
+        }
+
         if (_consumerTask != null)
         {
             try
@@ -243,7 +258,8 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
         await CastAndDispose(_consumer);
         await CastAndDispose(_consumerCts);
         await CastAndDispose(_initLock);
-        await CastAndDispose(_consumerTask);
+        // A task can be disposed only when it has completed (it did not if the wait above gave up)
+        if (_consumerTask is { IsCompleted: true }) await CastAndDispose(_consumerTask);
         // Cancel all pending requests
         foreach (var kvp in _pendingRequests) kvp.Value.TrySetCanceled();
 

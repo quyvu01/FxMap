@@ -1,0 +1,118 @@
+{
+  "UserConfig": {
+    "Namespaces": [
+      {
+        "Name": "sbemulatorns",
+        "Queues": [
+          {
+            "Name": "sbtest1-fxmap-request-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": false
+            }
+          },
+          {
+            "Name": "sbtest1-fxmap-reply-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": true
+            }
+          },
+          {
+            "Name": "sbtest2-fxmap-request-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": false
+            }
+          },
+          {
+            "Name": "sbtest2-fxmap-reply-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": true
+            }
+          },
+          {
+            "Name": "sbtest3-fxmap-request-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": false
+            }
+          },
+          {
+            "Name": "sbtest3-fxmap-reply-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": true
+            }
+          },
+          {
+            "Name": "sbtest4-fxmap-request-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": false
+            }
+          },
+          {
+            "Name": "sbtest4-fxmap-reply-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": true
+            }
+          }
+        ]
+      }
+    ],
+    "Logging": {
+      "Type": "File"
+    }
+  }
+}

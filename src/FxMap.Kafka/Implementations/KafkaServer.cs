@@ -52,7 +52,25 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         _logger = serviceProvider.GetService<ILogger<KafkaServer<TModel, TDistributedKey>>>();
     }
 
+    // Completes when the consume loop has returned: the consumer must not be disposed while Consume() is running on it
+    // (librdkafka crashes the whole process).
+    private readonly TaskCompletionSource _loopStopped = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private volatile bool _loopStarted;
+
     public async Task StartAsync(CancellationToken cancellationToken = default)
+    {
+        _loopStarted = true;
+        try
+        {
+            await RunAsync(cancellationToken);
+        }
+        finally
+        {
+            _loopStopped.TrySetResult();
+        }
+    }
+
+    private async Task RunAsync(CancellationToken cancellationToken)
     {
         // Lazy topic creation
         if (!_topicsCreated)
@@ -228,10 +246,21 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken = default)
+    public async Task StopAsync(CancellationToken cancellationToken = default)
     {
+        // The supervisor cancels the loop before it stops the server: wait for the loop to leave Consume()
+        if (_loopStarted)
+            await Task.WhenAny(_loopStopped.Task, Task.Delay(TimeSpan.FromSeconds(10), cancellationToken));
+        try
+        {
+            _consumer?.Close();
+        }
+        catch (Exception ex)
+        {
+            _logger?.LogWarning(ex, "Failed to close the Kafka consumer for <{DistributedKey}>", typeof(TDistributedKey).Name);
+        }
+
         Dispose();
-        return Task.CompletedTask;
     }
 
     public void Dispose()
