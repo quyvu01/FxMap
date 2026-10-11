@@ -6,27 +6,6 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
-## [Unreleased]
-
-### Fixed
-
-- **Kafka: the consumer of the owner was disposed while its consume loop was still running, which crashed the whole process**
-  (librdkafka) every time a service using Kafka stopped. The server now waits for the loop before it closes the consumer.
-- **Kafka: the headers of the context were never sent.** Only the trace headers went with the request, so the owner never
-  saw a tenant id or any other header. They are sent now.
-- **Kafka: a reply could be lost, and the request then timed out.** The reply consumer started at `Latest`, but a consumer is
-  assigned its partition a few seconds after it subscribes, so a reply sent by a fast owner in the meantime was skipped. The reply
-  topic belongs to the client alone: it is read from the start.
-- **Kafka: disposing a client waited 10 seconds and then threw.** Nothing cancelled its consume loop, and a task that had not
-  completed was disposed.
-
-### Added
-
-- Transport tests for Kafka (broker as a service container) and Azure Service Bus (on its emulator, in a job of its own that does
-  not block the publish yet). `test/servicebus-emulator` has the compose file and the queues it declares.
-
----
-
 ## [4.1.2]
 
 ### Fixed
@@ -41,6 +20,15 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 - **gRPC: `ThrowIfException()` had no effect on the clients when it was called after `AddGrpcClients(...)`** (the order of the
   samples): the flag was copied when the clients were registered. An unreachable owner was then answered with no rows and no
   error. It is read when a request is made.
+- **Kafka: the consumer of the owner was disposed while its consume loop was still running, which crashed the whole process**
+  (librdkafka) every time a service using Kafka stopped. The server now waits for the loop before it closes the consumer.
+- **Kafka: the headers of the context were never sent.** Only the trace headers went with the request, so the owner never
+  saw a tenant id or any other header. They are sent now.
+- **Kafka: a reply could be lost, and the request then timed out.** The reply consumer started at `Latest`, but a consumer is
+  assigned its partition a few seconds after it subscribes, so a reply sent by a fast owner in the meantime was skipped. The reply
+  topic belongs to the client alone: it is read from the start.
+- **Kafka: disposing a client waited 10 seconds and then threw.** Nothing cancelled its consume loop, and a task that had not
+  completed was disposed.
 
 Details: [the notes of 4.1.2](docs/changelogs/v4.1.2.md).
 
@@ -48,7 +36,9 @@ Details: [the notes of 4.1.2](docs/changelogs/v4.1.2.md).
 
 - Transport tests (`TransportTests`): an owner and a consumer in one process that only talk through the real transport, for gRPC
   (in process), NATS, RabbitMQ and SQS (skipped unless `FXMAP_TEST_NATS`, `FXMAP_TEST_RABBITMQ`, `FXMAP_TEST_SQS` are set),
-  and a `transport-tests` job in the workflow with the brokers as containers. Kafka and Azure Service Bus are not covered yet.
+  and a `transport-tests` job in the workflow with the brokers as containers.
+- Transport tests for Kafka (broker as a service container) and Azure Service Bus (on its emulator, in a job of its own that does
+  not block the publish yet). `test/servicebus-emulator` has the compose file and the queues it declares.
 - Provider tests against real MongoDB and PostgreSQL (`FXMAP_TEST_MONGO`, `FXMAP_TEST_POSTGRES`; skipped when not set) and a
   `provider-tests` job in the workflow. The Expressions integration tests (`IntegrationTests.Expressions`) now run in CI too:
   no workflow step matched their namespace before.
