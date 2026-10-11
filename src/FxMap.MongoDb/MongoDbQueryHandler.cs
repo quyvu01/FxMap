@@ -12,6 +12,7 @@ using FxMap.Helpers;
 using FxMap.MongoDb.Abstractions;
 using FxMap.MongoDb.Extensions;
 using FxMap.Responses;
+using FxMap.Serializable;
 using FxMap.Telemetry;
 
 namespace FxMap.MongoDb;
@@ -178,7 +179,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
         for (var i = 0; i < rawResults.Count; i++)
         {
             var doc = rawResults[i];
-            var id = doc["_id"].ToString();
+            var id = IdText(doc["_id"]);
 
             var values = new ValueResponse[originalExpressions.Length];
 
@@ -213,14 +214,63 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     }
 
     /// <summary>
-    /// Converts BsonValue to JSON string.
+    /// The text of a stored id the way <c>ToString()</c> of the .NET id gives it, which is what the caller sent
+    /// (<c>BsonValue.ToString()</c> of a Guid is <c>UuidStandard:0x...</c>, not the Guid).
+    /// </summary>
+    private static string IdText(BsonValue id) => id switch
+    {
+        BsonBinaryData { SubType: BsonBinarySubType.UuidStandard or BsonBinarySubType.UuidLegacy } binary =>
+            binary.ToGuid().ToString(),
+        _ => id.ToString()
+    };
+
+    /// <summary>
+    /// Converts a BsonValue to the plain JSON a caller deserializes into its property: numbers, strings, booleans, ISO
+    /// dates, arrays and objects. The extended JSON of the driver (<c>{ "$numberDecimal": "1.5" }</c>, <c>{ "$oid": ... }</c>)
+    /// cannot be read into a <c>decimal</c> or a <c>string</c>.
     /// </summary>
     private static string BsonValueToJson(BsonValue bsonValue)
     {
         if (bsonValue == null || bsonValue.IsBsonNull) return null;
+        return JsonSerializer.SerializeObject(ToPlainValue(bsonValue));
+    }
 
-        // Convert to JSON using MongoDB's ToJson
-        return bsonValue.ToJson();
+    private static object ToPlainValue(BsonValue value)
+    {
+        switch (value.BsonType)
+        {
+            case BsonType.Null:
+            case BsonType.Undefined:
+                return null;
+            case BsonType.Document:
+                var document = new Dictionary<string, object>();
+                foreach (var element in value.AsBsonDocument) document[element.Name] = ToPlainValue(element.Value);
+                return document;
+            case BsonType.Array:
+                return value.AsBsonArray.Select(ToPlainValue).ToList();
+            case BsonType.Decimal128:
+                // Decimal128 is wider than decimal: keep the digits as text when it does not fit
+                var decimal128 = value.AsDecimal128;
+                try
+                {
+                    return Decimal128.ToDecimal(decimal128);
+                }
+                catch (OverflowException)
+                {
+                    return decimal128.ToString();
+                }
+            case BsonType.Binary when value.AsBsonBinaryData.SubType is BsonBinarySubType.UuidStandard
+                or BsonBinarySubType.UuidLegacy:
+                return value.AsBsonBinaryData.ToGuid();
+            case BsonType.ObjectId:
+                return value.AsObjectId.ToString();
+            case BsonType.DateTime:
+                return value.ToUniversalTime();
+            case BsonType.Timestamp:
+                return value.AsBsonTimestamp.Value;
+            default:
+                return BsonTypeMapper.MapToDotNetValue(value);
+        }
     }
 
     // The key is the expression list itself: a hash code of it could be shared by two different lists.
