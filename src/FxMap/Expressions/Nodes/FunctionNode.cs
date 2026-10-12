@@ -13,7 +13,8 @@ public sealed record FunctionNode(
     string Argument = null,
     IReadOnlyList<ExpressionNode> Arguments = null) : ExpressionNode
 {
-    public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor, TContext context)
+    public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor,
+        TContext context)
         => visitor.VisitFunction(this, context);
 
     /// <summary>
@@ -22,11 +23,9 @@ public sealed record FunctionNode(
     /// </summary>
     public IReadOnlyList<ExpressionNode> GetArguments()
     {
-        if (Arguments != null && Arguments.Count > 0)
-            return Arguments;
+        if (Arguments is { Count: > 0 }) return Arguments;
 
-        if (Argument != null)
-            return [new PropertyNode(Argument)];
+        if (Argument != null) return [new PropertyNode(Argument)];
 
         return [];
     }

@@ -28,10 +28,32 @@ public class GrpcClientsConfigurator
     /// register.AddGrpcHosts("https://service1", "https://service2");
     /// </code>
     /// </example>
-    public void AddGrpcHosts(string serviceHost, params string[] serviceHosts)
+    public void AddGrpcHosts(string serviceHost, params string[] serviceHosts) =>
+        AddGrpcHosts([serviceHost, .. serviceHosts]);
+
+    /// <summary>
+    /// Adds multiple gRPC server hosts.
+    /// </summary>
+    /// <param name="serviceHosts">The gRPC server host URLs to add.</param>
+    /// <example>
+    /// <code>
+    /// register.AddGrpcHosts("https://service1", "https://service2");
+    /// </code>
+    /// </example>
+    public void AddGrpcHosts(IEnumerable<string> serviceHosts)
     {
-        ArgumentNullException.ThrowIfNull(serviceHosts);
-        string[] hosts = [serviceHost, ..serviceHosts];
+        string[] hosts = [.. serviceHosts];
         hosts.ForEach(a => _serverHost.Add(a));
     }
+
+    /// <summary>
+    /// Adds multiple gRPC server hosts.
+    /// </summary>
+    /// <param name="serviceHosts">The gRPC server host URLs to add.</param>
+    /// <example>
+    /// <code>
+    /// register.AddGrpcHosts("https://service1", "https://service2");
+    /// </code>
+    /// </example>
+    public void AddGrpcHosts(params string[] serviceHosts) => AddGrpcHosts((IEnumerable<string>)serviceHosts);
 }
