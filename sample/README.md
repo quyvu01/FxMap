@@ -39,6 +39,10 @@ Use the same profile for the three services. The section read by `Shared.Transpo
 
 Service1 and the other services still need PostgreSQL and MongoDB, as before.
 
+For a load test on `/api/Test/GetMembers`: the three services keep a pool of connections each, and PostgreSQL allows 100 by default
+(`max_connections`). Around 64 requests at a time the database answers `53300: sorry, too many clients already`; raise
+`max_connections` or lower the concurrency.
+
 ## Quick Start Guides
 
 Choose the guide that matches your setup:

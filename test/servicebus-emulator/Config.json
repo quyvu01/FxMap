@@ -133,6 +133,32 @@
               "RequiresDuplicateDetection": false,
               "RequiresSession": true
             }
+          },
+          {
+            "Name": "sbtest6-fxmap-request-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": true
+            }
+          },
+          {
+            "Name": "sbtest6-fxmap-reply-fxmap-tests-providertests-providercustomerkey",
+            "Properties": {
+              "DeadLetteringOnMessageExpiration": false,
+              "DefaultMessageTimeToLive": "PT1H",
+              "LockDuration": "PT1M",
+              "MaxDeliveryCount": 10,
+              "ForwardDeadLetteredMessagesTo": "",
+              "ForwardTo": "",
+              "RequiresDuplicateDetection": false,
+              "RequiresSession": true
+            }
           }
         ]
       }

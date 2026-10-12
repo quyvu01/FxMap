@@ -144,4 +144,12 @@ public class RabbitMqTransportTests
 
         await TransportScenarios.Expression_errors_cross_the_wire(run.Harness);
     }
+
+    [RabbitMqFact]
+    public async Task Concurrent_requests_each_get_their_own_answer()
+    {
+        await using var run = await StartAsync();
+
+        await TransportScenarios.Concurrent_requests_each_get_their_own_answer(run.Harness);
+    }
 }

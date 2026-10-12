@@ -22,7 +22,7 @@ internal class RabbitMqRequestClient(
     RabbitMqChannelPool publishChannelPool)
     : IRequestClient, IAsyncDisposable
 {
-    private readonly ConcurrentDictionary<string, TaskCompletionSource<BasicDeliverEventArgs>> _eventArgsMapper = new();
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<byte[]>> _eventArgsMapper = new();
     private readonly SemaphoreSlim _initLock = new(1, 1);
 
     // Dedicated to consuming replies off the exclusive reply queue - there is only ever one
@@ -71,8 +71,7 @@ internal class RabbitMqRequestClient(
                 activity.SetFxMapTags(requestContext.Query.Expressions, requestContext.Query.SelectorIds);
             }
 
-            var tcs = new TaskCompletionSource<BasicDeliverEventArgs>(
-                TaskCreationOptions.RunContinuationsAsynchronously);
+            var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
             _eventArgsMapper.TryAdd(correlationId, tcs);
 
             try
@@ -98,8 +97,8 @@ internal class RabbitMqRequestClient(
 
                 await using var _ = cts.Token.Register(() => tcs.TrySetCanceled());
 
-                var eventArgs = await tcs.Task;
-                var resultAsString = Encoding.UTF8.GetString(eventArgs.Body.ToArray());
+                var body = await tcs.Task;
+                var resultAsString = Encoding.UTF8.GetString(body);
                 var response = JsonSerializer.Deserialize<Result>(resultAsString);
 
                 if (response is null)
@@ -157,7 +156,9 @@ internal class RabbitMqRequestClient(
         {
             var correlationId = ea.BasicProperties.CorrelationId;
             if (string.IsNullOrEmpty(correlationId) || !_eventArgsMapper.TryRemove(correlationId, out var tcs)) return;
-            tcs.TrySetResult(ea);
+            // The memory of ea.Body belongs to the consumer and is reused once this handler returns: copy the reply now, the
+            // caller reads it later (under load it would read the bytes of another message).
+            tcs.TrySetResult(ea.Body.ToArray());
             var ackChannel = ((AsyncEventingBasicConsumer)sender).Channel;
             await ackChannel.BasicAckAsync(ea.DeliveryTag, false, ea.CancellationToken);
         };

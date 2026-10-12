@@ -112,6 +112,23 @@ public class TransportBrokenView
 /// <summary>The scenario that every transport has to carry: the errors of the expressions that the owner could not build.</summary>
 public static class TransportScenarios
 {
+    /// <summary>
+    /// Many requests in flight at once, each with its own ids: every one has to get its own answer (a load test found a
+    /// RabbitMQ client that read the body of a reply after the buffer of the consumer had been reused).
+    /// </summary>
+    public static async Task Concurrent_requests_each_get_their_own_answer(TransportHarness h, int requests = 200)
+    {
+        var views = Enumerable.Range(0, requests)
+            .Select(i => new TransportCustomerView { CustomerId = i % 2 == 0 ? "c1" : "c2" })
+            .ToArray();
+
+        await Task.WhenAll(views.Select(v => h.MapAsync(v)));
+
+        views.Select(v => v.Name).ShouldBe(Enumerable.Range(0, requests).Select(i => i % 2 == 0 ? "Alice" : "Bob"));
+        views.Select(v => v.Email)
+            .ShouldBe(Enumerable.Range(0, requests).Select(i => i % 2 == 0 ? "alice@example.com" : "bob@example.com"));
+    }
+
     public static async Task Expression_errors_cross_the_wire(TransportHarness h)
     {
         var response = await h.FetchAsync(["c1", "c2"], null, "Broken.One", "Email", "Broken:two");

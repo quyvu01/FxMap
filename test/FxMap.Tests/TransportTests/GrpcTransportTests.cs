@@ -84,4 +84,12 @@ public class GrpcTransportTests
 
         await TransportScenarios.Expression_errors_cross_the_wire(h);
     }
+
+    [Fact]
+    public async Task Concurrent_requests_each_get_their_own_answer()
+    {
+        await using var h = await StartAsync();
+
+        await TransportScenarios.Concurrent_requests_each_get_their_own_answer(h);
+    }
 }

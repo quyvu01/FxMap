@@ -23,6 +23,13 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
   `QueryHandlerBuilder.BuildProjectionWithErrors`.
 - **gRPC:** `AddGrpcHosts` also takes a list of hosts (`IEnumerable<string>`, or an array), for the hosts read from a configuration.
 
+### Fixed
+
+- **RabbitMQ: under load a request failed with `JsonException: '0x01' is an invalid start of a value`.** The reply consumer gave the
+  waiting request the delivery of the message (`BasicDeliverEventArgs`) and the request read its body later, but the memory of
+  `ea.Body` belongs to the consumer and is reused once its handler returns: the request read the bytes of another message. The body is
+  copied in the handler. A load test on the samples (3,000 requests, 64 at a time) failed for two requests out of three before the fix.
+
 ### Changed
 
 - **The README of each NuGet package is Markdown only.** NuGet.org does not render the HTML of the GitHub header, so the page of a
