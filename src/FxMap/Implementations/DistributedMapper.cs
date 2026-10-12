@@ -251,9 +251,10 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     {
         // The owner could not build some expressions (it isolates expression errors): throw with all of them, or
         // log them and leave the properties of these expressions alone
-        var failedExpressions = ReportExpressionErrors(dataFetched);
+        var dataFetchedArray = dataFetched.ToArray();
+        var failedExpressions = ReportExpressionErrors(dataFetchedArray);
 
-        var dataWithExpression = dataFetched
+        var dataWithExpression = dataFetchedArray
             .Select(a => a.ItemsResponse.Items
                 .Select(x => (x.Id, x.Values))
                 .Select(k => (a.DistributedKeyType, Data: k)))
