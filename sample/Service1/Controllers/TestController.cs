@@ -33,7 +33,6 @@ public sealed class TestController : ControllerBase
             // new() { Id = "4", UserId = "user-013", MemberAdditionalId = "member-005", MemberAddressId = "addr-016", MemberSocialId = "5" },
             // new() { Id = "5", UserId = "user-019", MemberAdditionalId = "member-010", MemberAddressId = "addr-022", MemberSocialId = "7" }
         ];
-        var test = new PagedResult<MemberResponse> { Items = [new MemberResponse{UserId = "user-001"}] };
         await distributedMapper.MapDataAsync(members);
         return Ok(members);
     }
