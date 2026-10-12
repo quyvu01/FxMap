@@ -17,6 +17,11 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
   province id. The rule of the field itself is not fetched twice any more, and the conditional rules of the chain are resolved
   for the request.
 
+- **Azure Service Bus: the AMQP connection of the namespace was never closed.** The client was created by the container but held
+  in a record that was not disposable, so disposing the container (a host that stops, a test) left the connection open. A namespace
+  or an emulator has a quota of connections: the Service Bus tests of a whole run failed with `ConnectionsQuotaExceeded`. The wrapper
+  of the client is now disposed with the container.
+
 ### Added
 
 - Tests of the HotChocolate integration (12): a real schema executed in process, with fields resolved from other services, a
