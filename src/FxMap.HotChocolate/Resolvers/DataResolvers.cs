@@ -43,7 +43,8 @@ public sealed class DataResolvers<TResponse> where TResponse : class
 
         List<Task<string>> allTasks =
         [
-            FieldResultAsync(currentContext), ..GetDependencyTasks(getProfileConfig, currentContext, FieldResultAsync)
+            FieldResultAsync(currentContext),
+            ..GetDependencyTasks(getProfileConfig, currentContext, FieldResultAsync, resolverContext)
         ];
 
         await Task.WhenAll(allTasks);
@@ -82,7 +83,7 @@ public sealed class DataResolvers<TResponse> where TResponse : class
     }
 
     private static Task<string>[] GetDependencyTasks(GetProfileConfig getProfileConfig, FieldContext currentContext,
-        Func<FieldContext, Task<string>> fieldResultTask)
+        Func<FieldContext, Task<string>> fieldResultTask, IResolverContext resolverContext)
     {
         var profileConfig = getProfileConfig(typeof(TResponse));
         if (profileConfig is null) return [];
@@ -90,16 +91,23 @@ public sealed class DataResolvers<TResponse> where TResponse : class
         if (!dependenciesGraph.TryGetValue(currentContext.TargetPropertyInfo, out var infos)) return [];
         return
         [
-            ..infos.Select(p =>
+            // The chain starts with the rule of the field itself, which is fetched on its own (with its resolved expression)
+            ..infos.Where(p => p.TargetPropertyInfo != currentContext.TargetPropertyInfo).Select(async p =>
             {
+                // A conditional rule has no expression of its own: it is resolved for this request, as the field's was
+                var information = profileConfig.GetInformation(p.TargetPropertyInfo);
+                var expression = information.ConditionalExpression is null
+                    ? p.Expression
+                    : await information.ResolveExpression(resolverContext.RequestServices,
+                        resolverContext.RequestAborted);
                 var fieldContext = new FieldContext
                 {
-                    TargetPropertyInfo = p.TargetPropertyInfo, Expression = p.Expression,
+                    TargetPropertyInfo = p.TargetPropertyInfo, Expression = expression,
                     SelectorPropertyName = p.SelectorPropertyName, RequiredPropertyInfo = p.RequiredPropertyInfo,
                     RuntimeDistributedKeyType = p.RuntimeDistributedKeyType,
                     Order = dependenciesGraph.GetPropertyOrder(p.TargetPropertyInfo)
                 };
-                return fieldResultTask.Invoke(fieldContext);
+                return await fieldResultTask.Invoke(fieldContext);
             })
         ];
     }

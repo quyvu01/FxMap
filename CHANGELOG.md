@@ -6,6 +6,25 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [Unreleased]
+
+### Fixed
+
+- **HotChocolate: a field that depends on a conditional rule was fetched with the wrong expression.** For each field the resolver
+  also fetched the chain of rules it depends on, with the raw expression of each rule. A conditional rule has no expression of its
+  own (it is resolved for the request), so it was fetched with `null`, the default property of the entity: an extra request, and for a
+  chain such as `UserId -> ProvinceId (conditional) -> ProvinceName` the wrong value (the name of the user) was used as the
+  province id. The rule of the field itself is not fetched twice any more, and the conditional rules of the chain are resolved
+  for the request.
+
+### Added
+
+- Tests of the HotChocolate integration (12): a real schema executed in process, with fields resolved from other services, a
+  dependent field, only the requested fields fetched, one request for a whole list, a computed key, a conditional expression that
+  reads the scope of the request, and expression errors with and without `ThrowIfException()`.
+
+---
+
 ## [4.1.3]
 
 ### Added
