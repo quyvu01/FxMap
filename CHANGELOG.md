@@ -6,29 +6,36 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
-## [Unreleased]
+## [4.1.3]
 
 ### Added
 
-- **A request no longer fails as a whole because of one expression that cannot be built.** The data provider of a service that owns data can be
-  told to isolate them, `IsolateExpressionErrors()` in `AddEntityFrameworkCore(c => ...)` or `AddMongoDb(c => ...)`: it answers the expressions it can build and reports the others once, whatever the number of rows,
-  in the new `ItemsResponse.Errors` (`ExpressionError(Expression, Message)`, e.g. `Expression 'Orders:summ(Total)' failed to build:
-  Unknown function 'summ'`). The expressions that failed have no value, and the response keeps its errors even when no row
-  matched. The service that asked decides: with `ThrowIfException()` it throws a `DistributedMapException.ExpressionsFailed` that
-  holds all the errors; otherwise it logs a warning for each one and leaves the properties of these expressions alone. Without
-  `IsolateExpressionErrors()` nothing changes (the request fails). It is a setting of each provider (the EF Core and the MongoDB
-  providers support it); the errors
-  travel over every transport (JSON, and `ExpressionErrorGrpc` in the gRPC contract; a version that does not know them ignores them).
-  An error raised by the database when the query runs (a LINQ expression that EF Core cannot translate) still fails the request.
-  A data provider that builds its own projection can override `QueryHandlerBuilder.BuildProjectionWithErrors`.
+- **A request no longer fails as a whole because of one expression that cannot be built.** The data provider of a service that
+  owns data can be told to isolate them: `IsolateExpressionErrors()` in `AddEntityFrameworkCore(c => ...)` or `AddMongoDb(c => ...)`.
+  It answers the expressions it can build and reports the others once, whatever the number of rows, in the new
+  `ItemsResponse.Errors` (`ExpressionError(Expression, Message)`, e.g. `Expression 'Orders:summ(Total)' failed to build: Unknown
+  function 'summ'`). The expressions that failed have no value, and the errors are kept even when no row matched. The service that
+  asked decides: with `ThrowIfException()` it throws a `DistributedMapException.ExpressionsFailed` that holds all the errors;
+  otherwise it logs a warning for each one and leaves the properties of these expressions alone. Without `IsolateExpressionErrors()`
+  nothing changes (the request fails). The errors travel over every transport (JSON, and `ExpressionErrorGrpc` in the gRPC contract;
+  a version that does not know them ignores them). An error raised by the database when the query runs (a LINQ expression that EF
+  Core cannot translate) still fails the request. A data provider that builds its own projection can override
+  `QueryHandlerBuilder.BuildProjectionWithErrors`.
+- **gRPC:** `AddGrpcHosts` also takes a list of hosts (`IEnumerable<string>`, or an array), for the hosts read from a configuration.
 
 ### Changed
 
 - **The README of each NuGet package is Markdown only.** NuGet.org does not render the HTML of the GitHub header, so the page of a
   package showed `<p align="center">` as text. Each package now ships a `NUGET.md` (packed as its `README.md`): the header is in
-  Markdown, the links and images are absolute, the GitHub alerts are block quotes, and what the NuGet page shows itself is left out
-  (the badges of the version, the downloads, the license and the frameworks; no build status either: a package that reaches NuGet has passed it) together with the Discord invitation. There is no logo
-  (Markdown cannot set the size of an image, and the full-size one did not look right). The README of GitHub is unchanged.
+  Markdown, the links and images are absolute, the GitHub alerts are block quotes, and there is no logo, no Discord invitation and no
+  badge for what the NuGet page shows itself (version, downloads, license, frameworks, build). The README of GitHub is unchanged.
+
+### Removed
+
+- `FxMap.Expressions.DistributedMapExpression<TModel>` and `FxMapExpression`, public helpers that parsed an expression string into a
+  LINQ lambda. Nothing in FxMap used them.
+
+Details: [the notes of 4.1.3](docs/changelogs/v4.1.3.md).
 
 ---
 
