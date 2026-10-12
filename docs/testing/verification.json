@@ -1,0 +1,159 @@
+{
+  "generated": "2026-10-12",
+  "framework_of_this_run": "net10.0 (CI runs net8.0, net9.0, net10.0)",
+  "totals": {
+    "tests": 826,
+    "main_suite": 809,
+    "analyzer_tests": 17,
+    "passed_in_run": 803,
+    "failed": 0,
+    "ci_emulator_only": 6,
+    "service_bus_not_yet_run_on_ci": 2,
+    "note": "6 Service Bus tests run only on the CI emulator; 4 of them passed on the last CI run, 2 were added afterwards"
+  },
+  "areas": [
+    {
+      "area": "Unit: mapper",
+      "tests": 334
+    },
+    {
+      "area": "Unit: expression language",
+      "tests": 232
+    },
+    {
+      "area": "Unit: helpers, services, fluent, accessors, gRPC",
+      "tests": 74
+    },
+    {
+      "area": "Contract",
+      "tests": 8
+    },
+    {
+      "area": "Integration: expression language on EF Core",
+      "tests": 63
+    },
+    {
+      "area": "Integration: EF Core mapping",
+      "tests": 38
+    },
+    {
+      "area": "Provider tests on real databases",
+      "tests": 24,
+      "detail": {
+        "PostgreSQL (EF Core)": 12,
+        "MongoDB": 12
+      }
+    },
+    {
+      "area": "Transport tests over real brokers",
+      "tests": 36,
+      "detail": {
+        "gRPC": 6,
+        "NATS": 6,
+        "RabbitMQ": 6,
+        "Kafka": 6,
+        "SQS": 6,
+        "Azure Service Bus (CI emulator)": 6
+      }
+    },
+    {
+      "area": "Roslyn analyzer",
+      "tests": 17
+    }
+  ],
+  "infrastructure": {
+    "databases": [
+      "PostgreSQL 17",
+      "MongoDB 7"
+    ],
+    "brokers": [
+      "NATS 2",
+      "RabbitMQ 3",
+      "Apache Kafka",
+      "LocalStack 3 (SQS)",
+      "Azure Service Bus emulator (CI)",
+      "gRPC (Kestrel, in process)"
+    ]
+  },
+  "line_coverage_percent": {
+    "overall": 62.2,
+    "FxMap": 67.0,
+    "FxMap.EntityFrameworkCore": 88.2,
+    "FxMap.RabbitMq": 85.5,
+    "FxMap.Aws.Sqs": 87.1,
+    "FxMap.Nats": 82.5,
+    "FxMap.Kafka": 69.6,
+    "FxMap.Grpc": 52.4,
+    "FxMap.MongoDb": 50.8,
+    "FxMap.HotChocolate": 0.0,
+    "FxMap.Azure.ServiceBus": 0.0,
+    "note": "measured on the run above; Service Bus is covered only by the CI emulator job (not in this figure); HotChocolate has no tests yet"
+  },
+  "load_test_sample_services": {
+    "clients": 16,
+    "results": [
+      {
+        "transport": "gRPC",
+        "requests": 2000,
+        "correct": 2000,
+        "seconds": 4.4
+      },
+      {
+        "transport": "NATS",
+        "requests": 4000,
+        "correct": 4000,
+        "seconds": [
+          4.2,
+          5.1
+        ]
+      },
+      {
+        "transport": "RabbitMQ",
+        "requests": 8000,
+        "correct": 8000,
+        "seconds": [
+          7.5,
+          7.0,
+          5.7
+        ],
+        "clients": [
+          8,
+          16,
+          32
+        ]
+      },
+      {
+        "transport": "Kafka",
+        "requests": 2000,
+        "correct": 2000,
+        "seconds": 26.8
+      },
+      {
+        "transport": "SQS (LocalStack)",
+        "requests": 2000,
+        "correct": 2000,
+        "seconds": 167
+      }
+    ],
+    "note": "indicative: one laptop, local brokers, databases included"
+  },
+  "defects_found_and_fixed": {
+    "MongoDB": [
+      "Guid ids never answered",
+      "values returned as extended JSON"
+    ],
+    "RabbitMQ": [
+      "context headers lost as System.Byte[]",
+      "reply body read after the consumer reused its buffer (found by a load test)"
+    ],
+    "Kafka": [
+      "process crash when a service stops",
+      "context headers never sent",
+      "reply could be lost",
+      "disposing a client threw"
+    ],
+    "gRPC": [
+      "ThrowIfException() ignored when called after AddGrpcClients"
+    ]
+  }
+}
