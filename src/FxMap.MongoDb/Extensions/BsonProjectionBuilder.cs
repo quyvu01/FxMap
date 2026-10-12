@@ -43,6 +43,32 @@ public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, Bs
     }
 
     /// <summary>
+    /// Like <see cref="BuildProjectionDocument(Dictionary{string, string})"/>, but an expression that cannot be built is left
+    /// out of the document and reported in <paramref name="failed"/> (output field name to the reason) instead of throwing.
+    /// </summary>
+    public static BsonDocument BuildProjectionDocument(Dictionary<string, string> expressions,
+        out Dictionary<string, string> failed)
+    {
+        var doc = new BsonDocument();
+        var builder = new BsonProjectionBuilder();
+        failed = [];
+
+        foreach (var kvp in expressions)
+        {
+            try
+            {
+                doc.Add(kvp.Key, BuildBsonValue(kvp.Value, builder));
+            }
+            catch (Exception ex)
+            {
+                failed[kvp.Key] = ex.Message;
+            }
+        }
+
+        return doc;
+    }
+
+    /// <summary>
     /// Builds a BSON value from a single expression string.
     /// </summary>
     private static BsonValue BuildBsonValue(string expression, BsonProjectionBuilder builder = null)

@@ -67,6 +67,14 @@ public static class DistributedMapException
     public sealed class AmbiguousHandlers(Type interfaceType) :
         Exception($"Ambiguous handlers for interface '{interfaceType.FullName}'.");
 
+    /// <summary>The owner of the data could not build some of the expressions of a request (see <c>IsolateExpressionErrors</c>).</summary>
+    public sealed class ExpressionsFailed(Type distributedKeyType, FxMap.Responses.ExpressionError[] errors)
+        : Exception($"{errors.Length} expression(s) of '{distributedKeyType.Name}' could not be built: " +
+                    string.Join(" | ", errors.Select(e => e.Message)))
+    {
+        public FxMap.Responses.ExpressionError[] Errors { get; } = errors;
+    }
+
     public sealed class NoHandlerForDistributedKey(Type type)
         : Exception($"There is no handler for '{type.FullName}'!");
 

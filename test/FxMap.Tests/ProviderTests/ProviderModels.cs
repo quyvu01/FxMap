@@ -108,6 +108,22 @@ public class ProviderMappingView
     public string Title { get; set; }
 }
 
+/// <summary>A view with a valid expression and one that the owner cannot build.</summary>
+public class ProviderBrokenExpressionView
+{
+    public string CustomerId { get; set; }
+    public string Name { get; set; }
+    public string Broken { get; set; } = "keep";
+}
+
+public sealed class ProviderBrokenExpressionViewProfile : ProfileOf<ProviderBrokenExpressionView>
+{
+    protected override void Configure() =>
+        UseDistributedKey<ProviderCustomerKey>().Of(x => x.CustomerId)
+            .For(x => x.Name)
+            .For(x => x.Broken, "Name:bogus");
+}
+
 /// <summary>A view whose key is computed from two properties.</summary>
 public class ProviderLabView
 {

@@ -134,4 +134,42 @@ public static class ProviderScenarios
 
         views.Select(v => v.Value).ShouldBe([5.40m, 7.10m, null]);
     }
+
+    /// <summary>The owner isolates expression errors: the valid expressions are answered, the others reported once.</summary>
+    public static async Task Expressions_that_cannot_be_built_are_reported_and_the_others_answered(IProviderRunner run)
+    {
+        var response = await run.RunAsync<ProviderCustomerKey>(["c1", "c2"],
+            DefaultProperty[0], "Orders:summ(Total)", "Email", "Name:bogus");
+
+        response.Errors.Select(e => e.Expression).OrderBy(x => x, StringComparer.Ordinal)
+            .ShouldBe(["Name:bogus", "Orders:summ(Total)"]); // once for each expression, whatever the number of rows
+        response.Errors.ShouldAllBe(e => e.Message.Contains($"Expression '{e.Expression}' failed to build"));
+
+        response.Items.Select(i => i.Id).OrderBy(x => x).ShouldBe(["c1", "c2"]);
+        var alice = response.Items.Single(i => i.Id == "c1");
+        ValueOf<string>(alice, null).ShouldBe("Alice");
+        ValueOf<string>(alice, "Email").ShouldBe("alice@example.com");
+        alice.Values.Single(v => v.Expression == "Orders:summ(Total)").Value.ShouldBeNull();
+        alice.Values.Single(v => v.Expression == "Name:bogus").Value.ShouldBeNull();
+    }
+
+    public static async Task The_errors_are_reported_even_when_no_row_matches(IProviderRunner run)
+    {
+        var response = await run.RunAsync<ProviderCustomerKey>(["nobody"], "Email", "Name:bogus");
+
+        response.Items.ShouldBeEmpty();
+        response.Errors.ShouldHaveSingleItem().Expression.ShouldBe("Name:bogus");
+    }
+
+    /// <summary>The fixtures call ThrowIfException(): the caller gets the errors of the owner in an exception.</summary>
+    public static async Task The_mapper_throws_with_the_error_of_a_broken_expression(IProviderRunner run)
+    {
+        var view = new ProviderBrokenExpressionView { CustomerId = "c1" };
+
+        var error = await Should.ThrowAsync<FxMap.Exceptions.DistributedMapException.ExpressionsFailed>(() =>
+            run.MapAsync(view));
+
+        error.Errors.ShouldHaveSingleItem().Expression.ShouldBe("Name:bogus");
+        error.Message.ShouldContain("Name:bogus");
+    }
 }

@@ -18,6 +18,18 @@ namespace FxMap.EntityFrameworkCore.Registries;
 /// </remarks>
 public sealed class EfCoreConfigurator(IServiceCollection serviceCollection)
 {
+    private readonly HashSet<Type> _dbContextTypes = [];
+    internal bool IsolatesExpressionErrors { get; private set; }
+
+    /// <summary>
+    /// When a request holds an expression that cannot be built (an unknown function, an unknown property...), answer the
+    /// other expressions and report this one in <c>ItemsResponse.Errors</c>, instead of failing the whole request. The service
+    /// that asked decides what to do with the error: it throws with <c>ThrowIfException()</c>, and logs a warning otherwise.
+    /// An error raised by the database when the query runs (a LINQ expression that EF Core cannot translate) still fails the
+    /// request.
+    /// </summary>
+    public void IsolateExpressionErrors() => IsolatesExpressionErrors = true;
+
     /// <summary>
     /// Registers one or more DbContext types for use with FxMap queries.
     /// </summary>
@@ -34,13 +46,55 @@ public sealed class EfCoreConfigurator(IServiceCollection serviceCollection)
     /// });
     /// </code>
     /// </example>
-    public void AddDbContexts(Type dbContextType, params Type[] otherDbContextTypes)
-    {
-        var dbContextTypes = new HashSet<Type>([dbContextType, ..otherDbContextTypes ?? []]);
-        if (dbContextTypes.Count == 0)
-            throw new EntityFrameworkCoreException.DbContextsMustNotBeEmpty();
+    public void AddDbContexts(Type dbContextType, params Type[] otherDbContextTypes) =>
+        AddDbContexts([dbContextType, .. otherDbContextTypes ?? []]);
 
-        dbContextTypes.ForEach(runtimeType =>
+    /// <summary>
+    /// Registers one or more DbContext types for use with FxMap queries.
+    /// </summary>
+    /// <param name="dbContextTypes">Add DbContext types to register.</param>
+    /// <exception cref="EntityFrameworkCoreException.DbContextsMustNotBeEmpty">
+    /// Thrown when no DbContext types are provided.
+    /// </exception>
+    /// <example>
+    /// <code>
+    /// .AddFxMapEFCore(cfg =>
+    /// {
+    ///     cfg.AddDbContexts(typeof(ApplicationDbContext), typeof(ReportingDbContext));
+    /// });
+    /// </code>
+    /// </example>
+    public void AddDbContexts(params Type[] dbContextTypes) => AddDbContexts((IEnumerable<Type>)dbContextTypes);
+
+    /// <summary>
+    /// Registers one or more DbContext types for use with FxMap queries.
+    /// </summary>
+    /// <param name="dbContextTypes">Add DbContext types to register.</param>
+    /// <exception cref="EntityFrameworkCoreException.DbContextsMustNotBeEmpty">
+    /// Thrown when no DbContext types are provided.
+    /// </exception>
+    /// <example>
+    /// <code>
+    /// .AddFxMapEFCore(cfg =>
+    /// {
+    ///     cfg.AddDbContexts([typeof(ApplicationDbContext), typeof(ReportingDbContext)]);
+    /// });
+    /// </code>
+    /// </example>
+    public void AddDbContexts(IEnumerable<Type> dbContextTypes)
+    {
+        foreach (var dbContextType in dbContextTypes)
+        {
+            ArgumentNullException.ThrowIfNull(dbContextType);
+            _dbContextTypes.Add(dbContextType);
+        }
+    }
+
+    internal void RegisterDbContexts()
+    {
+        if (_dbContextTypes.Count == 0)
+            throw new EntityFrameworkCoreException.DbContextsMustNotBeEmpty();
+        _dbContextTypes.ForEach(runtimeType =>
         {
             ArgumentNullException.ThrowIfNull(runtimeType);
             if (!typeof(DbContext).IsAssignableFrom(runtimeType))

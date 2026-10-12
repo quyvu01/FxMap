@@ -5,6 +5,7 @@ using FxMap.Abstractions;
 using FxMap.Builders;
 using FxMap.Delegates;
 using FxMap.EntityFrameworkCore.Abstractions;
+using FxMap.EntityFrameworkCore.Implementations;
 using FxMap.Expressions.Building;
 using FxMap.Responses;
 using FxMap.Telemetry;
@@ -61,7 +62,9 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
             var filter = queryHandler.BuildFilter(context.Query);
 
             // Build projection expression
-            var (projection, expressions) = queryHandler.BuildProjection(context.Query);
+            var (projection, expressions, expressionErrors) =
+                queryHandler.BuildProjectionWithErrors(context.Query,
+                    serviceProvider.GetService<EfCoreOptions>()?.IsolateExpressionErrors ?? false);
 
             // Get DbContext and execute query
             using var scope = serviceProvider.CreateScope();
@@ -83,13 +86,16 @@ internal class EntityFrameworkQueryHandler<TModel, TDistributedKey>(IServiceProv
                 .ToArrayAsync(context.CancellationToken);
 
             // Step 2: Transform to DataResponse in memory
+            var failedExpressions = expressionErrors.Count == 0
+                ? null
+                : expressionErrors.Select(e => e.Expression).ToHashSet();
             var data = queryHandler.AnswerRequestedIds(context.Query,
-                ProjectionTransformer.TransformToArray(rawResults, expressions));
+                ProjectionTransformer.TransformToArray(rawResults, expressions, failedExpressions));
             var itemCount = data.Length;
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
-            return new ItemsResponse<DataResponse>(data);
+            return new ItemsResponse<DataResponse>(data, [.. expressionErrors]);
         }
         catch (Exception ex)
         {

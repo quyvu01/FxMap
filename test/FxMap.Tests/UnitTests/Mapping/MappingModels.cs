@@ -412,3 +412,22 @@ internal sealed class GNodeProfile : ProfileOf<GNode>
         UseDistributedKey<ProvinceKey>().Of(x => x.ProvinceId).For(x => x.ProvinceName, "Name");
     }
 }
+
+/// <summary>One valid expression and two that the owner reports as errors.</summary>
+public class ExpressionErrorDto
+{
+    public string UserId { get; set; }
+    public string UserName { get; set; }
+    public string BrokenOne { get; set; } = "keep";
+    public string BrokenTwo { get; set; } = "keep";
+}
+
+internal sealed class ExpressionErrorDtoProfile : ProfileOf<ExpressionErrorDto>
+{
+    protected override void Configure() =>
+        UseDistributedKey<UserKey>()
+            .Of(x => x.UserId)
+            .For(x => x.UserName, "Name")
+            .For(x => x.BrokenOne, "Broken.One")
+            .For(x => x.BrokenTwo, "Broken:two");
+}

@@ -10,7 +10,7 @@ namespace FxMap.Tests.TransportTests;
 /// The Azure Service Bus transport between two services, on the Service Bus emulator (see
 /// <c>test/servicebus-emulator</c>; set FXMAP_TEST_SERVICEBUS to its connection string). The emulator has no management
 /// API, so the queues are declared in its Config.json: a request queue and a reply queue (both require sessions) for each
-/// prefix sbtest1..sbtest4, and each test uses a prefix of its own.
+/// prefix sbtest1..sbtest5, and each test uses a prefix of its own.
 /// </summary>
 [Collection(TransportTestsCollection.Name)]
 public class ServiceBusTransportTests
@@ -83,5 +83,13 @@ public class ServiceBusTransportTests
         await using var h = await StartAsync("sbtest4", startOwner: false, timeout: TimeSpan.FromSeconds(3));
 
         await Should.ThrowAsync<Exception>(() => h.MapAsync(new TransportCustomerView { CustomerId = "c1" }));
+    }
+
+    [ServiceBusFact]
+    public async Task The_errors_of_the_expressions_that_the_owner_could_not_build_reach_the_consumer()
+    {
+        await using var h = await StartAsync("sbtest5");
+
+        await TransportScenarios.Expression_errors_cross_the_wire(h);
     }
 }

@@ -86,6 +86,9 @@ public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTranspor
                 res.Items.Add(itemGrpc);
             });
 
+            foreach (var error in response.Errors)
+                res.Errors.Add(new ExpressionErrorGrpc { Expression = error.Expression, Message = error.Message });
+
             var itemCount = response.Items?.Length ?? 0;
             activity?.SetFxMapTags(expressions, selectorIds, itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);

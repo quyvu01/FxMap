@@ -17,8 +17,15 @@ message GetFxMapGrpcQuery {
   google.protobuf.StringValue distributed_key_assembly_type = 3;
 }
 
+// An expression of the request that the owner could not build (see ItemsResponse.Errors)
+message ExpressionErrorGrpc {
+  google.protobuf.StringValue expression = 1;
+  google.protobuf.StringValue message = 2;
+}
+
 message FxMapItemsGrpcResponse {
   repeated ItemGrpc items = 1;
+  repeated ExpressionErrorGrpc errors = 2;
 }
 
 message GetDistributedKeysQuery {

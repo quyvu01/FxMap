@@ -4,7 +4,7 @@
 #   export FXMAP_TEST_SERVICEBUS="Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"   # add :PORT to the endpoint if SB_AMQP_PORT is not 5672
 #
 # The emulator has no management API: the queues the transport uses are declared in Config.json (a request queue and a reply
-# queue, both requiring sessions (the owner and the client use session processors), for each of the prefixes sbtest1..sbtest4: one prefix for each test).
+# queue, both requiring sessions (the owner and the client use session processors), for each of the prefixes sbtest1..sbtest5: one prefix for each test).
 # On an ARM machine SQL Server does not run: SQL_IMAGE=mcr.microsoft.com/azure-sql-edge:latest
 name: fxmap-servicebus-test
 

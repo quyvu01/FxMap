@@ -43,6 +43,22 @@ public abstract class QueryHandlerBuilder<TModel, TDistributedKey>
         MapRequest<TDistributedKey> request);
 
     /// <summary>
+    /// Like <see cref="BuildProjection"/>, and reports the expressions that could not be built when the data provider is
+    /// configured to isolate expression errors (<paramref name="isolateExpressionErrors"/>): their value is null in the
+    /// projection and they are returned as <see cref="ExpressionError"/>. Otherwise an expression that cannot be built throws, as
+    /// before. A provider that does not override it never reports an error.
+    /// </summary>
+    /// <param name="request">The request, holding the expressions.</param>
+    /// <param name="isolateExpressionErrors">The setting of the data provider (<c>IsolateExpressionErrors()</c>).</param>
+    public virtual (Expression<Func<TModel, object[]>> Projection, IReadOnlyList<string> Expressions,
+        IReadOnlyList<ExpressionError> Errors) BuildProjectionWithErrors(MapRequest<TDistributedKey> request,
+        bool isolateExpressionErrors)
+    {
+        var (projection, expressions) = BuildProjection(request);
+        return (projection, expressions, []);
+    }
+
+    /// <summary>
     /// Makes the response answer to the ids the way the caller wrote them (see <see cref="RequestedIdAnswers"/>):
     /// rows come back keyed by the canonical text of the entity id, while the caller matches a response to its object
     /// with the text it sent (upper case or braced Guid, <c>"007"</c> for 7...).
@@ -109,6 +125,38 @@ public class QueryHandlerBuilder<TModel, TId, TDistributedKey>(IServiceProvider 
         // Cache it
         ProjectionCache.TryAdd(cacheKey, projection);
         return (projection, expressionList);
+    }
+
+    // The projection and the errors of a list of expressions, when the data provider isolates expression errors
+    private static readonly ConcurrentDictionary<string, (Expression<Func<TModel, object[]>> Projection,
+        ExpressionError[] Errors)> IsolatedProjectionCache = new();
+
+    public override (Expression<Func<TModel, object[]>> Projection, IReadOnlyList<string> Expressions,
+        IReadOnlyList<ExpressionError> Errors) BuildProjectionWithErrors(MapRequest<TDistributedKey> request,
+        bool isolateExpressionErrors)
+    {
+        if (!isolateExpressionErrors) return base.BuildProjectionWithErrors(request, false);
+
+        var expressionList = request.Expressions.ToList();
+        var cacheKey = ComputeCacheKey(expressionList);
+        if (!IsolatedProjectionCache.TryGetValue(cacheKey, out var cached))
+        {
+            var builder = new ProjectionBuilder<TModel>(
+                _entityConfig.IdPropertySelector,
+                _entityConfig.DefaultPropertySelector,
+                serviceProvider.GetRequiredService<GetTypeAccessor>());
+            var result = builder.BuildWithMetadata(expressionList);
+            var errors = result.Metadata
+                .Where(m => m.HasError)
+                .Select(m => new ExpressionError(m.Expression,
+                    $"Expression '{m.Expression}' failed to build: {m.Error}"))
+                .DistinctBy(e => e.Expression)
+                .ToArray();
+            cached = (result.Projection, errors);
+            IsolatedProjectionCache.TryAdd(cacheKey, cached);
+        }
+
+        return (cached.Projection, expressionList, cached.Errors);
     }
 
     public override DataResponse[] AnswerRequestedIds(MapRequest<TDistributedKey> query, DataResponse[] rows) =>

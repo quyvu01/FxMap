@@ -39,4 +39,16 @@ public class PostgresProviderTests(PostgresProviderFixture postgres) : IClassFix
     [PostgresFact]
     public Task The_mapper_fills_a_view_through_a_computed_key() =>
         ProviderScenarios.The_mapper_fills_a_view_through_a_computed_key(postgres);
+
+    [PostgresFact]
+    public Task Expressions_that_cannot_be_built_are_reported_and_the_others_answered() =>
+        ProviderScenarios.Expressions_that_cannot_be_built_are_reported_and_the_others_answered(postgres);
+
+    [PostgresFact]
+    public Task The_errors_are_reported_even_when_no_row_matches() =>
+        ProviderScenarios.The_errors_are_reported_even_when_no_row_matches(postgres);
+
+    [PostgresFact]
+    public Task The_mapper_throws_with_the_error_of_a_broken_expression() =>
+        ProviderScenarios.The_mapper_throws_with_the_error_of_a_broken_expression(postgres);
 }

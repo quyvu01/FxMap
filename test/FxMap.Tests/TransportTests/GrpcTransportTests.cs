@@ -76,4 +76,12 @@ public class GrpcTransportTests
 
         await Should.ThrowAsync<Exception>(() => h.MapAsync(new TransportCustomerView { CustomerId = "c1" }));
     }
+
+    [Fact]
+    public async Task The_errors_of_the_expressions_that_the_owner_could_not_build_reach_the_consumer()
+    {
+        await using var h = await StartAsync();
+
+        await TransportScenarios.Expression_errors_cross_the_wire(h);
+    }
 }

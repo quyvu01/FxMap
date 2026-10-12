@@ -68,7 +68,8 @@ public sealed class MongoProviderFixture : IProviderRunner, IDisposable
                 {
                     cfg.AddEntityConfigs(typeof(ProviderCustomerConfig), typeof(ProviderDeviceConfig),
                         typeof(ProviderTicketConfig), typeof(ProviderLabConfig));
-                    cfg.AddProfileConfigs(typeof(ProviderMappingViewProfile), typeof(ProviderLabViewProfile));
+                    cfg.AddProfileConfigs(typeof(ProviderMappingViewProfile), typeof(ProviderLabViewProfile),
+                        typeof(ProviderBrokenExpressionViewProfile));
                     cfg.ThrowIfException();
                 })
                 .AddMongoDb(c =>
@@ -77,6 +78,7 @@ public sealed class MongoProviderFixture : IProviderRunner, IDisposable
                     c.AddCollection(devices);
                     c.AddCollection(tickets);
                     c.AddCollection(labs);
+                    c.IsolateExpressionErrors();
                 });
             _provider = services.BuildServiceProvider();
         }

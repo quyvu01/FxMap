@@ -3,6 +3,7 @@ using FxMap.Abstractions;
 using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.MongoDb.Registries;
+using FxMap.MongoDb.Implementations;
 using FxMap.Wrappers;
 
 namespace FxMap.MongoDb.Extensions;
@@ -44,6 +45,7 @@ public static class DependencyExtensions
             throw new DistributedMapException.AddEntitiesFromAssemblyContaining(); // Todo: update Exception again!
         var registrar = new MongoDbConfigurator(serviceInjector.MapConfigurator.Services);
         registrarAction.Invoke(registrar);
+        serviceInjector.MapConfigurator.Services.AddSingleton(new MongoDbOptions(registrar.IsolatesExpressionErrors));
         var mongoModelTypes = registrar.MongoModelTypes;
         var serviceCollection = serviceInjector.MapConfigurator.Services;
         entityConfig

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics.CodeAnalysis;
 using FxMap.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using FxMap.EntityFrameworkCore.Abstractions;
@@ -38,15 +39,17 @@ public static class DependencyExtensions
     /// </code>
     /// </example>
     public static ConfiguratorWrapped AddEntityFrameworkCore(this ConfiguratorWrapped serviceInjector,
-        Action<EfCoreConfigurator> registrarAction)
+        [NotNull] Action<EfCoreConfigurator> registrarAction)
     {
         var entityConfig = serviceInjector.MapConfigurator.EntityConfigs;
         if (entityConfig is not { Count: > 0 })
             throw new DistributedMapException.AddEntitiesFromAssemblyContaining();
 
         var serviceCollection = serviceInjector.MapConfigurator.Services;
-        var newFxMapEfCoreRegistrar = new EfCoreConfigurator(serviceCollection);
-        registrarAction.Invoke(newFxMapEfCoreRegistrar);
+        var efCoreConfigurator = new EfCoreConfigurator(serviceCollection);
+        registrarAction.Invoke(efCoreConfigurator);
+        efCoreConfigurator.RegisterDbContexts();
+        serviceCollection.AddSingleton(new EfCoreOptions(efCoreConfigurator.IsolatesExpressionErrors));
 
         var modelCacheLookup = new ConcurrentDictionary<Type, bool>();
 

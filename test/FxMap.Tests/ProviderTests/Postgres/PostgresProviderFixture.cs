@@ -51,10 +51,15 @@ public sealed class PostgresProviderFixture : IProviderRunner, IDisposable
                 {
                     cfg.AddEntityConfigs(typeof(ProviderCustomerConfig), typeof(ProviderDeviceConfig),
                         typeof(ProviderTicketConfig), typeof(ProviderLabConfig));
-                    cfg.AddProfileConfigs(typeof(ProviderMappingViewProfile), typeof(ProviderLabViewProfile));
+                    cfg.AddProfileConfigs(typeof(ProviderMappingViewProfile), typeof(ProviderLabViewProfile),
+                        typeof(ProviderBrokenExpressionViewProfile));
                     cfg.ThrowIfException();
                 })
-                .AddEntityFrameworkCore(c => c.AddDbContexts(typeof(ProviderDbContext)));
+                .AddEntityFrameworkCore(c =>
+                {
+                    c.AddDbContexts(typeof(ProviderDbContext));
+                    c.IsolateExpressionErrors();
+                });
             _provider = services.BuildServiceProvider();
 
             using var scope = _provider.CreateScope();

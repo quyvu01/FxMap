@@ -21,6 +21,15 @@ public sealed class MongoDbConfigurator(IServiceCollection serviceCollection)
     public IReadOnlyCollection<Type> MongoModelTypes => _mongoModelTypes;
     private readonly List<Type> _mongoModelTypes = [];
 
+    internal bool IsolatesExpressionErrors { get; private set; }
+
+    /// <summary>
+    /// When a request holds an expression that cannot be built (a syntax error, an unknown function...), answer the other
+    /// expressions and report this one in <c>ItemsResponse.Errors</c>, instead of failing the whole request. The service that
+    /// asked decides what to do with the error: it throws with <c>ThrowIfException()</c>, and logs a warning otherwise.
+    /// </summary>
+    public void IsolateExpressionErrors() => IsolatesExpressionErrors = true;
+
     /// <summary>
     /// Registers a MongoDB collection for use with FxMap queries.
     /// </summary>

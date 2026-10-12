@@ -28,7 +28,8 @@ public static class ProjectionTransformer
     /// <param name="row">The raw result row (object[]).</param>
     /// <param name="expressions">The original expression strings (in order).</param>
     /// <returns>An DataResponse object.</returns>
-    private static DataResponse TransformRow(object[] row, IReadOnlyList<string> expressions)
+    private static DataResponse TransformRow(object[] row, IReadOnlyList<string> expressions,
+        IReadOnlySet<string> failedExpressions = null)
     {
         // row[0] = Id
         // row[1..n] = Expression values
@@ -42,7 +43,10 @@ public static class ProjectionTransformer
             values[i] = new ValueResponse
             {
                 Expression = expressions[i],
-                Value = JsonSerializer.SerializeObject(value)
+                // An expression that could not be built has no value (it is reported as an error of the response)
+                Value = expressions[i] is not null && failedExpressions?.Contains(expressions[i]) == true
+                    ? null
+                    : JsonSerializer.SerializeObject(value)
             };
         }
 
@@ -102,10 +106,19 @@ public static class ProjectionTransformer
     /// <summary>
     /// Transforms results to an array synchronously.
     /// </summary>
-    public static DataResponse[] TransformToArray(object[][] rawResults, IReadOnlyList<string> expressions)
+    public static DataResponse[] TransformToArray(object[][] rawResults, IReadOnlyList<string> expressions) =>
+        TransformToArray(rawResults, expressions, null);
+
+    /// <summary>
+    /// Transforms results to an array synchronously; the expressions in <paramref name="failedExpressions"/> (those that
+    /// could not be built) have no value.
+    /// </summary>
+    public static DataResponse[] TransformToArray(object[][] rawResults, IReadOnlyList<string> expressions,
+        IReadOnlySet<string> failedExpressions)
     {
         var result = new DataResponse[rawResults.Length];
-        for (var i = 0; i < rawResults.Length; i++) result[i] = TransformRow(rawResults[i], expressions);
+        for (var i = 0; i < rawResults.Length; i++)
+            result[i] = TransformRow(rawResults[i], expressions, failedExpressions);
 
         return result;
     }

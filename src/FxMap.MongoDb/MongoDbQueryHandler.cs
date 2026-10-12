@@ -10,6 +10,7 @@ using FxMap.Abstractions;
 using FxMap.Delegates;
 using FxMap.Helpers;
 using FxMap.MongoDb.Abstractions;
+using FxMap.MongoDb.Implementations;
 using FxMap.MongoDb.Extensions;
 using FxMap.Responses;
 using FxMap.Serializable;
@@ -55,6 +56,10 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
     private static readonly Lazy<FilterCache> FilterCacheInstance = new(() => new FilterCache());
     private static readonly ConcurrentDictionary<string, BsonDocument> ProjectionCache = new();
 
+    // The projection and the errors of a list of expressions, when the service isolates expression errors
+    private static readonly ConcurrentDictionary<string, (BsonDocument Projection, ExpressionError[] Errors)>
+        IsolatedProjectionCache = new();
+
     public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<TDistributedKey> context)
     {
         // Start database activity for distributed tracing
@@ -68,7 +73,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
             var filter = BuildFilter(context.Query);
 
             // Build projection
-            var projection = BuildProjection(expressions);
+            var (projection, expressionErrors) = BuildProjectionWithErrors(expressions);
 
             // Add database tags to activity
             if (activity != null)
@@ -96,7 +101,7 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
             activity?.SetFxMapTags(itemCount: itemCount);
             activity?.SetStatus(ActivityStatusCode.Ok);
 
-            return new ItemsResponse<DataResponse>(data);
+            return new ItemsResponse<DataResponse>(data, expressionErrors);
         }
         catch (Exception ex)
         {
@@ -132,6 +137,39 @@ internal class MongoDbQueryHandler<TModel, TDistributedKey>(IServiceProvider ser
 
         // Use cached method to build filter
         return cache.BuildInFilter(idsConverted);
+    }
+
+    /// <summary>
+    /// The projection, and the expressions that could not be built when the data provider isolates expression errors
+    /// (<c>IsolateExpressionErrors()</c>): they are left out of the projection, so they have no value. Otherwise an expression
+    /// that cannot be built throws, as before.
+    /// </summary>
+    private (BsonDocument Projection, ExpressionError[] Errors) BuildProjectionWithErrors(string[] expressions)
+    {
+        if (serviceProvider.GetService<MongoDbOptions>() is not { IsolateExpressionErrors: true })
+            return (BuildProjection(expressions), []);
+
+        var cacheKey = ComputeCacheKey(expressions);
+        if (IsolatedProjectionCache.TryGetValue(cacheKey, out var cached)) return cached;
+
+        var expressionMap = expressions
+            .Select((expr, idx) => (
+                Expression: expr ?? PropertyNameOf(_entityConfig.DefaultPropertySelector),
+                FieldName: $"_exp_{idx}"))
+            .ToDictionary(x => x.FieldName, x => x.Expression);
+        var projection = BsonProjectionBuilder.BuildProjectionDocument(expressionMap, out var failed);
+        if (!projection.Contains("_id")) projection.InsertAt(0, new BsonElement("_id", 1));
+
+        // The error carries the expression as the caller wrote it, not the name of the output field
+        var errors = failed
+            .Select(f => (Index: int.Parse(f.Key["_exp_".Length..]), Reason: f.Value))
+            .Select(f => new ExpressionError(expressions[f.Index],
+                $"Expression '{expressions[f.Index] ?? "(default property)"}' failed to build: {f.Reason}"))
+            .DistinctBy(e => e.Expression)
+            .ToArray();
+        cached = (projection, errors);
+        IsolatedProjectionCache.TryAdd(cacheKey, cached);
+        return cached;
     }
 
     /// <summary>

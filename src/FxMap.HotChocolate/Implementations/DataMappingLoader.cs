@@ -13,6 +13,7 @@ namespace FxMap.HotChocolate.Implementations;
 /// <param name="batchScheduler">The batch scheduler for DataLoader.</param>
 /// <param name="options">DataLoader options.</param>
 /// <param name="distributedMapper">The FxMap distributed mapper for fetching data.</param>
+/// <param name="mapperConfiguration">The configuration: whether an expression that the owner could not build throws.</param>
 /// <remarks>
 /// This DataLoader:
 /// <list type="bullet">
@@ -24,7 +25,8 @@ namespace FxMap.HotChocolate.Implementations;
 internal class DataMappingLoader(
     IBatchScheduler batchScheduler,
     DataLoaderOptions options,
-    IDistributedMapper distributedMapper)
+    IDistributedMapper distributedMapper,
+    IMapperConfiguration mapperConfiguration)
     : BatchDataLoader<FieldBearing, string>(batchScheduler, options)
 {
     protected override async Task<IReadOnlyDictionary<FieldBearing, string>> LoadBatchAsync(
@@ -67,6 +69,10 @@ internal class DataMappingLoader(
 
                     var result = await distributedMapper
                         .FetchDataAsync(gr.Key, new DistributedMapRequest([..ids], [..expressions]), context);
+
+                    // The owner could not build some expressions: their fields stay null, unless ThrowIfException() is on
+                    if (result.Errors.Length > 0 && mapperConfiguration.ThrowIfExceptions)
+                        throw new FxMap.Exceptions.DistributedMapException.ExpressionsFailed(gr.Key, result.Errors);
 
                     var res = result.Items.Join(gr, a => a.Id, k => k.SelectorId, (a, k) => (a, k))
                         .ToDictionary(x => x.k,

@@ -107,7 +107,8 @@ public static class DependencyExtensions
                     .Select(a => new ValueResponse { Expression = a.Expression, Value = a.Value });
                 return new DataResponse { Id = x.Id, Values = [..values] };
             });
-            return new ItemsResponse<DataResponse>([..dataResponse]);
+            var errors = result.Errors.Select(e => new ExpressionError(e.Expression, e.Message));
+            return new ItemsResponse<DataResponse>([..dataResponse], [..errors]);
         });
 
         services.TryAddTransient<IRequestClient, GrpcRequestClient>();

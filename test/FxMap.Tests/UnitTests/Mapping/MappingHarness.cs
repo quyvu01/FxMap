@@ -35,6 +35,12 @@ public sealed class FakeRemote
     /// <summary>Like <see cref="OnRequest"/>, but also receives the token of the request (to wait until it is cancelled).</summary>
     public Func<Type, CancellationToken, Task> OnRequestWithToken { get; set; }
 
+    /// <summary>
+    /// The expressions that this remote reports as errors of the response (an owner that isolates expression errors): they get
+    /// no value, and are reported once, whatever the number of rows.
+    /// </summary>
+    public Func<Type, string[]> FailedExpressions { get; set; }
+
     public IReadOnlyList<RemoteCall> Calls => [.._calls.OrderBy(c => c.Seq)];
 
     public IReadOnlyList<RemoteCall> CallsOf<TKey>() where TKey : IDistributedKey =>
@@ -58,6 +64,8 @@ public sealed class FakeRemote
         var start = Stopwatch.GetTimestamp();
         if (OnRequest is not null) await OnRequest(keyType);
         if (OnRequestWithToken is not null) await OnRequestWithToken(keyType, token);
+        var failed = FailedExpressions?.Invoke(keyType) ?? [];
+        expressions = [..expressions.Where(e => e is null || !failed.Contains(e))];
         var responses = new List<DataResponse>();
         if (_resolvers.TryGetValue(keyType, out var resolver))
             foreach (var id in ids.Where(id => resolver.Exists(id)))
@@ -80,7 +88,8 @@ public sealed class FakeRemote
                 });
         _calls.Enqueue(new RemoteCall(seq, keyType, ids, expressions, start, Stopwatch.GetTimestamp(),
             token.IsCancellationRequested, headers));
-        return new ItemsResponse<DataResponse>([..responses]);
+        return new ItemsResponse<DataResponse>([..responses],
+            [..failed.Select(e => new ExpressionError(e, $"Expression '{e}' failed to build: test"))]);
     }
 }
 
@@ -104,7 +113,7 @@ public sealed class MappingHarness : IDisposable
         typeof(DiamondDtoProfile), typeof(ItemDtoProfile), typeof(OrderDtoProfile), typeof(NodeProfile),
         typeof(DerivedItemProfile), typeof(BlobDtoProfile), typeof(AddressDtoProfile), typeof(ProfileDtoProfile),
         typeof(ConditionalDtoProfile), typeof(GNodeProfile), typeof(LeafHolderDtoProfile),
-        typeof(ComputedKeyDtoProfile), typeof(ComputedChainDtoProfile), typeof(ComputedSelfReadDtoProfile),
+        typeof(ExpressionErrorDtoProfile), typeof(ComputedKeyDtoProfile), typeof(ComputedChainDtoProfile), typeof(ComputedSelfReadDtoProfile),
         typeof(ComputedNestedDtoProfile)
     ];
 

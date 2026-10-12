@@ -11,6 +11,7 @@ using FxMap.Responses;
 using FxMap.Delegates;
 using FxMap.Serializable;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace FxMap.Implementations;
 
@@ -223,9 +224,35 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             .Join(distributedKeyTypes, gr => gr.Key.DistributedKeyType, at => at,
                 (d, x) => new DistributedKeyInfo(x, d, d.Key.Order));
 
+    private HashSet<(Type, string)> ReportExpressionErrors(
+        IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
+    {
+        var failed = new HashSet<(Type, string)>();
+        foreach (var (keyType, response) in dataFetched)
+        {
+            if (response.Errors is not { Length: > 0 } errors) continue;
+            if (serviceProvider.GetRequiredService<IMapperConfiguration>().ThrowIfExceptions)
+                throw new DistributedMapException.ExpressionsFailed(keyType, errors);
+
+            var logger = serviceProvider.GetService<ILogger<DistributedMapper>>();
+            foreach (var error in errors)
+            {
+                failed.Add((keyType, error.Expression));
+                logger?.LogWarning("{Message} (distributed key {DistributedKey}); the properties of this expression are not mapped.",
+                    error.Message, keyType.Name);
+            }
+        }
+
+        return failed;
+    }
+
     private void MapResponseData(IEnumerable<PropertyDescriptor> mappableProperties,
         IEnumerable<(Type DistributedKeyType, ItemsResponse<DataResponse> ItemsResponse)> dataFetched)
     {
+        // The owner could not build some expressions (it isolates expression errors): throw with all of them, or
+        // log them and leave the properties of these expressions alone
+        var failedExpressions = ReportExpressionErrors(dataFetched);
+
         var dataWithExpression = dataFetched
             .Select(a => a.ItemsResponse.Items
                 .Select(x => (x.Id, x.Values))
@@ -241,6 +268,10 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
             dt => (dt.DistributedKeyType, dt.Data.Id), (k, dt) =>
             {
                 var ap = k.Property;
+                if (failedExpressions.Count > 0 &&
+                    failedExpressions.Contains((ap.Property?.RuntimeDistributedKeyType, ap.EffectiveExpression)))
+                    return null;
+
                 var value = dt.Data
                     .Values
                     .FirstOrDefault(a => a.Expression == ap.EffectiveExpression)?.Value;

@@ -5,6 +5,7 @@ using FxMap.Extensions;
 using FxMap.Grpc.Extensions;
 using FxMap.Fluent;
 using FxMap.Registries;
+using FxMap.Models;
 using FxMap.Responses;
 using FxMap.Tests.ProviderTests;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Hosting.Server;
 using Microsoft.AspNetCore.Hosting.Server.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Hosting;
+using Shouldly;
 using Xunit;
 
 namespace FxMap.Tests.TransportTests;
@@ -100,6 +102,28 @@ public sealed class TransportCustomerViewProfile : ProfileOf<TransportCustomerVi
         UseDistributedKey<ProviderCustomerKey>().Of(x => x.CustomerId).For(x => x.Name).For(x => x.Email, "Email");
 }
 
+/// <summary>A view with expressions that the owner cannot build.</summary>
+public class TransportBrokenView
+{
+    public string CustomerId { get; set; }
+    public string Name { get; set; }
+}
+
+/// <summary>The scenario that every transport has to carry: the errors of the expressions that the owner could not build.</summary>
+public static class TransportScenarios
+{
+    public static async Task Expression_errors_cross_the_wire(TransportHarness h)
+    {
+        var response = await h.FetchAsync(["c1", "c2"], null, "Broken.One", "Email", "Broken:two");
+
+        response.Errors.Select(e => e.Expression).OrderBy(x => x, StringComparer.Ordinal)
+            .ShouldBe(["Broken.One", "Broken:two"]);
+        response.Errors.ShouldAllBe(e => e.Message.Contains($"Expression '{e.Expression}' failed to build"));
+        response.Items.Select(i => i.Id).OrderBy(x => x).ShouldBe(["c1", "c2"]);
+        response.Items.Single(i => i.Id == "c1").Values.Select(v => v.Expression).ShouldNotContain("Broken.One");
+    }
+}
+
 /// <summary>The owner of the customers: answers "Name" (default property) and "Email" for c1 and c2 only.</summary>
 public sealed class OwnerCustomerHandler(OwnerRecorder recorder)
     : IQueryOfHandler<ProviderCustomer, ProviderCustomerKey>
@@ -110,6 +134,8 @@ public sealed class OwnerCustomerHandler(OwnerRecorder recorder)
         if (recorder.Fail is not null) throw recorder.Fail;
 
         var customers = ProviderData.Customers().ToDictionary(c => c.Id);
+        // An owner that isolates expression errors: it cannot build the expressions that start with "Broken"
+        var broken = context.Query.Expressions.Where(e => e?.StartsWith("Broken") == true).ToArray();
         var rows = context.Query.SelectorIds
             .Where(id => id is "c1" or "c2" && customers.ContainsKey(id))
             .Select(id => new DataResponse
@@ -117,14 +143,15 @@ public sealed class OwnerCustomerHandler(OwnerRecorder recorder)
                 Id = id,
                 Values =
                 [
-                    ..context.Query.Expressions.Select(e => new ValueResponse
+                    ..context.Query.Expressions.Where(e => !broken.Contains(e)).Select(e => new ValueResponse
                     {
                         Expression = e,
                         Value = Serializable.JsonSerializer.SerializeObject(e == "Email" ? customers[id].Email : customers[id].Name)
                     })
                 ]
             });
-        return Task.FromResult(new ItemsResponse<DataResponse>([..rows]));
+        return Task.FromResult(new ItemsResponse<DataResponse>([..rows],
+            [..broken.Select(e => new ExpressionError(e, $"Expression '{e}' failed to build: the owner cannot"))]));
     }
 }
 
@@ -239,6 +266,13 @@ public sealed class TransportHarness : IAsyncDisposable
             cfg.ThrowIfException();
         });
         return new TransportHarness(owner, consumerServices.BuildServiceProvider(), recorder);
+    }
+
+    public async Task<ItemsResponse<DataResponse>> FetchAsync(string[] ids, params string[] expressions)
+    {
+        await using var scope = _consumer.CreateAsyncScope();
+        return await scope.ServiceProvider.GetRequiredService<IDistributedMapper>()
+            .FetchDataAsync<ProviderCustomerKey>(new DistributedMapRequest(ids, expressions));
     }
 
     public async Task MapAsync(object value, IContext context = null)

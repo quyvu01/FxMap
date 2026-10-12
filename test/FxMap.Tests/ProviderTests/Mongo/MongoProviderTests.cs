@@ -46,4 +46,16 @@ public class MongoProviderTests(MongoProviderFixture mongo) : IClassFixture<Mong
 
         error.Message.ShouldContain("property selectors");
     }
+
+    [MongoFact]
+    public Task Expressions_that_cannot_be_built_are_reported_and_the_others_answered() =>
+        ProviderScenarios.Expressions_that_cannot_be_built_are_reported_and_the_others_answered(mongo);
+
+    [MongoFact]
+    public Task The_errors_are_reported_even_when_no_row_matches() =>
+        ProviderScenarios.The_errors_are_reported_even_when_no_row_matches(mongo);
+
+    [MongoFact]
+    public Task The_mapper_throws_with_the_error_of_a_broken_expression() =>
+        ProviderScenarios.The_mapper_throws_with_the_error_of_a_broken_expression(mongo);
 }

@@ -136,4 +136,12 @@ public class RabbitMqTransportTests
         await Should.ThrowAsync<Exception>(() =>
             run.Harness.MapAsync(new TransportCustomerView { CustomerId = "c1" }));
     }
+
+    [RabbitMqFact]
+    public async Task The_errors_of_the_expressions_that_the_owner_could_not_build_reach_the_consumer()
+    {
+        await using var run = await StartAsync();
+
+        await TransportScenarios.Expression_errors_cross_the_wire(run.Harness);
+    }
 }
