@@ -1,7 +1,7 @@
 # The Azure Service Bus emulator for the transport tests (test/FxMap.Tests/TransportTests/ServiceBusTransportTests.cs).
 #
 #   docker compose -f test/servicebus-emulator/docker-compose.yml up -d
-#   export FXMAP_TEST_SERVICEBUS="Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"   # add :PORT to the endpoint if SB_AMQP_PORT is not 5672
+#   export FXMAP_TEST_SERVICEBUS="Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"   # add :PORT to the endpoint if SB_AMQP_PORT is not 5672 (CI uses 5673: RabbitMQ has 5672)
 #
 # The emulator has no management API: the queues the transport uses are declared in Config.json (a request queue and a reply
 # queue, both requiring sessions (the owner and the client use session processors), for each of the prefixes sbtest1..sbtest6: one prefix for each test).

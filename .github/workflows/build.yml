@@ -130,8 +130,8 @@ jobs:
   # are two containers of dependency injection in the test process; the messages go through the real broker.
   transport-tests:
     needs: build
-    name: "Run Transport Tests (gRPC, NATS, RabbitMQ, SQS, Kafka)"
-    timeout-minutes: 15
+    name: "Run Transport Tests (gRPC, NATS, RabbitMQ, SQS, Kafka, Service Bus)"
+    timeout-minutes: 25
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -178,6 +178,8 @@ jobs:
       FXMAP_TEST_RABBITMQ: "localhost"
       FXMAP_TEST_SQS: "http://localhost:4566"
       FXMAP_TEST_KAFKA: "localhost:9092"
+      # The emulator listens on 5673 because RabbitMQ has 5672
+      FXMAP_TEST_SERVICEBUS: "Endpoint=sb://localhost:5673;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
     steps:
       - name: Check out code
         uses: actions/checkout@v4
@@ -192,33 +194,10 @@ jobs:
           done
           echo "NATS did not start" && docker logs nats && exit 1
 
-      - name: Install .NET Core SDK
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            ${{ matrix.dotnet-version }}
-            10.0.x
-
-      - name: Restore dependencies
-        run: dotnet restore
-
-      - name: Run Transport Tests
-        run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.TransportTests" --logger "console;verbosity=normal"
-
-  # Azure Service Bus on its emulator (needs SQL Server, so it is heavy: one framework only). Like the other transports, it has
-  # to pass before the version is calculated and published.
-  servicebus-tests:
-    needs: build
-    name: "Run Service Bus Transport Tests (emulator)"
-    timeout-minutes: 20
-    runs-on: ubuntu-latest
-    env:
-      FXMAP_TEST_SERVICEBUS: "Endpoint=sb://localhost;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=SAS_KEY_VALUE;UseDevelopmentEmulator=true;"
-    steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
+      # The Service Bus emulator needs SQL Server (heavy), so it is started with compose and waited for on its health port.
       - name: Start the Service Bus emulator
+        env:
+          SB_AMQP_PORT: 5673
         run: |
           docker compose -f test/servicebus-emulator/docker-compose.yml up -d
           for i in $(seq 1 60); do
@@ -232,13 +211,15 @@ jobs:
       - name: Install .NET Core SDK
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 10.0.x
+          dotnet-version: |
+            ${{ matrix.dotnet-version }}
+            10.0.x
 
       - name: Restore dependencies
         run: dotnet restore
 
-      - name: Run Service Bus Transport Tests
-        run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework net10.0 --filter "FullyQualifiedName~FxMap.Tests.TransportTests.ServiceBusTransportTests" --logger "console;verbosity=normal"
+      - name: Run Transport Tests
+        run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.TransportTests" --logger "console;verbosity=normal"
 
       - name: Emulator logs
         if: failure()
@@ -252,7 +233,6 @@ jobs:
       - testing
       - provider-tests
       - transport-tests
-      - servicebus-tests
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
