@@ -35,6 +35,22 @@ builder.Services.AddFxMap(cfg =>
 
 `Ssl(...)` configures TLS for the connection. A process shares one Kafka producer between its client and its server.
 
+### Partitions and replication
+
+```csharp
+cfg.AddKafka(c =>
+{
+    c.Host("localhost:9092");
+    c.Partitions(6);          // partitions of the request topic of each distributed key (default 1)
+    c.ReplicationFactor(3);   // replication factor of the topics FxMap creates (default 1)
+});
+```
+
+The requests are spread over the partitions and the instances of a service share them as one consumer group, so a topic needs at least as
+many partitions as the instances that should work at the same time. FxMap only sets these values when it **creates** a topic: a topic that
+already exists is left as it is (change it with the tools of Kafka). The reply topic of a client is read by one consumer, so it has one
+partition. A cluster that has to survive the loss of a broker needs a replication factor of 3 (and not more than the number of brokers).
+
 ## Naming
 
 Requests go to the topic `fxmap-request-topic-{distributed key full name}` (lower case), which FxMap creates for you.

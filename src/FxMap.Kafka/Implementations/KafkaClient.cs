@@ -199,8 +199,6 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
 
     private async Task CreateTopicsAsync()
     {
-        const int numPartitions = 1;
-        const short replicationFactor = 1;
 
         var config = new AdminClientConfig { BootstrapServers = _kafkaBootstrapServers };
 
@@ -211,8 +209,8 @@ internal class KafkaClient : IRequestClient, IAsyncDisposable
             var topicSpecification = new TopicSpecification
             {
                 Name = _replyTo,
-                NumPartitions = numPartitions,
-                ReplicationFactor = replicationFactor
+                NumPartitions = 1, // one consumer reads it
+                ReplicationFactor = _kafkaConfiguration.ReplicationFactor
             };
 
             await adminClient.CreateTopicsAsync([topicSpecification]);

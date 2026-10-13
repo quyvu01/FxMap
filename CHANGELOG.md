@@ -55,6 +55,9 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ### Added
 
+- **Kafka: `Partitions(n)` and `ReplicationFactor(n)`** in `AddKafka(...)`: the partitions of the request topic of each distributed key and the replication factor
+  of the topics that FxMap creates (both were fixed at 1, which does not fit a cluster of several brokers or several instances of a service). The default
+  stays 1; a topic that exists is not changed.
 - Tests of the supervisor of the servers (restart with backoff, limit of restarts, circuit breaker, the three strategies, stop) and tests
   that cut the connection between a service and a real broker (NATS, RabbitMQ, SQS): the owner listens again, the consumer fails instead of
   hanging and works again, a request in flight ends within its timeout; and tests of every transport for a server that is stopped and

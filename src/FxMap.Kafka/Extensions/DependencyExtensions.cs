@@ -16,7 +16,8 @@ public static class DependencyExtensions
         var config = new KafkaConfigurator();
         options.Invoke(config);
         var services = mapRegister.Services;
-        services.AddSingleton<IKafkaConfiguration>(new KafkaConfiguration(config.KafkaHostValue, config.KafkaSslOptionsValue));
+        services.AddSingleton<IKafkaConfiguration>(new KafkaConfiguration(config.KafkaHostValue, config.KafkaSslOptionsValue,
+            config.PartitionsValue, config.ReplicationFactorValue));
         services.AddSingleton<IKafkaConnection, KafkaConnection>();
         services.AddSingleton(typeof(IKafkaServer<,>), typeof(KafkaServer<,>));
         services.AddSingleton<IRequestClient, KafkaClient>();

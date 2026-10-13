@@ -24,6 +24,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
     private readonly IServiceProvider _serviceProvider;
     private IConsumer<string, string> _consumer;
     private readonly IKafkaConnection _kafkaConnection;
+    private readonly IKafkaConfiguration _kafkaConfiguration;
     private readonly string _requestTopic;
     private readonly ILogger<KafkaServer<TModel, TDistributedKey>> _logger;
     private readonly IMapperConfiguration _mapperConfiguration;
@@ -39,7 +40,7 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
     {
         _serviceProvider = serviceProvider;
         _mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-        var kafkaConfiguration = serviceProvider.GetRequiredService<IKafkaConfiguration>();
+        var kafkaConfiguration = _kafkaConfiguration = serviceProvider.GetRequiredService<IKafkaConfiguration>();
         _kafkaConnection = serviceProvider.GetRequiredService<IKafkaConnection>();
         _semaphore = new SemaphoreSlim(_mapperConfiguration.MaxConcurrentProcessing,
             _mapperConfiguration.MaxConcurrentProcessing);
@@ -275,8 +276,6 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
 
     private async Task CreateTopicsAsync()
     {
-        const int numPartitions = 1;
-        const short replicationFactor = 1;
 
         var config = new AdminClientConfig { BootstrapServers = _kafkaBootstrapServers };
 
@@ -287,8 +286,8 @@ internal class KafkaServer<TModel, TDistributedKey> : IKafkaServer<TModel, TDist
             var topicSpecification = new TopicSpecification
             {
                 Name = _requestTopic,
-                NumPartitions = numPartitions,
-                ReplicationFactor = replicationFactor
+                NumPartitions = _kafkaConfiguration.RequestTopicPartitions,
+                ReplicationFactor = _kafkaConfiguration.ReplicationFactor
             };
 
             await adminClient.CreateTopicsAsync([topicSpecification]);

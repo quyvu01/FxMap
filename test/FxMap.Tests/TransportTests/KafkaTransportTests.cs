@@ -120,4 +120,37 @@ public class KafkaTransportTests
 
         await TransportScenarios.Concurrent_requests_each_get_their_own_answer(h);
     }
+
+    [KafkaFact]
+    public async Task The_request_topic_is_created_with_the_partitions_and_the_replication_that_are_configured()
+    {
+        await ResetTopicsAsync();
+        Action<MapConfigurator> kafka = cfg => cfg.AddKafka(c =>
+        {
+            c.Host(Bootstrap);
+            c.Partitions(3);
+            c.ReplicationFactor(1);
+        });
+        await using var h = await TransportHarness.StartAsync(
+            r => OwnerHosts.BrokerAsync(r, kafka, ready: TimeSpan.FromSeconds(8)), _ => kafka);
+
+        // 200 requests over 3 partitions, each with its own answer
+        await TransportScenarios.Concurrent_requests_each_get_their_own_answer(h);
+
+        using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = Bootstrap }).Build();
+        var topics = admin.GetMetadata(TimeSpan.FromSeconds(10)).Topics.Where(t => t.Topic.StartsWith("fxmap-")).ToList();
+        var request = topics.Single(t => t.Topic.StartsWith("fxmap-request-topic-"));
+        request.Partitions.Count.ShouldBe(3);
+        request.Partitions.ShouldAllBe(p => p.Replicas.Length == 1);
+        topics.Single(t => t.Topic.StartsWith("fxmap-response-topic-")).Partitions.Count.ShouldBe(1, "one consumer reads the replies");
+    }
+
+    [Fact]
+    public void The_partitions_and_the_replication_factor_must_be_at_least_one()
+    {
+        var configurator = new FxMap.Kafka.Registries.KafkaConfigurator();
+
+        Should.Throw<ArgumentOutOfRangeException>(() => configurator.Partitions(0));
+        Should.Throw<ArgumentOutOfRangeException>(() => configurator.ReplicationFactor(0));
+    }
 }

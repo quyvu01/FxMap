@@ -2,8 +2,11 @@ using Confluent.Kafka;
 
 namespace FxMap.Kafka.Registries;
 
-internal sealed class KafkaConfiguration(string kafkaHost, KafkaSslOptions kafkaSslOptions) : IKafkaConfiguration
+internal sealed class KafkaConfiguration(string kafkaHost, KafkaSslOptions kafkaSslOptions, int requestTopicPartitions = 1,
+    short replicationFactor = 1) : IKafkaConfiguration
 {
+    public int RequestTopicPartitions { get; } = requestTopicPartitions;
+    public short ReplicationFactor { get; } = replicationFactor;
     public string KafkaHost { get; } = kafkaHost;
     public KafkaSslOptions KafkaSslOptions { get; } = kafkaSslOptions;
 
