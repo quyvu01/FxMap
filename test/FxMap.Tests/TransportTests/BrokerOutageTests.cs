@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using Amazon;
+using FxMap.Aws.Sqs.Extensions;
 using FxMap.Nats.Extensions;
 using FxMap.RabbitMq.Extensions;
 using FxMap.Registries;
@@ -198,5 +200,86 @@ public class BrokerOutageTests(ITestOutputHelper output)
         run.Harness.Owner.Delay = TimeSpan.Zero;
         ownerLink.Restore();
         await MapUntilItWorksAsync(run.Harness, TimeSpan.FromSeconds(60), output);
+    }
+
+    // ---------------------------------------------------------------- SQS
+
+    private static Action<MapConfigurator> Sqs(string account, int port) => cfg =>
+        cfg.AddSqs(s => s.Region(RegionEndpoint.USEast1, c =>
+        {
+            c.ServiceUrl($"http://127.0.0.1:{port}");
+            c.AccessKeyId(account);
+            c.SecretAccessKey("test");
+        }));
+
+    private static async Task<(TransportHarness Harness, BrokerProxy OwnerLink, BrokerProxy ConsumerLink)> StartSqsAsync()
+    {
+        var uri = new Uri(TransportEnvironment.Get(TransportEnvironment.Sqs));
+        var account = Random.Shared.NextInt64(100_000_000_000, 999_999_999_999).ToString();
+        var ownerLink = BrokerProxy.To(uri.Host, uri.Port);
+        var consumerLink = BrokerProxy.To(uri.Host, uri.Port);
+        var harness = await TransportHarness.StartAsync(
+            r => OwnerHosts.BrokerAsync(r, Sqs(account, ownerLink.Port), ready: TimeSpan.FromSeconds(3)),
+            _ => Sqs(account, consumerLink.Port), RequestTimeout);
+        return (harness, ownerLink, consumerLink);
+    }
+
+    [SqsFact]
+    public async Task Sqs_the_owner_listens_again_when_its_connection_to_the_service_comes_back()
+    {
+        var (h, ownerLink, consumerLink) = await StartSqsAsync();
+        await using var __ = ownerLink;
+        await using var ___ = consumerLink;
+        await using var _ = h; // disposed first: the services stop while their links still work
+        await MapUntilItWorksAsync(h, TimeSpan.FromSeconds(30), output);
+
+        ownerLink.Cut();
+        await Task.Delay(3000);
+        ownerLink.Restore();
+
+        var recovery = await MapUntilItWorksAsync(h, TimeSpan.FromSeconds(90), output);
+        output.WriteLine($"the owner answered again {recovery.TotalSeconds:F1} s after the service came back");
+    }
+
+    [SqsFact]
+    public async Task Sqs_the_consumer_fails_while_the_service_is_away_and_works_again_afterwards()
+    {
+        var (h, ownerLink, consumerLink) = await StartSqsAsync();
+        await using var __ = ownerLink;
+        await using var ___ = consumerLink;
+        await using var _ = h; // disposed first: the services stop while their links still work
+        await MapUntilItWorksAsync(h, TimeSpan.FromSeconds(30), output);
+
+        consumerLink.Cut();
+        var clock = Stopwatch.StartNew();
+        await Should.ThrowAsync<Exception>(() => h.MapAsync(new TransportCustomerView { CustomerId = "c1" }));
+        clock.Elapsed.ShouldBeLessThan(RequestTimeout + TimeSpan.FromSeconds(10), "a request must not hang while the service is away");
+
+        consumerLink.Restore();
+        var recovery = await MapUntilItWorksAsync(h, TimeSpan.FromSeconds(90), output);
+        output.WriteLine($"the consumer worked again {recovery.TotalSeconds:F1} s after the service came back");
+    }
+
+    [SqsFact]
+    public async Task Sqs_a_request_in_flight_when_the_service_goes_away_ends_within_the_timeout()
+    {
+        var (h, ownerLink, consumerLink) = await StartSqsAsync();
+        await using var __ = ownerLink;
+        await using var ___ = consumerLink;
+        await using var _ = h; // disposed first: the services stop while their links still work
+        await MapUntilItWorksAsync(h, TimeSpan.FromSeconds(30), output);
+        h.Owner.Delay = TimeSpan.FromSeconds(2);
+
+        var clock = Stopwatch.StartNew();
+        var request = h.MapAsync(new TransportCustomerView { CustomerId = "c1" });
+        await Task.Delay(500);
+        ownerLink.Cut();
+
+        await Should.ThrowAsync<Exception>(() => request);
+        clock.Elapsed.ShouldBeLessThan(RequestTimeout + TimeSpan.FromSeconds(10), "a request in flight must not hang");
+
+        h.Owner.Delay = TimeSpan.Zero;
+        ownerLink.Restore();
+        await MapUntilItWorksAsync(h, TimeSpan.FromSeconds(90), output);
     }
 }

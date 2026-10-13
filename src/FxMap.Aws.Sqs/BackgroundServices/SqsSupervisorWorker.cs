@@ -37,7 +37,7 @@ internal sealed class SqsSupervisorWorker(
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
             // Normal shutdown
-            logger.LogError("SQS Supervisor shutting down...");
+            logger.LogInformation("SQS Supervisor shutting down...");
         }
         finally
         {
