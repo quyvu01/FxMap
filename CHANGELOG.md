@@ -6,7 +6,7 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
-## [Unreleased]
+## [4.1.4]
 
 ### Fixed
 
@@ -36,6 +36,7 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 - The samples and the tests use the fixed versions too (OpenTelemetry 1.19, MongoDB.Bson 3.9.0, NuGet client 6.14.3 in the analyzer tests).
   The AutoMapper 14 of the benchmark project, the baseline of the published comparison, has GHSA-rvv3-g6hj-g44x: the audit warning is
   suppressed there, with a comment (the project is never shipped); upgrading means measuring again.
+- The Azure Service Bus tests (on the emulator) now have to pass, like the other transports, before the version is calculated and published.
 - The analyzer release file (`AnalyzerReleases.Unshipped.md`) uses the header format that the release-tracking analyzer expects (RS2007).
 
 ### Added
@@ -43,6 +44,8 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 - Tests of the HotChocolate integration (12): a real schema executed in process, with fields resolved from other services, a
   dependent field, only the requested fields fetched, one request for a whole list, a computed key, a conditional expression that
   reads the scope of the request, and expression errors with and without `ThrowIfException()`.
+
+Details: [the notes of 4.1.4](docs/changelogs/v4.1.4.md).
 
 ---
 

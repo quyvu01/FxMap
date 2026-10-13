@@ -2,7 +2,7 @@
 
 name: Build FxMap and Publish
 env:
-  VERSION: 4.1.3
+  VERSION: 4.1.4
 
 on:
   push:
@@ -205,8 +205,8 @@ jobs:
       - name: Run Transport Tests
         run: dotnet test test/FxMap.Tests/FxMap.Tests.csproj -c Release --framework ${{ matrix.framework }} --filter "FullyQualifiedName~FxMap.Tests.TransportTests" --logger "console;verbosity=normal"
 
-  # Azure Service Bus on its emulator (needs SQL Server, so it is heavy: one framework only). It does not block the publish
-  # until it has proved stable: add it to the needs of calc-version when it has.
+  # Azure Service Bus on its emulator (needs SQL Server, so it is heavy: one framework only). Like the other transports, it has
+  # to pass before the version is calculated and published.
   servicebus-tests:
     needs: build
     name: "Run Service Bus Transport Tests (emulator)"
@@ -252,6 +252,7 @@ jobs:
       - testing
       - provider-tests
       - transport-tests
+      - servicebus-tests
     outputs:
       version: ${{ steps.v.outputs.version }}
     steps:
