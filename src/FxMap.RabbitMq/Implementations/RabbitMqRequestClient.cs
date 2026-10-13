@@ -149,8 +149,11 @@ internal class RabbitMqRequestClient(
     private async Task InitializeAsync(CancellationToken cancellationToken)
     {
         _replyChannel = await rabbitMqConnection.CreateChannelAsync(cancellationToken: cancellationToken);
-        var queueDeclareResult = await _replyChannel.QueueDeclareAsync(cancellationToken: cancellationToken);
-        _replyQueueName = queueDeclareResult.QueueName;
+        // The name is chosen here, not by the broker: when the connection is recovered the queue is declared again with the
+        // same name. A name given by the broker changes after a recovery, and the owner would reply to a queue that is gone.
+        _replyQueueName = $"fxmap-reply-{Guid.NewGuid():N}";
+        await _replyChannel.QueueDeclareAsync(_replyQueueName, durable: false, exclusive: true, autoDelete: true,
+            arguments: null, cancellationToken: cancellationToken);
         _consumer = new AsyncEventingBasicConsumer(_replyChannel);
         _consumer.ReceivedAsync += async (sender, ea) =>
         {

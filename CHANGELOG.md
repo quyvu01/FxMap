@@ -10,6 +10,14 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ### Fixed
 
+- **RabbitMQ: the consumer never worked again after the connection to the broker was lost.** The queue of the replies was named by the
+  broker, and a recovered connection declares it again with another name, while the requests still carried the old one: the owner
+  replied to a queue that no longer existed and every request timed out until the process restarted. The client now chooses the name
+  of its reply queue, so the recovery declares the same queue.
+- **Supervisor: after a restart of every server (`OneForAll`), a server that was running was reported as `Stopped`.** The run that had been
+  cancelled by the restart read the token of the new run and was taken for a failure.
+- **Supervisor: `RestForOne` restarted the wrong servers.** The order of the servers was the order of a dictionary, not the order of
+  registration.
 - **HotChocolate: a field that depends on a conditional rule was fetched with the wrong expression.** For each field the resolver
   also fetched the chain of rules it depends on, with the raw expression of each rule. A conditional rule has no expression of its
   own (it is resolved for the request), so it was fetched with `null`, the default property of the entity: an extra request, and for a
@@ -41,6 +49,9 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ### Added
 
+- Tests of the supervisor of the servers (restart with backoff, limit of restarts, circuit breaker, the three strategies, stop) and tests
+  that cut the connection between a service and a real broker (NATS, RabbitMQ): the owner listens again, the consumer fails instead of
+  hanging and works again, a request in flight ends within its timeout.
 - Tests of the HotChocolate integration (12): a real schema executed in process, with fields resolved from other services, a
   dependent field, only the requested fields fetched, one request for a whole list, a computed key, a conditional expression that
   reads the scope of the request, and expression errors with and without `ThrowIfException()`.

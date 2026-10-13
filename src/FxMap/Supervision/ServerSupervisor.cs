@@ -12,6 +12,9 @@ public class ServerSupervisor(SupervisorOptions options, ILogger<ServerSuperviso
     : IServerSupervisor
 {
     private readonly ConcurrentDictionary<string, SupervisedServerState> _servers = new();
+
+    // A dictionary has no order: RestForOne needs the order of registration
+    private readonly List<string> _registrationOrder = [];
     private readonly SupervisorOptions _options = options ?? new SupervisorOptions();
     private readonly SemaphoreSlim _supervisorLock = new(1, 1);
     private CancellationTokenSource _supervisorCts;
@@ -38,6 +41,8 @@ public class ServerSupervisor(SupervisorOptions options, ILogger<ServerSuperviso
 
         if (!_servers.TryAdd(serverId, state))
             throw new InvalidOperationException($"Server with ID '{serverId}' is already registered.");
+
+        lock (_registrationOrder) _registrationOrder.Add(serverId);
 
         logger?.LogDebug("Registered server {ServerId} for supervision", serverId);
     }
@@ -122,7 +127,10 @@ public class ServerSupervisor(SupervisorOptions options, ILogger<ServerSuperviso
     {
         if (_supervisorCts?.IsCancellationRequested == true) return;
 
-        state.Cts = CancellationTokenSource.CreateLinkedTokenSource(_supervisorCts?.Token ?? CancellationToken.None);
+        // The run keeps its own token source: a restart replaces state.Cts while the cancelled run is still unwinding,
+        // and that run must not be taken for a failure (or its health for "stopped") of the new one.
+        var cts = CancellationTokenSource.CreateLinkedTokenSource(_supervisorCts?.Token ?? CancellationToken.None);
+        state.Cts = cts;
 
         state.RunningTask = Task.Run(async () =>
         {
@@ -130,9 +138,9 @@ public class ServerSupervisor(SupervisorOptions options, ILogger<ServerSuperviso
             {
                 logger?.LogDebug("Starting server {ServerId}", state.ServerId);
                 UpdateHealth(state, ServerHealth.Healthy);
-                await state.Server.StartAsync(state.Cts.Token);
+                await state.Server.StartAsync(cts.Token);
             }
-            catch (OperationCanceledException) when (state.Cts.IsCancellationRequested)
+            catch (Exception) when (cts.IsCancellationRequested)
             {
                 logger?.LogDebug("Server {ServerId} was cancelled", state.ServerId);
             }
@@ -296,7 +304,8 @@ public class ServerSupervisor(SupervisorOptions options, ILogger<ServerSuperviso
 
     private async Task RestartServersFromAsync(string failedServerId)
     {
-        var serverList = _servers.Values.ToList();
+        List<SupervisedServerState> serverList;
+        lock (_registrationOrder) serverList = _registrationOrder.Select(id => _servers[id]).ToList();
         var failedIndex = serverList.FindIndex(s => s.ServerId == failedServerId);
 
         if (failedIndex < 0) return;

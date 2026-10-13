@@ -86,6 +86,9 @@ public sealed class OwnerRecorder
 
     /// <summary>When set, the owner throws this instead of answering.</summary>
     public Exception Fail { get; set; }
+
+    /// <summary>When set, the owner waits this long before it answers (a request that is in flight).</summary>
+    public TimeSpan Delay { get; set; }
 }
 
 /// <summary>What the consumer shows of a customer; its key is owned by the other service.</summary>
@@ -145,10 +148,11 @@ public static class TransportScenarios
 public sealed class OwnerCustomerHandler(OwnerRecorder recorder)
     : IQueryOfHandler<ProviderCustomer, ProviderCustomerKey>
 {
-    public Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<ProviderCustomerKey> context)
+    public async Task<ItemsResponse<DataResponse>> GetDataAsync(RequestContext<ProviderCustomerKey> context)
     {
         recorder.Requests.Enqueue((context.Query.SelectorIds, context.Query.Expressions, context.Headers));
         if (recorder.Fail is not null) throw recorder.Fail;
+        if (recorder.Delay > TimeSpan.Zero) await Task.Delay(recorder.Delay);
 
         var customers = ProviderData.Customers().ToDictionary(c => c.Id);
         // An owner that isolates expression errors: it cannot build the expressions that start with "Broken"
@@ -167,8 +171,8 @@ public sealed class OwnerCustomerHandler(OwnerRecorder recorder)
                     })
                 ]
             });
-        return Task.FromResult(new ItemsResponse<DataResponse>([..rows],
-            [..broken.Select(e => new ExpressionError(e, $"Expression '{e}' failed to build: the owner cannot"))]));
+        return new ItemsResponse<DataResponse>([..rows],
+            [..broken.Select(e => new ExpressionError(e, $"Expression '{e}' failed to build: the owner cannot"))]);
     }
 }
 

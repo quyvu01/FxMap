@@ -15,7 +15,7 @@ namespace FxMap.Tests.TransportTests;
 [Collection(TransportTestsCollection.Name)]
 public class RabbitMqTransportTests
 {
-    private sealed record Endpoint(string Host, int AmqpPort, int ManagementPort)
+    internal sealed record Endpoint(string Host, int AmqpPort, int ManagementPort)
     {
         public static Endpoint FromEnvironment()
         {
@@ -25,7 +25,7 @@ public class RabbitMqTransportTests
         }
     }
 
-    private sealed class VirtualHost(Endpoint endpoint, string name) : IAsyncDisposable
+    internal sealed class VirtualHost(Endpoint endpoint, string name) : IAsyncDisposable
     {
         public string Name { get; } = name;
 
