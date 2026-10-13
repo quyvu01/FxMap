@@ -52,6 +52,9 @@ internal class SqsServer : ISqsServer
         var distributedKeyTypes = fxMapConfiguration.DistributedKeyMapHandlers.Keys.ToList();
         if (distributedKeyTypes is not { Count: > 0 }) return;
 
+        // A server that is started again (after a failure, or a restart of all servers) must not poll the same queue twice
+        _requestQueueUrls.Clear();
+
         // Create request queues for each distributed key type
         foreach (var queueName in distributedKeyTypes.Select(distributedKeyType =>
                      _sqsConfiguration.GetQueueName(distributedKeyType)))
@@ -284,8 +287,7 @@ internal class SqsServer : ISqsServer
 
     public async Task StopAsync(CancellationToken cancellationToken = default)
     {
+        // The server may be started again by the supervisor: nothing that StartAsync needs is disposed here
         if (_processingCts is not null) await _processingCts.CancelAsync();
-        _semaphore?.Dispose();
-        _processingCts?.Dispose();
     }
 }

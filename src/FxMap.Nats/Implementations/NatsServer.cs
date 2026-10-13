@@ -154,9 +154,7 @@ internal sealed class NatsServer<TModel, TDistributedKey> : INatsServer<TModel, 
         }
     }
 
-    public Task StopAsync(CancellationToken cancellationToken = default)
-    {
-        _semaphore.Dispose();
-        return Task.CompletedTask;
-    }
+    // The server is a singleton that the supervisor may start again after it stopped it: the semaphore is not disposed here
+    // (it holds no resource, and requests that are still running release it when they end).
+    public Task StopAsync(CancellationToken cancellationToken = default) => Task.CompletedTask;
 }

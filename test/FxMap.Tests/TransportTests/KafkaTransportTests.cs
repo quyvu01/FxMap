@@ -20,7 +20,7 @@ public class KafkaTransportTests
 
     private static Action<MapConfigurator> Kafka() => cfg => cfg.AddKafka(c => c.Host(Bootstrap));
 
-    private static async Task ResetTopicsAsync()
+    internal static async Task ResetTopicsAsync()
     {
         using var admin = new AdminClientBuilder(new AdminClientConfig { BootstrapServers = Bootstrap }).Build();
         string[] Topics() => [..admin.GetMetadata(TimeSpan.FromSeconds(10)).Topics

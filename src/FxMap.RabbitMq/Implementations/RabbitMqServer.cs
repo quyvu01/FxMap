@@ -43,6 +43,10 @@ internal class RabbitMqServer : IRabbitMqServer
 
     public async Task StartAsync(CancellationToken cancellationToken = default)
     {
+        // A start that failed half way (or a server that is started again) left consumers on channels: close them first,
+        // or the queue would have two consumers of the same server.
+        await StopAsync(CancellationToken.None);
+
         var queueName = $"{FxMapRabbitMqConstants.QueueNamePrefix}-{AppDomain.CurrentDomain.FriendlyName.ToLower()}";
         const string routingKey = FxMapRabbitMqConstants.RoutingKey;
 

@@ -177,8 +177,12 @@ public sealed class OwnerCustomerHandler(OwnerRecorder recorder)
 }
 
 /// <summary>A started owner service: what to dispose, and where a consumer reaches it when the transport needs an address.</summary>
-public sealed class OwnerHandle(IAsyncDisposable owner, string address = null) : IAsyncDisposable
+public sealed class OwnerHandle(IAsyncDisposable owner, string address = null, IServiceProvider services = null)
+    : IAsyncDisposable
 {
+    /// <summary>The services of the owner (to reach a server of the transport directly).</summary>
+    public IServiceProvider Services { get; } = services;
+
     public string Address { get; } = address;
 
     public ValueTask DisposeAsync() => owner?.DisposeAsync() ?? ValueTask.CompletedTask;
@@ -226,7 +230,7 @@ public static class OwnerHosts
             await Task.Delay(ready ?? TimeSpan.FromMilliseconds(500));
         }
 
-        return new OwnerHandle(new Stoppable(host));
+        return new OwnerHandle(new Stoppable(host), services: host.Services);
     }
 
     /// <summary>A web server on a free local port that serves the FxMap gRPC service (HTTP/2 without TLS).</summary>
@@ -260,6 +264,8 @@ public sealed class TransportHarness : IAsyncDisposable
     private readonly ServiceProvider _consumer;
 
     public OwnerRecorder Owner { get; }
+
+    public IServiceProvider OwnerServices => _owner.Services;
 
     private TransportHarness(OwnerHandle owner, ServiceProvider consumer, OwnerRecorder recorder)
     {
