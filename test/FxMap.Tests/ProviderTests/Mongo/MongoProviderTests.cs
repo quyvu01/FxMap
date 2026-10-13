@@ -1,4 +1,3 @@
-using FxMap.Tests.ProviderTests;
 using Shouldly;
 using Xunit;
 

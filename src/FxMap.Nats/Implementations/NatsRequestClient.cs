@@ -4,7 +4,6 @@ using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
 using FxMap.Exceptions;
 using FxMap.Extensions;
-using FxMap.Nats.Abstractions;
 using FxMap.Nats.Registries;
 using FxMap.Nats.Wrappers;
 using FxMap.Responses;

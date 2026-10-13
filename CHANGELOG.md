@@ -22,6 +22,22 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
   or an emulator has a quota of connections: the Service Bus tests of a whole run failed with `ConnectionsQuotaExceeded`. The wrapper
   of the client is now disposed with the container.
 
+### Changed
+
+- **Dependency floors raised to versions without known vulnerabilities** (`dotnet list package --vulnerable --include-transitive` is clean for every package):
+  - `FxMap.MongoDb`: `MongoDB.Driver` 3.9.0 or later (was 3.2.1). The driver 3.9.0 is the first that depends on SharpCompress 0.48.1 and
+    Snappier 1.3.1, the fixes of GHSA-6c8g-7p36-r338 (directory traversal) and GHSA-pggp-6c3x-2xmx (an infinite loop in Snappy
+    decompression, high).
+  - `FxMap.HotChocolate`: `HotChocolate.AspNetCore` 15.1.14 or later (was 15.1.1). Before 15.1.14, `HotChocolate.Language` has a critical
+    vulnerability (GHSA-qr3m-xw4c-jqw3: a stack overflow on deeply nested documents).
+  - `FxMap.EntityFrameworkCore`: depends directly on `Microsoft.Extensions.Caching.Memory` 8.0.1 or later; EF Core 8.0.0 brought 8.0.0, which
+    has a high vulnerability (GHSA-qj66-m88j-hmgj).
+  An application that pins an older version of one of these packages has to upgrade it.
+- The samples and the tests use the fixed versions too (OpenTelemetry 1.19, MongoDB.Bson 3.9.0, NuGet client 6.14.3 in the analyzer tests).
+  The AutoMapper 14 of the benchmark project, the baseline of the published comparison, has GHSA-rvv3-g6hj-g44x: the audit warning is
+  suppressed there, with a comment (the project is never shipped); upgrading means measuring again.
+- The analyzer release file (`AnalyzerReleases.Unshipped.md`) uses the header format that the release-tracking analyzer expects (RS2007).
+
 ### Added
 
 - Tests of the HotChocolate integration (12): a real schema executed in process, with fields resolved from other services, a

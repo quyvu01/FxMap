@@ -1,5 +1,4 @@
 using Amazon;
-using FxMap.Aws.Sqs.Abstractions;
 
 namespace FxMap.Aws.Sqs.Registries;
 

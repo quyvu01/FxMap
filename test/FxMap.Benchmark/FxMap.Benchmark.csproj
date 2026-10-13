@@ -7,6 +7,9 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <!-- AutoMapper 14 is the baseline of the comparison published in the README. GHSA-rvv3-g6hj-g44x (a DoS on a crafted object graph)
+             does not matter here: this project is never shipped and maps its own data. Upgrading means measuring again. -->
+        <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-rvv3-g6hj-g44x" />
         <PackageReference Include="AutoMapper" Version="14.0.0" />
         <PackageReference Include="BenchmarkDotNet" Version="0.15.6"/>
         <PackageReference Include="MediatR" Version="12.5.0" />

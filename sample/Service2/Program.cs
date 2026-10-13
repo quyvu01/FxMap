@@ -1,16 +1,11 @@
 using Shared.Transports;
 using System.Reflection;
-using Amazon;
 using FxMap.Abstractions;
-using FxMap.Aws.Sqs.Extensions;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
 using FxMap.Grpc.Extensions;
-using FxMap.Models;
-using FxMap.Nats.Extensions;
-using FxMap.RabbitMq.Extensions;
 using FxMap.Supervision;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
@@ -18,7 +13,6 @@ using OpenTelemetry.Metrics;
 using Service2;
 using Service2.Contexts;
 using Service2.Dtos;
-using Shared.DistributedKeys;
 
 var builder = WebApplication.CreateBuilder(args);
 

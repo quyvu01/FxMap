@@ -2,7 +2,6 @@ using FxMap.Abstractions;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
 using FxMap.Models;
-using FxMap.Registries;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

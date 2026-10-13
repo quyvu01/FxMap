@@ -110,7 +110,7 @@ public class GqlQuery
 /// A real GraphQL schema (Hot Chocolate) with the FxMap integration, executed in process. The services behind the keys are
 /// the fake remote of the mapper tests, so each test sees the requests that the fields made.
 /// </summary>
-public sealed class GraphQlHarness : IDisposable
+public sealed class GraphQlHarness : IAsyncDisposable
 {
     private readonly ServiceProvider _provider;
     private IRequestExecutor _executor;
@@ -160,5 +160,6 @@ public sealed class GraphQlHarness : IDisposable
         return JsonDocument.Parse(stream.ToArray()).RootElement.Clone();
     }
 
-    public void Dispose() => _provider.Dispose();
+    // The request executor resolver of Hot Chocolate can only be disposed asynchronously
+    public ValueTask DisposeAsync() => _provider.DisposeAsync();
 }

@@ -20,6 +20,8 @@
 
     <ItemGroup>
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="[8.0.0, )" />
+        <!-- EF Core 8.0.0 brings 8.0.0 of this package, which has a known vulnerability (GHSA-qj66-m88j-hmgj): 8.0.1 is the fix -->
+        <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="[8.0.1, )" />
     </ItemGroup>
 
     <ItemGroup>

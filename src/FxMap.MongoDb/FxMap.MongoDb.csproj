@@ -32,6 +32,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <PackageReference Include="MongoDB.Driver" Version="[3.2.1, )"/>
+        <!-- 3.9.0 is the first version that depends on SharpCompress 0.48.1 and Snappier 1.3.1, the fixes of GHSA-6c8g-7p36-r338 and GHSA-pggp-6c3x-2xmx -->
+        <PackageReference Include="MongoDB.Driver" Version="[3.9.0, )"/>
     </ItemGroup>
 </Project>

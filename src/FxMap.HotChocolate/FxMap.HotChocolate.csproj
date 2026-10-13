@@ -30,7 +30,8 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="HotChocolate.AspNetCore" Version="[15.1.1, )" />
+      <!-- HotChocolate.Language before 15.1.14 has a critical vulnerability (GHSA-qr3m-xw4c-jqw3) -->
+      <PackageReference Include="HotChocolate.AspNetCore" Version="[15.1.14, )" />
     </ItemGroup>
 
 </Project>

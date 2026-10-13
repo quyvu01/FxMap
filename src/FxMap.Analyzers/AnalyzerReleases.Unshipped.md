@@ -3,6 +3,6 @@
 
 ### New Rules
 
-| Rule ID | Category | Severity | Notes                       |
-|---------|----------|----------|-----------------------------|
-| OFX001  | Syntax   | Error    | FxMapExpressionSyntaxAnalyzer |
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+OFX001 | Syntax | Error | FxMapExpressionSyntaxAnalyzer

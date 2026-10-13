@@ -57,13 +57,14 @@ public class ServerSupervisor(SupervisorOptions options, ILogger<ServerSuperviso
             _supervisorCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             _isRunning = true;
 
-            logger?.LogInformation("Starting supervisor with {Count} servers using {Strategy} strategy",
+            logger?.LogInformation("Starting supervisor with {Count} servers using {Strategy} strategy.",
                 _servers.Count, _options.Strategy);
 
             // Start all servers
             foreach (var state in _servers.Values)
             {
                 StartServer(state);
+                logger?.LogInformation("Started supervisor for {ServerId}", state.ServerId);
             }
         }
         finally

@@ -14,7 +14,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task The_fields_of_a_profile_are_resolved_from_the_other_services()
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         var result = await h.QueryAsync("{ members { id userName userEmail } }");
 
@@ -28,7 +28,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task A_field_that_depends_on_another_is_resolved_after_it()
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         var result = await h.QueryAsync("{ members { userId provinceName } }");
 
@@ -43,7 +43,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task Only_the_requested_fields_are_fetched()
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         await h.QueryAsync("{ members { userName } }");
 
@@ -53,7 +53,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task The_objects_of_a_list_share_one_request_with_distinct_ids()
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         await h.QueryAsync("{ members { userName userEmail } }");
 
@@ -65,7 +65,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task An_object_without_a_key_makes_no_request_and_its_field_is_null()
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         var result = await h.QueryAsync("{ membersWithoutUser { id userName } }");
 
@@ -77,7 +77,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task An_id_that_the_owner_does_not_know_gives_a_null_field()
     {
-        using var h = GraphQlHarness.Create(remote: r => r.Setup<UserKey>(
+        await using var h = GraphQlHarness.Create(remote: r => r.Setup<UserKey>(
             MappingHarness.Standard("user"), exists: id => id != "u2"));
 
         var result = await h.QueryAsync("{ members { userId userName } }");
@@ -90,7 +90,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task A_computed_key_is_resolved()
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         var result = await h.QueryAsync("{ labs { mrn code label } }");
 
@@ -106,7 +106,7 @@ public class GraphQlIntegrationTests
     public async Task A_conditional_expression_sees_the_scope_of_the_request(bool showEmail, string expression,
         string expected)
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         var result = await h.QueryAsync("{ choices { display } }", flag => flag.ShowEmail = showEmail);
 
@@ -118,7 +118,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task An_expression_the_owner_could_not_build_is_a_graphql_error_with_ThrowIfException()
     {
-        using var h = GraphQlHarness.Create(throwIfException: true,
+        await using var h = GraphQlHarness.Create(throwIfException: true,
             remote: r => r.FailedExpressions = key => key == typeof(UserKey) ? ["Email"] : []);
 
         var result = await h.QueryAsync("{ members { userName userEmail } }");
@@ -130,7 +130,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task Without_ThrowIfException_the_broken_field_is_null_and_the_others_are_resolved()
     {
-        using var h = GraphQlHarness.Create(throwIfException: false,
+        await using var h = GraphQlHarness.Create(throwIfException: false,
             remote: r => r.FailedExpressions = key => key == typeof(UserKey) ? ["Email"] : []);
 
         var result = await h.QueryAsync("{ members { userName userEmail } }");
@@ -144,7 +144,7 @@ public class GraphQlIntegrationTests
     [Fact]
     public async Task A_conditional_rule_in_the_chain_is_resolved_for_the_request_too()
     {
-        using var h = GraphQlHarness.Create();
+        await using var h = GraphQlHarness.Create();
 
         var result = await h.QueryAsync("{ chains { provinceName } }", flag => flag.ShowEmail = true);
 

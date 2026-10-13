@@ -1,5 +1,4 @@
 using System.Reflection;
-using FxMap.Accessors.PropertyAccessors;
 using FxMap.Fluent;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;

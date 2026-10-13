@@ -24,6 +24,10 @@
     <!-- Analyzer testing packages -->
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing.XUnit" Version="1.1.1" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
+    <!-- The testing helpers bring NuGet client packages 5.6.0, which have known vulnerabilities (GHSA-68w7-72jg-6qpp...): newer ones -->
+    <PackageReference Include="NuGet.Common" Version="6.14.3" />
+    <PackageReference Include="NuGet.Packaging" Version="6.14.3" />
+    <PackageReference Include="NuGet.Protocol" Version="6.14.3" />
   </ItemGroup>
 
   <ItemGroup>

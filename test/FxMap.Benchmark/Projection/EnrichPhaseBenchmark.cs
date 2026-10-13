@@ -6,7 +6,6 @@ using FxMap.Models;
 using FxMap.Responses;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using RequestContext = FxMap.PublicContracts.RequestContext;
 
 namespace FxMap.Benchmark.Projection;
 

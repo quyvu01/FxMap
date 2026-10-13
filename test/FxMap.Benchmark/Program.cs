@@ -1,7 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using BenchmarkDotNet.Running;
-using FxMap.Benchmark.FxMapPropertyAssessors;
 using FxMap.Benchmark.Projection;
 
 BenchmarkSwitcher.FromTypes([typeof(ProjectionBenchmark), typeof(EnrichPhaseBenchmark), typeof(LeafCollectionBenchmark), typeof(DeepChainBenchmark), typeof(IdPathBenchmark)]).Run(args);
