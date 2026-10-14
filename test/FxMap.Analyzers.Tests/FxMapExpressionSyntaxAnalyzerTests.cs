@@ -113,7 +113,7 @@ public class FxMapExpressionSyntaxAnalyzerTests
     public async Task ValidExpression_ComplexFilterIndexerProjection_NoDiagnostic()
     {
         var testCode = TestSetup + """
-                    For<string>(x => x.CountryName, "Countries(Active = true)[asc Name].{Id, Name}");
+                    For<string>(x => x.CountryName, "Countries(Active = true):orderBy(Name).{Id, Name}");
             """ + TestTeardown;
 
         await VerifyAnalyzerAsync(testCode);
@@ -124,15 +124,32 @@ public class FxMapExpressionSyntaxAnalyzerTests
     #region Invalid Expressions
 
     [Fact]
-    public async Task InvalidExpression_MissingClosingBracket_ReportsDiagnostic()
+    public async Task InvalidExpression_MissingClosingParenthesisOfOrderBy_ReportsDiagnostic()
     {
         var testCode = TestSetup + """
-                    For<string>(x => x.ProvinceName, {|#0:"Provinces[asc Name"|});
+                    For<string>(x => x.ProvinceName, {|#0:"Provinces:orderBy(Name"|});
             """ + TestTeardown;
 
         var expected = VerifyCS.Diagnostic(FxMapExpressionSyntaxAnalyzer.DiagnosticId)
             .WithLocation(0)
-            .WithArguments("Provinces[asc Name", "Expected ']' after indexer. Got 'EndOfExpression' at position 18");
+            .WithArguments("Provinces:orderBy(Name", "Expected ')' after orderBy argument. Got 'EndOfExpression' at position 22");
+
+        await VerifyAnalyzerAsync(testCode, expected);
+    }
+
+    [Fact]
+    public async Task InvalidExpression_RemovedIndexer_ReportsDiagnosticWithTheFunctionsToUse()
+    {
+        var testCode = TestSetup + """
+                    For<string>(x => x.ProvinceName, {|#0:"Provinces[0 asc Name].Name"|});
+            """ + TestTeardown;
+
+        var expected = VerifyCS.Diagnostic(FxMapExpressionSyntaxAnalyzer.DiagnosticId)
+            .WithLocation(0)
+            .WithArguments("Provinces[0 asc Name].Name",
+                "The indexer '[...]' at position 9 is no longer supported (removed in 5.0). Use the functions: " +
+                "'[asc Date]' is ':orderBy(Date)', '[0 asc Date]' is ':orderBy(Date):first', " +
+                "'[-1 asc Date]' is ':orderBy(Date):last', '[5 10 desc Date]' is ':orderBy(Date desc):offset(5):limit(10)'");
 
         await VerifyAnalyzerAsync(testCode, expected);
     }
@@ -190,21 +207,6 @@ public class FxMapExpressionSyntaxAnalyzerTests
             .WithLocation(0)
             .WithArguments("{Id, (Name:upper)}",
                 "Expected 'as' keyword after computed expression - alias is required. Got 'CloseBrace' at position 17");
-
-        await VerifyAnalyzerAsync(testCode, expected);
-    }
-
-    [Fact]
-    public async Task InvalidExpression_MissingDotAfterIndexer_ReportsDiagnostic()
-    {
-        var testCode = TestSetup + """
-                    For<string>(x => x.ProvinceName, {|#0:"Provinces[0 asc Name]Name"|});
-            """ + TestTeardown;
-
-        var expected = VerifyCS.Diagnostic(FxMapExpressionSyntaxAnalyzer.DiagnosticId)
-            .WithLocation(0)
-            .WithArguments("Provinces[0 asc Name]Name",
-                "Property navigation requires '.' before identifier at position 21");
 
         await VerifyAnalyzerAsync(testCode, expected);
     }

@@ -10,7 +10,7 @@ namespace FxMap.Analyzers;
 /// <list type="bullet">
 ///   <item><description>Property navigation: Country.Name, User?.Address</description></item>
 ///   <item><description>Filters: (Status = 'Active', Name:count > 3)</description></item>
-///   <item><description>Indexers: [0 asc Name], [0 10 desc CreatedAt]</description></item>
+///   <item><description>Collection functions: :orderBy(Name):first, :orderBy(CreatedAt desc):limit(10)</description></item>
 ///   <item><description>Projections: .{Id, Name, Description}</description></item>
 ///   <item><description>Functions: :count, :sum, :avg, :min, :max</description></item>
 /// </list>

@@ -8,7 +8,7 @@ FxMap Expression Language is a powerful expression language that allows flexible
 
 1. [Property Access](#1-property-access)
 2. [Filters](#2-filters)
-3. [Indexers](#3-indexers)
+3. [Ordering and Paging](#3-ordering-and-paging)
 4. [Functions](#4-functions)
 5. [Aggregations](#5-aggregations)
 6. [Boolean Functions](#6-boolean-functions)
@@ -102,34 +102,57 @@ Users(Name:lower = 'john')                       # Case-insensitive comparison
 
 ---
 
-## 3. Indexers
+## 3. Ordering and Paging
 
-Indexers allow pagination and sorting on collections.
+A collection is ordered and paged with functions. They are applied in the order they are written, so they chain:
+`Orders(Status = 'Done'):orderBy(Total desc):offset(5):limit(10).{Id, Total}` filters, orders, skips 5, takes 10, then projects.
 
-### Single Item Selection
-Select a single item:
+| Function | Syntax | Meaning |
+|----------|--------|---------|
+| orderBy | `:orderBy(Key [asc\|desc], ...)` | Orders by the first key, then by the next keys (thenBy). `asc` is the default |
+| offset | `:offset(n)` | Skips the first `n` items (`n` is a whole number, 0 or greater) |
+| limit | `:limit(n)` | Takes the first `n` items (`n` is a whole number, 0 or greater) |
+| first | `:first` | The first item, or `null` when the collection is empty |
+| last | `:last` | The last item, or `null` when the collection is empty |
+
+`orderBy` takes property names only. `first` and `last` take no arguments and do not order the collection:
+write `orderBy` before them (some providers, such as EF Core, reject `last` on an unordered query).
+
+### Examples
 ```
-[skip asc|desc PropertyName]
+Orders:orderBy(OrderDate)                                # Ascending
+Orders:orderBy(OrderDate desc)                           # Descending
+Orders:orderBy(CreatedAt, CreatedBy desc)                # Ascending by CreatedAt, then descending by CreatedBy
+Orders:orderBy(OrderDate):first                          # First item by OrderDate ascending
+Orders:orderBy(OrderDate desc):last                      # Last item by OrderDate descending
+Orders:orderBy(OrderDate):limit(10)                      # First 10 items
+Orders:orderBy(Total desc):offset(5):limit(20)           # Skip 5, take 20 items
+Orders:orderBy(OrderDate):first.{Id, Total}              # Project one item
+Orders:orderBy(OrderDate):first.Total                    # One property of one item
 ```
 
-### Range Selection
-Select multiple items with skip and take:
+### Combining Filter and Ordering
 ```
-[skip take asc|desc PropertyName]
-```
-
-### Indexer Examples
-```
-Orders[0 asc OrderDate]                          # First item by OrderDate ascending
-Orders[-1 desc OrderDate]                        # Last item by OrderDate descending
-Orders[0 10 asc OrderDate]                       # First 10 items
-Orders[5 20 desc Total]                          # Skip 5, take 20 items
+Orders(Status = 'Done'):orderBy(Total desc):limit(5)     # Top 5 Done orders with highest Total
 ```
 
-### Combining Filter and Indexer
-```
-Orders(Status = 'Done')[0 5 desc Total]          # Top 5 Done orders with highest Total
-```
+### Removed in 5.0: the indexer `[...]`
+The indexer syntax is no longer supported, and an expression that uses it is rejected (the analyzer reports it at compile time):
+
+| Before 5.0 | From 5.0 |
+|------------|----------|
+| `Orders[asc Date]` | `Orders:orderBy(Date)` |
+| `Orders[desc Date]` | `Orders:orderBy(Date desc)` |
+| `Orders[0 asc Date]` | `Orders:orderBy(Date):first` |
+| `Orders[-1 desc Date]` | `Orders:orderBy(Date desc):last` |
+| `Orders[5 asc Date]` | `Orders:orderBy(Date):offset(5):first` |
+| `Orders[0 10 asc Date]` | `Orders:orderBy(Date):limit(10)` |
+| `Orders[5 10 desc Date]` | `Orders:orderBy(Date desc):offset(5):limit(10)` |
+| `Orders(Status = 'Done')[0 asc Date]` | `Orders(Status = 'Done'):orderBy(Date):first` |
+
+Notes on the move:
+- `[-1 ...]` was the only negative index that meant something (the last item); `:last` replaces it.
+- A function of a collection cannot follow a single item: `Orders:orderBy(Date):first:orderBy(Id)` is an error, as `Orders[0 asc Date]:orderBy(Id)` was.
 
 ---
 
@@ -490,7 +513,7 @@ Company.Departments(IsActive = true).Employees:count
 
 ### Projection with Multiple Features
 ```
-Orders(Status = 'Done')[0 10 desc OrderDate].{
+Orders(Status = 'Done'):orderBy(OrderDate desc):limit(10).{
   Id,
   OrderDate:format('yyyy-MM-dd') as Date,
   Total:round(2) as Amount,
@@ -526,7 +549,7 @@ Sales:groupBy(Year, Quarter, Region).{
 
 ### Complex Chained Operations
 ```
-Company.Departments(IsActive = true)[0 5 desc EmployeeCount].Employees(Role = 'Developer'):distinct(Skill)
+Company.Departments(IsActive = true):orderBy(EmployeeCount desc):limit(5).Employees(Role = 'Developer'):distinct(Skill)
 
 Orders(Year = 2024, Status != 'Cancelled'):groupBy(Month).{
   Month,
@@ -569,9 +592,8 @@ Orders(Year = 2024, Status != 'Cancelled'):groupBy(Month).{
 4. Comparison: `=`, `!=`, `>`, `<`, `>=`, `<=`
 5. Navigation: `.`
 6. Filter: `()`
-7. Indexer: `[]`
-8. Projection: `.{}`
-9. Function: `:`
+7. Projection: `.{}`
+8. Function: `:`
 
 ---
 
@@ -588,9 +610,10 @@ Orders(Status = 'Done')                 # Equal
 Orders(Total > 100 && Status = 'Active')# Multiple conditions
 Orders(Status = 'A' || Status = 'B')    # OR condition
 
-# Indexers
-Orders[0 asc Date]                      # First item
-Orders[0 10 desc Total]                 # Top 10
+# Ordering and paging
+Orders:orderBy(Date):first              # First item
+Orders:orderBy(Total desc):limit(10)    # Top 10
+Orders:orderBy(Date):offset(20):limit(10) # Page
 
 # Functions
 Name:upper                              # String function

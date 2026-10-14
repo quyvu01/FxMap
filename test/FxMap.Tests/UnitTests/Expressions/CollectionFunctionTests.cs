@@ -178,38 +178,4 @@ public class CollectionFunctionTests
     {
         Should.Throw<ExpressionParseException>(() => ExpressionParser.Parse(expression));
     }
-
-    // The indexer [skip take asc|desc Property] together with the functions.
-    // Data, ordered by Name: a(Day 2), b(1), c(2), d(3); ordered by Day desc (stable): d, c, a, b
-    [Theory]
-    // indexer first, then the functions on its result
-    [InlineData("Entries[asc Name]:offset(1):limit(2)",
-        """[{"Name":"b","Day":1,"By":"x"},{"Name":"c","Day":2,"By":"z"}]""")]
-    [InlineData("Entries[desc Name]:limit(2).{Name}", """[{"Name":"d"},{"Name":"c"}]""")]
-    [InlineData("Entries[0 3 desc Day]:count", "3")]
-    [InlineData("Entries[0 3 desc Day]:first.{Name}", """{"Name":"d"}""")]
-    [InlineData("Entries[0 3 desc Day]:orderBy(Name):limit(2).{Name}", """[{"Name":"a"},{"Name":"c"}]""")]
-    [InlineData("Entries[1 2 asc Name]:last", """{"Name":"c","Day":2,"By":"z"}""")]
-    // a filter, the indexer, then the functions or the projection
-    [InlineData("Entries(Day > 1)[0 asc Name].{Name}", """{"Name":"a"}""")]
-    [InlineData("Entries(Day > 1)[asc Name]:limit(1).{Name}", """[{"Name":"a"}]""")]
-    // an item of the indexer, projected or read
-    [InlineData("Entries[0 asc Name].{Name, Day}", """{"Name":"a","Day":2}""")]
-    [InlineData("Entries[-1 asc Name].Name", "\"d\"")]
-    // functions first, then the indexer, which orders again by its own property
-    [InlineData("Entries:offset(1)[0 asc Name].{Name}", """{"Name":"a"}""")]
-    [InlineData("Entries:orderBy(Day desc, Name)[0 asc Name]", """{"Name":"a","Day":2,"By":"y"}""")]
-    [InlineData("Entries:orderBy(Name):limit(3)[-1 asc Day].{Name, Day}", """{"Name":"c","Day":2}""")]
-    public void Functions_and_the_indexer_chain(string expression, string expected)
-    {
-        Json(expression).ShouldBe(expected);
-    }
-
-    [Fact]
-    public void A_function_of_a_collection_after_an_indexer_of_one_item_is_rejected()
-    {
-        // Entries[2 asc Name] is one Entry, not a collection
-        Should.Throw<InvalidOperationException>(() => Json("Entries[2 asc Name]:orderBy(Day)"))
-            .Message.ShouldContain("non-collection");
-    }
 }

@@ -99,7 +99,7 @@ internal sealed class OrderViewProfile : ProfileOf<OrderView>
             .For(x => x.CityId, "CityId")
             .For(x => x.ManagerId, "ManagerId")
             .For(x => x.Summary, "{Id, Name, Email, CityId}")
-            .For(x => x.RecentOrders, "Orders[0 3 desc OrderDate].{Id, Status, Total}")
+            .For(x => x.RecentOrders, "Orders:orderBy(OrderDate desc):limit(3).{Id, Status, Total}")
             .For(x => x.Display, c => c
                 .If(sp => sp.GetRequiredService<DisplayMode>().UseEmail)
                 .Expression("Email")
@@ -139,7 +139,7 @@ internal sealed class OrderItemViewProfile : ProfileOf<OrderItemView>
             .For(x => x.CategoryId, "CategoryId")
             .For(x => x.ProductAvgRating, "Reviews:avg(Rating)")
             .For(x => x.ReviewCount, "Reviews:count")
-            .For(x => x.Tags, "Tags[asc Name].{Id, Name}");
+            .For(x => x.Tags, "Tags:orderBy(Name).{Id, Name}");
 
         UseDistributedKey<KCategory>().Of(x => x.CategoryId)
             .For(x => x.CategoryName, "Name")
@@ -182,8 +182,8 @@ internal sealed class CustomerStatsViewProfile : ProfileOf<CustomerStatsView>
             .For(x => x.Avg, "Orders:avg(Total)")
             .For(x => x.AnyPending, "Orders:any(Status = 'Pending')")
             .For(x => x.AllPositive, "Orders:all(Total > 0)")
-            .For(x => x.Latest, "Orders[0 desc OrderDate].{Id, Status, Total}")
-            .For(x => x.DoneOrders, "Orders(Status = 'Done')[asc OrderDate].{Id, Status, Total}");
+            .For(x => x.Latest, "Orders:orderBy(OrderDate desc):first.{Id, Status, Total}")
+            .For(x => x.DoneOrders, "Orders(Status = 'Done'):orderBy(OrderDate).{Id, Status, Total}");
 }
 
 #endregion
@@ -214,7 +214,7 @@ internal sealed class CountryReportViewProfile : ProfileOf<CountryReportView>
             .For(x => x.ProvinceCount, "Provinces:count")
             .For(x => x.TotalArea, "Provinces:sum(Area)")
             .For(x => x.MaxArea, "Provinces:max(Area)")
-            .For(x => x.BigProvinces, "Provinces(Area > 400000)[asc Name].{Name, Area}");
+            .For(x => x.BigProvinces, "Provinces(Area > 400000):orderBy(Name).{Name, Area}");
 }
 
 #endregion
@@ -235,7 +235,7 @@ internal sealed class CategoryTreeViewProfile : ProfileOf<CategoryTreeView>
         UseDistributedKey<KCategory>().Of(x => x.CategoryId)
             .For(x => x.Name, "Name")
             .For(x => x.ParentName, "Parent.Name")
-            .For(x => x.Children, "Children[asc Name].{Id as CategoryId}");
+            .For(x => x.Children, "Children:orderBy(Name).{Id as CategoryId}");
 }
 
 #endregion

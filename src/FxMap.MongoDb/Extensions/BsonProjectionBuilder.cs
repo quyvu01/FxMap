@@ -15,7 +15,7 @@ namespace FxMap.MongoDb.Extensions;
 ///   <item><description>Simple property: <c>Name</c> → <c>$Name</c></description></item>
 ///   <item><description>Navigation: <c>Address.City</c> → <c>$getField</c></description></item>
 ///   <item><description>Filter: <c>Orders(Status = 'Done')</c> → <c>$filter</c></description></item>
-///   <item><description>Indexer: <c>Orders[0 asc Date]</c> → <c>$sortArray</c> + <c>$first</c>/<c>$slice</c></description></item>
+///   <item><description>Indexer: <c>Orders:orderBy(Date):first</c> → <c>$sortArray</c> + <c>$first</c>/<c>$slice</c></description></item>
 ///   <item><description>Function: <c>Name:count</c> → <c>$strLenCP</c>, <c>Orders:count</c> → <c>$size</c></description></item>
 ///   <item><description>Aggregation: <c>Orders:sum(Total)</c> → <c>$reduce</c></description></item>
 ///   <item><description>Projection: <c>.{Id, Name}</c> → <c>$map</c></description></item>
@@ -145,45 +145,6 @@ public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, Bs
             { "input", sourceValue },
             { "as", "item" },
             { "cond", condition }
-        });
-    }
-
-    public BsonValue VisitIndexer(IndexerNode node, BsonBuildContext context)
-    {
-        // Get source array
-        var sourceValue = node.Source.Accept(this, context);
-
-        // Build $sortArray
-        var sortDirection = node.OrderDirection == OrderDirection.Asc ? 1 : -1;
-        var sortedArray = new BsonDocument("$sortArray", new BsonDocument
-        {
-            { "input", sourceValue },
-            { "sortBy", new BsonDocument(node.OrderBy, sortDirection) }
-        });
-
-        if (node.IsSingleItem)
-        {
-            // Single item access
-            if (node.Skip == 0)
-            {
-                return new BsonDocument("$first", sortedArray);
-            }
-
-            if (node.Skip == -1 || node.IsLastItem)
-            {
-                return new BsonDocument("$last", sortedArray);
-            }
-
-            // Use $arrayElemAt for specific index
-            return new BsonDocument("$arrayElemAt", new BsonArray { sortedArray, node.Skip });
-        }
-
-        // Range access with Skip and Take
-        return new BsonDocument("$slice", new BsonArray
-        {
-            sortedArray,
-            node.Skip,
-            node.Take!.Value
         });
     }
 

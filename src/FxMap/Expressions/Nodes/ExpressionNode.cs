@@ -19,7 +19,6 @@ public interface IExpressionNodeVisitor<out TResult, in TContext>
     TResult VisitProperty(PropertyNode node, TContext context);
     TResult VisitNavigation(NavigationNode node, TContext context);
     TResult VisitFilter(FilterNode node, TContext context);
-    TResult VisitIndexer(IndexerNode node, TContext context);
     TResult VisitProjection(ProjectionNode node, TContext context);
     TResult VisitRootProjection(RootProjectionNode node, TContext context);
     TResult VisitFunction(FunctionNode node, TContext context);

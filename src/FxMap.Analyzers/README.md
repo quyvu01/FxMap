@@ -36,14 +36,13 @@ FxMap.Analyzers provides comprehensive syntax validation for FxMap Expression st
 This analyzer validates FxMap Expression strings for correct syntax including:
 
 #### 1. **Balanced Delimiters**
-- Brackets `[]` for indexers
 - Braces `{}` for projections
 - Parentheses `()` for filters
 
 #### 2. **Property Navigation**
 - Projection requires dot: `Country.{Id, Name}` not `Country{Id, Name}`
 - Navigation after filter requires dot: `Orders(Status = 'Done').Items` not `Orders(Status = 'Done')Items`
-- Navigation after indexer requires dot: `Provinces[0 asc Name].Name` not `Provinces[0 asc Name]Name`
+- Navigation after a function requires dot: `Provinces:orderBy(Name):first.Name` not `Provinces:orderBy(Name):firstName`
 
 #### 3. **Function Validation**
 - Function names must be valid (count, sum, avg, min, max, upper, lower, etc.)
@@ -87,11 +86,11 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 // Filter with proper navigation
 .For(x => x.OrderItems, "Orders(Status = 'Done').Items")
 
-// Indexer with proper navigation
-.For(x => x.ProvinceName, "Provinces[0 asc Name].Name")
+// Ordering a collection, taking one item, then navigating
+.For(x => x.ProvinceName, "Provinces:orderBy(Name):first.Name")
 
 // Complex filter with string operations
-.For(x => x.ProvinceName, "Provinces(Name endswith 'a')[0 desc Name].Name")
+.For(x => x.ProvinceName, "Provinces(Name endswith 'a'):orderBy(Name desc):first.Name")
 
 // Functions with arguments
 .For(x => x.ShortName, "{Id, Name:substring(0, 3) as Short}")
@@ -110,9 +109,13 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 .For(x => x.CountryInfo, "Country.{Id, Name")
 // Error: Expected '}' after projection
 
-// Missing closing bracket
-.For(x => x.ProvinceInfo, "Provinces[asc Name")
-// Error: Expected ']' after indexer
+// Missing closing parenthesis of a function
+.For(x => x.ProvinceInfo, "Provinces:orderBy(Name")
+// Error: Expected ')' after orderBy argument
+
+// The indexer syntax of the versions before 5.0
+.For(x => x.ProvinceName, "Provinces[0 asc Name].Name")
+// Error: The indexer '[...]' is no longer supported (removed in 5.0). Use the functions: ...
 
 // Missing closing parenthesis
 .For(x => x.OrderInfo, "Orders(Status = 'Done'")
@@ -126,8 +129,8 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 .For(x => x.OrderItems, "Orders(Status = 'Done')Items")
 // Error: Property navigation requires '.' before identifier
 
-// Missing dot after indexer
-.For(x => x.ProvinceName, "Provinces[0 asc Name]Name")
+// Missing dot after a function
+.For(x => x.ProvinceName, "Provinces:orderBy(Name):firstName")
 // Error: Property navigation requires '.' before identifier
 
 // Unknown function
@@ -221,7 +224,7 @@ error OFX001: Expression 'Country{Id, Name}' is invalid: Projection requires '.'
 - Projections: `Country.{Id, Name}`, `{Id, Name as UserName}`
 - Root projections: `{Id, Email, Country.Name as CountryName}`
 - Filters: `Countries(Active = true)`, `Provinces(Name contains 'land')`
-- Indexers: `Provinces[0 10 asc Name]`, `Items[0 10 desc Price]`
+- Collection functions: `Provinces:orderBy(Name):limit(10)`, `Items:orderBy(Price desc):offset(5):limit(10)`, `Orders:orderBy(Date):first`
 - Functions: `Name:upper`, `Price:round(2)`, `Items:count`
 - String functions: `upper`, `lower`, `trim`, `substring`, `replace`, `concat`, `split`
 - Math functions: `round`, `floor`, `ceil`, `abs`, `add`, `subtract`, `multiply`, `divide`

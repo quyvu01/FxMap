@@ -6,6 +6,6 @@ namespace FxMap.Models;
 /// <param name="Expression">
 /// The expression string that defines how to map or project a property value.
 /// Examples include simple property names like <c>"Name"</c>, navigation paths like <c>"Country.Name"</c>,
-/// or complex expressions like <c>"Orders[0 desc CreatedAt].TotalAmount"</c>.
+/// or complex expressions like <c>"Orders:orderBy(CreatedAt desc):first.TotalAmount"</c>.
 /// </param>
 public sealed record ExpressionValue(string Expression);

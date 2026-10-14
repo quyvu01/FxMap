@@ -26,7 +26,6 @@ namespace FxMap.Analyzers;
 /// FieldPath        := Identifier (':' FunctionName)?
 /// Operator         := '=' | '!=' | '>' | '&lt;' | '>=' | '&lt;=' | 'contains' | 'startswith' | 'endswith'
 /// Value            := String | Number | Boolean | Null
-/// Indexer          := '[' (Number (Number)?)? ('asc' | 'desc') Identifier ']'
 /// Projection       := '.{' Identifier (',' Identifier)* '}'
 /// Function         := ':' FunctionName ('(' Identifier ')' | '(' Condition ')')?
 /// FunctionName     := 'count' | 'sum' | 'avg' | 'min' | 'max' | 'any' | 'all' | 'orderBy' | 'offset' | 'limit' | 'first' | 'last' | 'distinct' | ...
@@ -338,11 +337,9 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             result = new FilterNode(result, condition);
         }
 
-        // Check for indexer: [0 asc Name]
-        if (Match(TokenType.OpenBracket))
-        {
-            result = ParseIndexer(result);
-        }
+        // The indexer syntax [skip take asc|desc Name] was removed in 5.0
+        if (Check(TokenType.OpenBracket))
+            throw IndexerRemoved();
 
         // Validate: next segment requires '.' before identifier
         if (Check(TokenType.Identifier))
@@ -476,7 +473,13 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
                 rest.Add(ParseSegment());
             }
 
-            if (rest.Count > 1) result = new NavigationNode(rest);
+            if (rest.Count > 1)
+            {
+                result = new NavigationNode(rest);
+                // The last segment can end with a function of its own: Orders(..):first.Items(Quantity > 1):sum(Price)
+                if (Match(TokenType.Colon))
+                    result = ParseFunctionOrAggregation(result);
+            }
         }
 
         // Validate: projection must have '.' before '{'
@@ -512,11 +515,9 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             result = new FilterNode(result, condition);
         }
 
-        // Check for indexer: [0 asc Name]
-        if (Match(TokenType.OpenBracket))
-        {
-            result = ParseIndexer(result);
-        }
+        // The indexer syntax [skip take asc|desc Name] was removed in 5.0
+        if (Check(TokenType.OpenBracket))
+            throw IndexerRemoved();
 
         // Validate: next segment requires '.' before identifier
         if (Check(TokenType.Identifier))
@@ -1259,50 +1260,12 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
     }
 
     /// <summary>
-    /// Parses an indexer with 4 supported formats:
-    /// - [asc Name] - Order only (no skip/take)
-    /// - [0 asc Name] - Single item access (first item)
-    /// - [-1 desc Name] - Single item access (last item)
-    /// - [0 10 asc Name] - Range access (skip 0, take 10)
+    /// The indexer syntax of the versions before 5.0 (skip, take, asc|desc and a property between brackets) was replaced by the functions.
     /// </summary>
-    private IndexerNode ParseIndexer(ExpressionNode source)
-    {
-        int? skip = null;
-        int? take = null;
-
-        // Check if starts with number (skip) or order direction
-        if (Check(TokenType.Number))
-        {
-            var skipToken = Advance();
-            skip = int.Parse(skipToken.Value);
-
-            // Check if next is a number (take) or order direction
-            if (Check(TokenType.Number))
-            {
-                var takeToken = Advance();
-                take = int.Parse(takeToken.Value);
-            }
-        }
-
-        OrderDirection direction;
-        if (Match(TokenType.Asc))
-        {
-            direction = OrderDirection.Asc;
-        }
-        else if (Match(TokenType.Desc))
-        {
-            direction = OrderDirection.Desc;
-        }
-        else
-        {
-            throw new ExpressionParseException($"Expected 'asc' or 'desc' at position {Current().Position}");
-        }
-
-        var orderBy = Consume(TokenType.Identifier, "Expected property name for ordering").Value;
-        Consume(TokenType.CloseBracket, "Expected ']' after indexer");
-
-        return new IndexerNode(source, skip, take, direction, orderBy);
-    }
+    private ExpressionParseException IndexerRemoved() => new(
+        $"The indexer '[...]' at position {Current().Position} is no longer supported (removed in 5.0). Use the functions: " +
+        "'[asc Date]' is ':orderBy(Date)', '[0 asc Date]' is ':orderBy(Date):first', " +
+        "'[-1 asc Date]' is ':orderBy(Date):last', '[5 10 desc Date]' is ':orderBy(Date desc):offset(5):limit(10)'");
 
     /// <summary>
     /// Parses a projection: .{Id, Name, Description}

@@ -170,133 +170,127 @@ public sealed class ExpressionParserTests
 
     #endregion
 
-    #region Indexer Tests
+    #region Collection Function Tests (orderBy, offset, limit, first, last)
 
-    [Fact]
-    public void Parse_IndexerSingleItemAsc_ReturnsIndexerNode()
+    private static FunctionNode Function(string expression, FunctionType type)
     {
-        // Act
-        var result = ExpressionParser.Parse("Orders[0 asc OrderDate]");
-
-        // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.Skip.ShouldBe(0);
-        indexerNode.IsSingleItem.ShouldBeTrue();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Asc);
-        indexerNode.OrderBy.ShouldBe("OrderDate");
+        var node = ExpressionParser.Parse(expression).ShouldBeOfType<FunctionNode>();
+        node.FunctionName.ShouldBe(type);
+        return node;
     }
 
     [Fact]
-    public void Parse_IndexerSingleItemDesc_ReturnsIndexerNode()
+    public void Parse_OrderBy_DefaultsToAscending()
     {
-        // Act
-        var result = ExpressionParser.Parse("Orders[0 desc OrderDate]");
+        var node = Function("Orders:orderBy(OrderDate)", FunctionType.OrderBy);
 
-        // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.Skip.ShouldBe(0);
-        indexerNode.IsSingleItem.ShouldBeTrue();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Desc);
-        indexerNode.OrderBy.ShouldBe("OrderDate");
+        node.Source.ShouldBeOfType<PropertyNode>().Name.ShouldBe("Orders");
+        node.GetArguments().ShouldBe([new SortKeyNode("OrderDate", OrderDirection.Asc)]);
+    }
+
+    [Theory]
+    [InlineData("Orders:orderBy(OrderDate asc)", OrderDirection.Asc)]
+    [InlineData("Orders:orderBy(OrderDate desc)", OrderDirection.Desc)]
+    public void Parse_OrderBy_WithDirection(string expression, OrderDirection direction)
+    {
+        Function(expression, FunctionType.OrderBy).GetArguments()
+            .ShouldBe([new SortKeyNode("OrderDate", direction)]);
     }
 
     [Fact]
-    public void Parse_IndexerRange_ReturnsIndexerNode()
+    public void Parse_OrderBy_WithSeveralKeys_KeepsTheirOrderAndDirections()
     {
-        // Act
-        var result = ExpressionParser.Parse("Orders[0 10 asc OrderDate]");
+        var node = Function("Orders:orderBy(CreatedAt, CreatedBy desc, Id asc)", FunctionType.OrderBy);
 
-        // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.Skip.ShouldBe(0);
-        indexerNode.Take.ShouldBe(10);
-        indexerNode.IsSingleItem.ShouldBeFalse();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Asc);
-        indexerNode.OrderBy.ShouldBe("OrderDate");
+        node.GetArguments().ShouldBe([
+            new SortKeyNode("CreatedAt", OrderDirection.Asc),
+            new SortKeyNode("CreatedBy", OrderDirection.Desc),
+            new SortKeyNode("Id", OrderDirection.Asc)
+        ]);
     }
 
     [Fact]
-    public void Parse_IndexerWithSkip_ReturnsIndexerNode()
+    public void Parse_OffsetThenLimit_ChainsOnTheOrderedCollection()
     {
-        // Act
-        var result = ExpressionParser.Parse("Orders[5 10 desc Total]");
+        var limit = Function("Orders:orderBy(Total desc):offset(5):limit(10)", FunctionType.Take);
+        ((LiteralNode)limit.GetArguments().Single()).Value.ShouldBe(10m);
 
-        // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.Skip.ShouldBe(5);
-        indexerNode.Take.ShouldBe(10);
-        indexerNode.IsSingleItem.ShouldBeFalse();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Desc);
+        var offset = limit.Source.ShouldBeOfType<FunctionNode>();
+        offset.FunctionName.ShouldBe(FunctionType.Skip);
+        ((LiteralNode)offset.GetArguments().Single()).Value.ShouldBe(5m);
+
+        var orderBy = offset.Source.ShouldBeOfType<FunctionNode>();
+        orderBy.FunctionName.ShouldBe(FunctionType.OrderBy);
+        orderBy.GetArguments().ShouldBe([new SortKeyNode("Total", OrderDirection.Desc)]);
+    }
+
+    [Theory]
+    [InlineData("Orders:orderBy(OrderDate):first", FunctionType.First)]
+    [InlineData("Orders:orderBy(OrderDate desc):last", FunctionType.Last)]
+    public void Parse_FirstAndLast_TakeNoArguments(string expression, FunctionType type)
+    {
+        var node = Function(expression, type);
+
+        node.GetArguments().ShouldBeEmpty();
+        node.Source.ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.OrderBy);
     }
 
     [Fact]
-    public void Parse_IndexerOrderOnlyAsc_ReturnsIndexerNode()
+    public void Parse_OrderByThenProjection_ProjectsTheOrderedCollection()
     {
-        // Act - Format: [asc Name] - order only without skip/take
-        var result = ExpressionParser.Parse("Orders[asc OrderDate]");
+        var result = ExpressionParser.Parse("Orders:orderBy(OrderDate).{Id, Status}");
 
-        // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.Skip.ShouldBeNull();
-        indexerNode.Take.ShouldBeNull();
-        indexerNode.IsOrderOnly.ShouldBeTrue();
-        indexerNode.IsSingleItem.ShouldBeFalse();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Asc);
-        indexerNode.OrderBy.ShouldBe("OrderDate");
+        var projNode = result.ShouldBeOfType<ProjectionNode>();
+        projNode.Source.ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.OrderBy);
     }
 
     [Fact]
-    public void Parse_IndexerOrderOnlyDesc_ReturnsIndexerNode()
+    public void Parse_FilterThenOrderBy_OrdersTheFilteredCollection()
     {
-        // Act - Format: [desc Name] - order only without skip/take
-        var result = ExpressionParser.Parse("Orders[desc Total]");
+        var node = Function("Orders(Status = 'Active'):orderBy(CreatedAt desc)", FunctionType.OrderBy);
 
-        // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.Skip.ShouldBeNull();
-        indexerNode.Take.ShouldBeNull();
-        indexerNode.IsOrderOnly.ShouldBeTrue();
-        indexerNode.IsSingleItem.ShouldBeFalse();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Desc);
-        indexerNode.OrderBy.ShouldBe("Total");
+        node.GetArguments().ShouldBe([new SortKeyNode("CreatedAt", OrderDirection.Desc)]);
+        node.Source.ShouldBeOfType<FilterNode>();
     }
 
     [Fact]
-    public void Parse_IndexerOrderOnlyWithProjection_ReturnsCorrectStructure()
+    public void Parse_FilterThenFunctionsThenProjection_KeepsTheProjection()
     {
-        // Act - [asc Name].{Id, Name} - order then project
-        var result = ExpressionParser.Parse("Orders[asc OrderDate].{Id, Status}");
+        // The projection after a function that follows a filter used to be dropped
+        var result = ExpressionParser.Parse("Orders(Status = 'Done'):orderBy(Total desc):first.{Id, Total}");
 
-        // Assert
-        result.ShouldBeOfType<ProjectionNode>();
-        var projNode = (ProjectionNode)result;
-
-        projNode.Source.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)projNode.Source;
-        indexerNode.IsOrderOnly.ShouldBeTrue();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Asc);
-        indexerNode.OrderBy.ShouldBe("OrderDate");
+        var projNode = result.ShouldBeOfType<ProjectionNode>();
+        projNode.Properties.Count.ShouldBe(2);
+        projNode.Source.ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.First);
     }
 
-    [Fact]
-    public void Parse_FilterThenIndexerOrderOnly_ReturnsCorrectStructure()
+    [Theory]
+    [InlineData("Orders[0 asc OrderDate]")]
+    [InlineData("Orders[-1 desc OrderDate]")]
+    [InlineData("Orders[0 10 asc OrderDate]")]
+    [InlineData("Orders[asc OrderDate]")]
+    [InlineData("Orders(Status = 'Done')[0 asc OrderDate]")]
+    [InlineData("Orders[asc OrderDate].{Id}")]
+    [InlineData("Orders:orderBy(OrderDate)[0 asc OrderDate]")]
+    public void Parse_TheRemovedIndexer_IsRejectedWithTheFunctionsToUseInstead(string expression)
     {
-        // Act - Filter then order only
-        var result = ExpressionParser.Parse("Orders(Status = 'Active')[desc CreatedAt]");
+        var error = Should.Throw<ExpressionParseException>(() => ExpressionParser.Parse(expression));
 
-        // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.IsOrderOnly.ShouldBeTrue();
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Desc);
-        indexerNode.OrderBy.ShouldBe("CreatedAt");
-        indexerNode.Source.ShouldBeOfType<FilterNode>();
+        error.Message.ShouldContain("no longer supported");
+        error.Message.ShouldContain(":orderBy(");
+    }
+
+    [Theory]
+    [InlineData("Orders:orderBy()")]
+    [InlineData("Orders:orderBy(Date,)")]
+    [InlineData("Orders:orderBy(Date up)")]
+    [InlineData("Orders:orderBy(Date desc desc)")]
+    [InlineData("Orders:first(Id)")]
+    [InlineData("Orders:offset")]
+    [InlineData("Orders:limit")]
+    public void Parse_WrongArgumentsOfTheCollectionFunctions_AreRejected(string expression)
+    {
+        Should.Throw<ExpressionParseException>(() => ExpressionParser.Parse(expression));
     }
 
     #endregion
@@ -526,15 +520,17 @@ public sealed class ExpressionParserTests
     #region Complex Expression Tests
 
     [Fact]
-    public void Parse_FilterThenIndexer_ReturnsCorrectStructure()
+    public void Parse_FilterThenFirst_ReturnsCorrectStructure()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done')[0 asc OrderDate]");
+        var result = ExpressionParser.Parse("Orders(Status = 'Done'):orderBy(OrderDate):first");
 
         // Assert
-        result.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)result;
-        indexerNode.Source.ShouldBeOfType<FilterNode>();
+        var first = result.ShouldBeOfType<FunctionNode>();
+        first.FunctionName.ShouldBe(FunctionType.First);
+        var orderBy = first.Source.ShouldBeOfType<FunctionNode>();
+        orderBy.FunctionName.ShouldBe(FunctionType.OrderBy);
+        orderBy.Source.ShouldBeOfType<FilterNode>();
     }
 
     [Fact]
@@ -565,22 +561,24 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_ComplexExpression_ReturnsCorrectStructure()
     {
-        // Provinces(Name:count > 3)[0 10 asc Name].{Id, Name}
+        // Provinces(Name:count > 3):orderBy(Name):limit(10).{Id, Name}
         // Note: The parser builds segments sequentially, so the structure is:
-        // ProjectionNode(source: NavigationNode[Provinces(filter)[indexer], {Id, Name}])
-        var result = ExpressionParser.Parse("Provinces(Name:count > 3)[0 10 asc Name].{Id, Name}");
+        // ProjectionNode(source: limit(orderBy(filter(Provinces))))
+        var result = ExpressionParser.Parse("Provinces(Name:count > 3):orderBy(Name):limit(10).{Id, Name}");
 
         // Assert - should be ProjectionNode at top
         result.ShouldBeOfType<ProjectionNode>();
         var projNode = (ProjectionNode)result;
 
-        // Source should be IndexerNode (filter then indexer on same segment)
-        projNode.Source.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)projNode.Source;
+        // Source is the limit, over the orderBy, over the filter
+        var limitNode = projNode.Source.ShouldBeOfType<FunctionNode>();
+        limitNode.FunctionName.ShouldBe(FunctionType.Take);
+        var orderByNode = limitNode.Source.ShouldBeOfType<FunctionNode>();
+        orderByNode.FunctionName.ShouldBe(FunctionType.OrderBy);
 
-        // Indexer source should be FilterNode
-        indexerNode.Source.ShouldBeOfType<FilterNode>();
-        var filterNode = (FilterNode)indexerNode.Source;
+        // The orderBy source should be FilterNode
+        orderByNode.Source.ShouldBeOfType<FilterNode>();
+        var filterNode = (FilterNode)orderByNode.Source;
 
         // Filter source should be PropertyNode (Provinces)
         filterNode.Source.ShouldBeOfType<PropertyNode>();
@@ -2449,23 +2447,23 @@ public sealed class ExpressionParserTests
     }
 
     [Fact]
-    public void Parse_DistinctWithIndexerBefore_ComplexChain()
+    public void Parse_DistinctAfterOrderByAndLimit_ComplexChain()
     {
-        // Customers[0 10 asc CreatedAt].Orders.Items:distinct(Status)
-        // Structure: NavigationNode([IndexerNode(Customers), Orders, FunctionNode(Items:distinct(Status))])
-        var result = ExpressionParser.Parse("Customers[0 10 asc CreatedAt].Orders.Items:distinct(Status)");
+        // Customers:orderBy(CreatedAt):limit(10).Orders.Items:distinct(Status)
+        // Structure: NavigationNode([limit(orderBy(Customers)), Orders, FunctionNode(Items:distinct(Status))])
+        var result = ExpressionParser.Parse("Customers:orderBy(CreatedAt):limit(10).Orders.Items:distinct(Status)");
 
         result.ShouldBeOfType<NavigationNode>();
         var navNode = (NavigationNode)result;
         navNode.Segments.Count.ShouldBe(3);
 
-        // First segment: Customers with indexer
-        navNode.Segments[0].ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)navNode.Segments[0];
-        ((PropertyNode)indexerNode.Source).Name.ShouldBe("Customers");
-        indexerNode.Skip.ShouldBe(0);
-        indexerNode.Take.ShouldBe(10);
-        indexerNode.OrderDirection.ShouldBe(OrderDirection.Asc);
+        // First segment: Customers:orderBy(CreatedAt):limit(10)
+        var limitNode = navNode.Segments[0].ShouldBeOfType<FunctionNode>();
+        limitNode.FunctionName.ShouldBe(FunctionType.Take);
+        var orderByNode = limitNode.Source.ShouldBeOfType<FunctionNode>();
+        orderByNode.FunctionName.ShouldBe(FunctionType.OrderBy);
+        ((PropertyNode)orderByNode.Source).Name.ShouldBe("Customers");
+        orderByNode.GetArguments().ShouldBe([new SortKeyNode("CreatedAt", OrderDirection.Asc)]);
 
         // Second segment: Orders
         navNode.Segments[1].ShouldBeOfType<PropertyNode>();
@@ -2943,20 +2941,21 @@ public sealed class ExpressionParserTests
     }
 
     [Fact]
-    public void Parse_GroupByWithIndexerBefore_ComplexChain()
+    public void Parse_GroupByAfterOrderByAndLimit_ComplexChain()
     {
-        // Customers[0 10 desc CreatedAt].Orders:groupBy(Status).{Status, :count}
-        var result = ExpressionParser.Parse("Customers[0 10 desc CreatedAt].Orders:groupBy(Status).{Status, :count}");
+        // Customers:orderBy(CreatedAt desc):limit(10).Orders:groupBy(Status).{Status, :count}
+        var result = ExpressionParser.Parse("Customers:orderBy(CreatedAt desc):limit(10).Orders:groupBy(Status).{Status, :count}");
 
         result.ShouldBeOfType<NavigationNode>();
         var navNode = (NavigationNode)result;
         navNode.Segments.Count.ShouldBe(2);
 
-        // First segment: Customers with indexer
-        navNode.Segments[0].ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)navNode.Segments[0];
-        ((PropertyNode)indexerNode.Source).Name.ShouldBe("Customers");
-        indexerNode.Take.ShouldBe(10);
+        // First segment: Customers:orderBy(CreatedAt desc):limit(10)
+        var limitNode = navNode.Segments[0].ShouldBeOfType<FunctionNode>();
+        limitNode.FunctionName.ShouldBe(FunctionType.Take);
+        var orderByNode = limitNode.Source.ShouldBeOfType<FunctionNode>();
+        ((PropertyNode)orderByNode.Source).Name.ShouldBe("Customers");
+        orderByNode.GetArguments().ShouldBe([new SortKeyNode("CreatedAt", OrderDirection.Desc)]);
 
         // Second segment: ProjectionNode (Orders:groupBy with projection)
         navNode.Segments[1].ShouldBeOfType<ProjectionNode>();

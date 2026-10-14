@@ -111,7 +111,7 @@ public class ComplexExpressionMappingTests
     [Fact]
     public async Task Single_item_projection_of_an_empty_collection_throws_when_configured_to_throw()
     {
-        // Characterization: `Orders[0 desc OrderDate].{Id, Status, Total}` on a customer without orders yields an
+        // Characterization: `Orders:orderBy(OrderDate desc):first.{Id, Status, Total}` on a customer without orders yields an
         // object whose members are all null (this is asserted by ExpressionIntegrationTests as well), which cannot be
         // deserialized into OrderBrief's non-nullable members.
         using var fx = ComplexFixture.Create(23, 4, cfg => cfg.ThrowIfException());

@@ -423,15 +423,13 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Indexer_OrderOnly_AscName_ReturnsOrderedCollection()
     {
-        // Format: [asc Name] - Order only without skip/take
-        var node = ExpressionParser.Parse("Cities[asc Name]");
-        node.ShouldBeOfType<IndexerNode>();
-        var indexerNode = (IndexerNode)node;
-        indexerNode.IsOrderOnly.ShouldBeTrue();
+        // Format: :orderBy(Name) - Order only without skip/take
+        var node = ExpressionParser.Parse("Cities:orderBy(Name)");
+        node.ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.OrderBy);
 
         // Execute via ProjectionBuilder
         var builder = Provinces();
-        var expressions = new List<string> { "Cities[asc Name].{Id, Name}" };
+        var expressions = new List<string> { "Cities:orderBy(Name).{Id, Name}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Provinces
@@ -452,9 +450,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Indexer_OrderOnly_DescPopulation_ReturnsOrderedCollection()
     {
-        // Format: [desc Population] - Order only descending
+        // Format: :orderBy(Population desc) - Order only descending
         var builder = Provinces();
-        var expressions = new List<string> { "Cities[desc Population].{Name, Population}" };
+        var expressions = new List<string> { "Cities:orderBy(Population desc).{Name, Population}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Provinces
@@ -475,9 +473,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Indexer_SingleItem_FirstItem_ReturnsFirstOrderedItem()
     {
-        // Format: [0 asc Name] - First item after ordering
+        // Format: :orderBy(Name):first - First item after ordering
         var builder = Provinces();
-        var expressions = new List<string> { "Cities[0 asc Name].{Id, Name}" };
+        var expressions = new List<string> { "Cities:orderBy(Name):first.{Id, Name}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Provinces
@@ -494,9 +492,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Indexer_SingleItem_LastItem_ReturnsLastOrderedItem()
     {
-        // Format: [-1 desc Population] - Last item (using negative index)
+        // Format: :orderBy(Population desc):last - Last item (using negative index)
         var builder = Provinces();
-        var expressions = new List<string> { "Cities[-1 desc Population].{Name, Population}" };
+        var expressions = new List<string> { "Cities:orderBy(Population desc):last.{Name, Population}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Provinces
@@ -514,9 +512,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Indexer_Range_SkipTake_ReturnsPagedCollection()
     {
-        // Format: [0 2 asc Name] - Skip 0, Take 2, ordered by Name
+        // Format: :orderBy(Name):limit(2) - Skip 0, Take 2, ordered by Name
         var builder = Provinces();
-        var expressions = new List<string> { "Cities[0 2 asc Name].{Name}" };
+        var expressions = new List<string> { "Cities:orderBy(Name):limit(2).{Name}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Provinces
@@ -533,9 +531,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Indexer_Range_WithSkip_ReturnsPaginatedResults()
     {
-        // Format: [1 2 asc Name] - Skip 1, Take 2
+        // Format: :orderBy(Name):offset(1):limit(2) - Skip 1, Take 2
         var builder = Provinces();
-        var expressions = new List<string> { "Cities[1 2 asc Name].{Name}" };
+        var expressions = new List<string> { "Cities:orderBy(Name):offset(1):limit(2).{Name}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Provinces
@@ -888,9 +886,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_FilterThenIndexerThenProjection()
     {
-        // Orders(Status = 'Completed')[0 asc OrderDate].{Id, Total}
+        // Orders(Status = 'Completed'):orderBy(OrderDate):first.{Id, Total}
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed')[0 asc OrderDate].{Id, Total}" };
+        var expressions = new List<string> { "Orders(Status = 'Completed'):orderBy(OrderDate):first.{Id, Total}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -976,9 +974,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_OrderThenTakeWithProjection()
     {
-        // Provinces[0 2 desc Area].{Name, Area}
+        // Provinces:orderBy(Area desc):limit(2).{Name, Area}
         var builder = Countries();
-        var expressions = new List<string> { "Provinces[0 2 desc Area].{Name, Area}" };
+        var expressions = new List<string> { "Provinces:orderBy(Area desc):limit(2).{Name, Area}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Countries
@@ -1076,7 +1074,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task EdgeCase_IndexerOnEmptyCollection_ReturnsDictionaryWithNullValues()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders[0 asc OrderDate].{Id}" };
+        var expressions = new List<string> { "Orders:orderBy(OrderDate):first.{Id}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -1471,69 +1469,59 @@ public sealed class ExpressionIntegrationTests : IDisposable
     #region Parser Edge Cases
 
     [Fact]
-    public void Parser_IndexerOrderOnly_ParsesCorrectly()
+    public void Parser_OrderBy_ParsesCorrectly()
     {
-        var node = ExpressionParser.Parse("Items[asc Name]");
+        var node = ExpressionParser.Parse("Items:orderBy(Name)");
 
-        node.ShouldBeOfType<IndexerNode>();
-        var indexer = (IndexerNode)node;
-        indexer.IsOrderOnly.ShouldBeTrue();
-        indexer.IsSingleItem.ShouldBeFalse();
-        indexer.Skip.ShouldBeNull();
-        indexer.Take.ShouldBeNull();
-        indexer.OrderDirection.ShouldBe(OrderDirection.Asc);
-        indexer.OrderBy.ShouldBe("Name");
+        var function = node.ShouldBeOfType<FunctionNode>();
+        function.FunctionName.ShouldBe(FunctionType.OrderBy);
+        function.GetArguments().ShouldBe([new SortKeyNode("Name", OrderDirection.Asc)]);
     }
 
     [Fact]
-    public void Parser_IndexerSingleItem_ParsesCorrectly()
+    public void Parser_FirstAfterOrderBy_ParsesCorrectly()
     {
-        var node = ExpressionParser.Parse("Items[0 desc Price]");
+        var node = ExpressionParser.Parse("Items:orderBy(Price desc):first");
 
-        node.ShouldBeOfType<IndexerNode>();
-        var indexer = (IndexerNode)node;
-        indexer.IsOrderOnly.ShouldBeFalse();
-        indexer.IsSingleItem.ShouldBeTrue();
-        indexer.Skip.ShouldBe(0);
-        indexer.Take.ShouldBeNull();
-        indexer.OrderDirection.ShouldBe(OrderDirection.Desc);
-        indexer.OrderBy.ShouldBe("Price");
+        var first = node.ShouldBeOfType<FunctionNode>();
+        first.FunctionName.ShouldBe(FunctionType.First);
+        first.Source.ShouldBeOfType<FunctionNode>().GetArguments()
+            .ShouldBe([new SortKeyNode("Price", OrderDirection.Desc)]);
     }
 
     [Fact]
-    public void Parser_IndexerLastItem_ParsesCorrectly()
+    public void Parser_LastAfterOrderBy_ParsesCorrectly()
     {
-        var node = ExpressionParser.Parse("Items[-1 asc CreatedAt]");
+        var node = ExpressionParser.Parse("Items:orderBy(CreatedAt):last");
 
-        node.ShouldBeOfType<IndexerNode>();
-        var indexer = (IndexerNode)node;
-        indexer.IsLastItem.ShouldBeTrue();
-        indexer.Skip.ShouldBe(-1);
+        node.ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.Last);
     }
 
     [Fact]
-    public void Parser_IndexerRange_ParsesCorrectly()
+    public void Parser_OffsetAndLimitAfterOrderBy_ParsesCorrectly()
     {
-        var node = ExpressionParser.Parse("Items[5 10 desc Total]");
+        var node = ExpressionParser.Parse("Items:orderBy(Total desc):offset(5):limit(10)");
 
-        node.ShouldBeOfType<IndexerNode>();
-        var indexer = (IndexerNode)node;
-        indexer.IsOrderOnly.ShouldBeFalse();
-        indexer.IsSingleItem.ShouldBeFalse();
-        indexer.Skip.ShouldBe(5);
-        indexer.Take.ShouldBe(10);
-        indexer.OrderDirection.ShouldBe(OrderDirection.Desc);
-        indexer.OrderBy.ShouldBe("Total");
+        var limit = node.ShouldBeOfType<FunctionNode>();
+        limit.FunctionName.ShouldBe(FunctionType.Take);
+        var offset = limit.Source.ShouldBeOfType<FunctionNode>();
+        offset.FunctionName.ShouldBe(FunctionType.Skip);
+        offset.Source.ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.OrderBy);
     }
 
     [Fact]
     public void Parser_ComplexChain_ParsesCorrectly()
     {
-        // Orders(Status = 'Done')[0 2 asc OrderDate].Items(Quantity > 1):sum(Price)
-        var node = ExpressionParser.Parse("Orders(Status = 'Done')[0 2 asc OrderDate].Items(Quantity > 1):sum(Price)");
+        // Orders(Status = 'Done'):orderBy(OrderDate):limit(2).Items(Quantity > 1):sum(Price)
+        var node = ExpressionParser.Parse("Orders(Status = 'Done'):orderBy(OrderDate):limit(2).Items(Quantity > 1):sum(Price)");
 
-        // The structure should be: FunctionNode -> NavigationNode
-        node.ShouldNotBeNull();
+        // The structure should be: sum over the navigation [limit(orderBy(filter(Orders))), Items(filter)]
+        var sum = node.ShouldBeOfType<AggregationNode>();
+        sum.AggregationType.ShouldBe(AggregationType.Sum);
+        var navigation = sum.Source.ShouldBeOfType<NavigationNode>();
+        navigation.Segments.Count.ShouldBe(2);
+        navigation.Segments[0].ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.Take);
+        navigation.Segments[1].ShouldBeOfType<FilterNode>();
     }
 
     #endregion

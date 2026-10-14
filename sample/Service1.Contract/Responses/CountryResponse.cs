@@ -16,6 +16,6 @@ public class CountryResponseProfile : ProfileOf<CountryResponse>
     {
         UseDistributedKey<CountryDistributedKey>()
             .Of(x => x.Id)
-            .For(x => x.FirstProvinceName, "Provinces(Name endswith 'a')[0 desc Name].Name");
+            .For(x => x.FirstProvinceName, "Provinces(Name endswith 'a'):orderBy(Name desc):first.Name");
     }
 }

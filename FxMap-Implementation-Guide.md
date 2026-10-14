@@ -220,14 +220,19 @@ Orders(Status = 'Pending' || Status = 'Waiting')
 Orders(Year = 2024, Status = 'Active')     // Comma means AND
 ```
 
-### Indexers and sorting
+### Sorting and paging
 
 ```
-Orders[0 asc OrderDate]                    // First item, ascending
-Orders[-1 desc OrderDate]                  // Last item, descending
-Orders[0 10 asc OrderDate]                 // First 10 items
-Orders(Status='Done')[0 5 desc Total]      // Filter then paginate
+Orders:orderBy(OrderDate)                              // Ascending (asc is the default)
+Orders:orderBy(OrderDate desc, Id)                     // Several keys: the next ones order equal items (thenBy)
+Orders:orderBy(OrderDate):first                        // First item, ascending
+Orders:orderBy(OrderDate desc):last                    // Last item, descending
+Orders:orderBy(OrderDate):limit(10)                    // First 10 items
+Orders:orderBy(OrderDate):offset(20):limit(10)         // Skip 20, take 10
+Orders(Status='Done'):orderBy(Total desc):limit(5)     // Filter, order, then page
 ```
+
+The indexer syntax `Orders[0 10 asc OrderDate]` was removed in 5.0: see [docs/expression.md](docs/expression.md#3-ordering-and-paging).
 
 ### Functions (chained with `:`)
 

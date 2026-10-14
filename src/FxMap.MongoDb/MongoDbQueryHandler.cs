@@ -32,7 +32,7 @@ namespace FxMap.MongoDb;
 ///   <item><description>Simple property: <c>Name</c></description></item>
 ///   <item><description>Navigation: <c>Address.City</c></description></item>
 ///   <item><description>Filter: <c>Orders(Status = 'Done')</c></description></item>
-///   <item><description>Indexer: <c>Orders[0 asc Date]</c>, <c>Orders[0 10 desc Date]</c></description></item>
+///   <item><description>Collection functions: <c>Orders:orderBy(Date):first</c>, <c>Orders:orderBy(Date desc):offset(5):limit(10)</c></description></item>
 ///   <item><description>Function: <c>Name:count</c>, <c>Orders:count</c></description></item>
 ///   <item><description>Aggregation: <c>Orders:sum(Total)</c></description></item>
 ///   <item><description>Projection: <c>Orders.{Id, Name}</c></description></item>

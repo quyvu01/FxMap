@@ -68,8 +68,8 @@
       <Compile Include="..\FxMap\Expressions\Nodes\GroupElementsNode.cs">
         <Link>Nodes\GroupElementsNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\IndexerNode.cs">
-        <Link>Nodes\IndexerNode.cs</Link>
+      <Compile Include="..\FxMap\Expressions\Nodes\OrderDirection.cs">
+        <Link>Nodes\OrderDirection.cs</Link>
       </Compile>
       <Compile Include="..\FxMap\Expressions\Nodes\LiteralNode.cs">
         <Link>Nodes\LiteralNode.cs</Link>

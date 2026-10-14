@@ -33,7 +33,7 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
         UseDistributedKey<CountryDistributedKey>()
             .Of(x => x.CountryId)
             .For(x => x.CountryName)
-            .For(x => x.FirstCityName, "Provinces[0 asc Name].Cities[0 asc Name].Name")
-            .For(x => x.AllProvinces, "Provinces[asc Name]");
+            .For(x => x.FirstCityName, "Provinces:orderBy(Name):first.Cities:orderBy(Name):first.Name")
+            .For(x => x.AllProvinces, "Provinces:orderBy(Name)");
     }
 }
