@@ -6,6 +6,31 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [5.0.0]
+
+Details: [the notes of 5.0.0](docs/changelogs/v5.0.0.md).
+
+### Breaking
+
+- **The indexer `Orders[0 10 asc Date]` is removed** from the expression language. Use the functions: `Orders:orderBy(Date):limit(10)`,
+  `Orders:orderBy(Date):first`, `Orders:orderBy(Date desc):last`, `Orders:orderBy(Date):offset(5):limit(10)`. An expression with `[` is rejected with
+  a message that says what to use, and the analyzer reports it at build time. Services that exchange these expressions must be moved to 5.0 together
+  (see the migration in the notes).
+- Removed public API: `IndexerNode`, `IExpressionNodeVisitor.VisitIndexer`, `ExpressionHelpers`, `ExpressionQueryableData` and the exceptions
+  `CollectionFormatNotCorrected`, `CollectionIndexIncorrect`, `CollectionOrderDirectionIncorrect`.
+- `ExpressionParser.Parse` throws when text is left after the expression (it was ignored).
+
+### Added
+
+- **Collection functions `:orderBy(Key [asc|desc], ...)`, `:offset(n)`, `:limit(n)`, `:first`, `:last`** (LINQ and MongoDB), chained with filters, other
+  functions and projections: `Orders(Status = 'Done'):orderBy(Total desc):offset(5):limit(10).{Id, Total}`. `orderBy` takes several keys.
+
+### Fixed
+
+- A projection or a property after a function that followed a filter (`Orders(Status = 'Done'):orderBy(Total):first.{Id}`) was dropped without an error.
+
+---
+
 ## [4.1.5]
 
 Details: [the notes of 4.1.5](docs/changelogs/v4.1.5.md).
