@@ -29,7 +29,8 @@ namespace FxMap.Analyzers;
 /// Indexer          := '[' (Number (Number)?)? ('asc' | 'desc') Identifier ']'
 /// Projection       := '.{' Identifier (',' Identifier)* '}'
 /// Function         := ':' FunctionName ('(' Identifier ')' | '(' Condition ')')?
-/// FunctionName     := 'count' | 'sum' | 'avg' | 'min' | 'max' | 'any' | 'all'
+/// FunctionName     := 'count' | 'sum' | 'avg' | 'min' | 'max' | 'any' | 'all' | 'orderBy' | 'offset' | 'limit' | 'distinct' | ...
+/// SortKey          := Identifier ('asc' | 'desc')?        (orderBy takes SortKeys separated by ',': orderBy(CreatedAt, CreatedBy desc))
 /// </code>
 /// </remarks>
 public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
@@ -75,7 +76,11 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         ["mod"] = FunctionType.Mod,
         ["pow"] = FunctionType.Pow,
         // Collection functions
-        ["distinct"] = FunctionType.Distinct
+        // Names of the expression language, not of LINQ: offset -> Skip, limit -> Take
+        ["orderBy"] = FunctionType.OrderBy,
+        ["offset"] = FunctionType.Skip,
+        ["limit"] = FunctionType.Take,
+        ["distinct"] = FunctionType.Distinct,
     };
 
     private static readonly HashSet<FunctionType> StringFunctions =
@@ -118,6 +123,9 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
 
     private static readonly HashSet<FunctionType> CollectionFunctions =
     [
+        FunctionType.OrderBy,
+        FunctionType.Skip,
+        FunctionType.Take,
         FunctionType.Distinct
     ];
 
@@ -130,11 +138,12 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         ["max"] = AggregationType.Max
     };
 
-    private static readonly Dictionary<string, BooleanFunctionType> BooleanFunctionNames = new(StringComparer.OrdinalIgnoreCase)
-    {
-        ["any"] = BooleanFunctionType.Any,
-        ["all"] = BooleanFunctionType.All
-    };
+    private static readonly Dictionary<string, BooleanFunctionType> BooleanFunctionNames =
+        new(StringComparer.OrdinalIgnoreCase)
+        {
+            ["any"] = BooleanFunctionType.Any,
+            ["all"] = BooleanFunctionType.All
+        };
 
     /// <summary>
     /// Parses the expression string into an AST.
@@ -284,7 +293,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             if (Check(TokenType.Identifier))
             {
                 var funcName = Current().Value.ToLowerInvariant();
-                if (FunctionNames.ContainsKey(funcName) || BooleanFunctionNames.ContainsKey(funcName) || AggregationNames.ContainsKey(funcName))
+                if (FunctionNames.ContainsKey(funcName) || BooleanFunctionNames.ContainsKey(funcName) ||
+                    AggregationNames.ContainsKey(funcName))
                 {
                     // It's a function, restore and parse normally
                     _position = savedPosition;
@@ -323,7 +333,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         // Validate: next segment requires '.' before identifier
         if (Check(TokenType.Identifier))
         {
-            throw new ExpressionParseException($"Property navigation requires '.' before identifier at position {Current().Position}");
+            throw new ExpressionParseException(
+                $"Property navigation requires '.' before identifier at position {Current().Position}");
         }
 
         return result;
@@ -483,7 +494,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         // Validate: next segment requires '.' before identifier
         if (Check(TokenType.Identifier))
         {
-            throw new ExpressionParseException($"Property navigation requires '.' before identifier at position {Current().Position}");
+            throw new ExpressionParseException(
+                $"Property navigation requires '.' before identifier at position {Current().Position}");
         }
 
         return result;
@@ -493,7 +505,7 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
     /// Parses a function or aggregation: :count, :sum(Total), :any, :any(Status = 'Done'), :all(IsApproved = true)
     /// String functions: :upper, :lower, :trim, :substring(0, 3), :replace('a', 'b'), :concat(' ', LastName), :split(',')
     /// Date functions: :year, :month, :day, :hour, :minute, :second, :dayOfWeek, :daysAgo, :format('yyyy-MM-dd')
-    /// Collection functions: :distinct(Property), :groupBy(Property1, Property2)
+    /// Collection functions: :orderBy(Property1, Property2 desc), :offset(2), :limit(10), :distinct(Property), :groupBy(Property1, Property2)
     /// </summary>
     private ExpressionNode ParseFunctionOrAggregation(ExpressionNode source)
     {
@@ -513,6 +525,7 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             {
                 boolResult = ParseFunctionOrAggregation(boolResult);
             }
+
             return boolResult;
         }
 
@@ -594,7 +607,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         {
             if (!Match(TokenType.OpenParen))
             {
-                throw new ExpressionParseException($"Function 'format' requires a format pattern argument at position {funcToken.Position}");
+                throw new ExpressionParseException(
+                    $"Function 'format' requires a format pattern argument at position {funcToken.Position}");
             }
 
             var formatArg = ParseFunctionArgument();
@@ -629,6 +643,7 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
                 Consume(TokenType.CloseParen, "Expected ')' after round argument");
                 return new FunctionNode(source, functionType, null, [decimalsArg]);
             }
+
             // No argument means round to 0 decimal places
             return new FunctionNode(source, functionType);
         }
@@ -639,7 +654,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         {
             if (!Match(TokenType.OpenParen))
             {
-                throw new ExpressionParseException($"Function '{funcToken.Value}' requires an argument at position {funcToken.Position}");
+                throw new ExpressionParseException(
+                    $"Function '{funcToken.Value}' requires an argument at position {funcToken.Position}");
             }
 
             var operandArg = ParseFunctionArgument();
@@ -653,16 +669,75 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
 
     /// <summary>
     /// Parses collection functions with their arguments.
+    /// :orderBy(Key [asc|desc], ...) - orders by the first key, then by the others: x.Items.OrderBy(a => a.Key).ThenBy(...)
+    /// :offset(n) - skips the first n items: x.Items.Skip(n)
+    /// :limit(n) - takes the first n items: x.Items.Take(n)
     /// :distinct(PropertyName) - selects distinct values by property: x.Items.Select(a => a.Property).Distinct()
     /// </summary>
     private FunctionNode ParseCollectionFunction(ExpressionNode source, FunctionType functionType, Token funcToken)
     {
+        // :orderBy(CreatedAt), :orderBy(CreatedAt desc), :orderBy(CreatedAt, CreatedBy desc): the first key orders, the others are thenBy
+        if (functionType == FunctionType.OrderBy)
+        {
+            if (!Match(TokenType.OpenParen))
+            {
+                throw new ExpressionParseException(
+                    $"Function 'orderBy' requires a property argument at position {funcToken.Position}");
+            }
+
+            // Each key is a property with an optional direction; the keys are separated by ','
+            var keys = new List<ExpressionNode>();
+            do
+            {
+                var name = Consume(TokenType.Identifier, "Expected property name in orderBy").Value;
+                var direction = OrderDirection.Asc;
+                // 'asc' is the default, so it may be left out or written
+                if (Match(TokenType.Desc)) direction = OrderDirection.Desc;
+                else Match(TokenType.Asc);
+                keys.Add(new SortKeyNode(name, direction));
+            } while (Match(TokenType.Comma));
+
+            Consume(TokenType.CloseParen, "Expected ')' after orderBy argument");
+            return new FunctionNode(source, functionType, null, keys);
+        }
+
+        // :offset(n): the argument is validated when the expression is built (a whole number, 0 or greater)
+        if (functionType == FunctionType.Skip)
+        {
+            if (!Match(TokenType.OpenParen))
+            {
+                throw new ExpressionParseException(
+                    $"Function 'offset' requires a number argument at position {funcToken.Position}");
+            }
+
+            var propertyArg = ParseFunctionArgument();
+            Consume(TokenType.CloseParen, "Expected ')' after offset argument");
+
+            return new FunctionNode(source, functionType, null, [propertyArg]);
+        }
+        
+        // :limit(n): the argument is validated when the expression is built (a whole number, 0 or greater)
+        if (functionType == FunctionType.Take)
+        {
+            if (!Match(TokenType.OpenParen))
+            {
+                throw new ExpressionParseException(
+                    $"Function 'limit' requires a number argument at position {funcToken.Position}");
+            }
+
+            var propertyArg = ParseFunctionArgument();
+            Consume(TokenType.CloseParen, "Expected ')' after limit argument");
+
+            return new FunctionNode(source, functionType, null, [propertyArg]);
+        }
+
         // :distinct requires a property argument
         if (functionType == FunctionType.Distinct)
         {
             if (!Match(TokenType.OpenParen))
             {
-                throw new ExpressionParseException($"Function 'distinct' requires a property argument at position {funcToken.Position}");
+                throw new ExpressionParseException(
+                    $"Function 'distinct' requires a property argument at position {funcToken.Position}");
             }
 
             var propertyArg = ParseFunctionArgument();
@@ -695,7 +770,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
     {
         if (!Match(TokenType.OpenParen))
         {
-            throw new ExpressionParseException($"Function 'groupBy' requires at least one property argument at position {funcToken.Position}");
+            throw new ExpressionParseException(
+                $"Function 'groupBy' requires at least one property argument at position {funcToken.Position}");
         }
 
         var keyProperties = new List<string>();
@@ -725,7 +801,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             }
 
             // Unexpected token after dot
-            throw new ExpressionParseException($"Expected '{{' for projection after groupBy at position {Current().Position}");
+            throw new ExpressionParseException(
+                $"Expected '{{' for projection after groupBy at position {Current().Position}");
         }
 
         // Check for chained functions after groupBy (without projection)
@@ -752,8 +829,7 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         {
             var prop = ParseGroupByProjectionProperty(groupByNode.KeyProperties);
             properties.Add(prop);
-        }
-        while (Match(TokenType.Comma));
+        } while (Match(TokenType.Comma));
 
         Consume(TokenType.CloseBrace, "Expected '}' after projection");
 
@@ -817,7 +893,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
                 alias = Consume(TokenType.Identifier, "Expected alias name").Value;
             }
 
-            return ProjectionProperty.FromExpression(functionResult, alias ?? GetDefaultAliasForExpression(functionResult));
+            return ProjectionProperty.FromExpression(functionResult,
+                alias ?? GetDefaultAliasForExpression(functionResult));
         }
 
         // Parse identifier (key property name)
@@ -935,7 +1012,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
 
         // Functions with required arguments: substring, replace, concat, split
         if (!Match(TokenType.OpenParen))
-            throw new ExpressionParseException($"Function '{funcToken.Value}' requires arguments at position {funcToken.Position}");
+            throw new ExpressionParseException(
+                $"Function '{funcToken.Value}' requires arguments at position {funcToken.Position}");
 
         var arguments = new List<ExpressionNode> { ParseFunctionArgument() };
 
@@ -976,31 +1054,37 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             return new PropertyNode(name);
         }
 
-        throw new ExpressionParseException($"Expected argument (string, number, or property) at position {Current().Position}");
+        throw new ExpressionParseException(
+            $"Expected argument (string, number, or property) at position {Current().Position}");
     }
 
     /// <summary>
     /// Validates the number of arguments for string functions.
     /// </summary>
-    private static void ValidateStringFunctionArguments(FunctionType functionType, List<ExpressionNode> arguments, Token funcToken)
+    private static void ValidateStringFunctionArguments(FunctionType functionType, List<ExpressionNode> arguments,
+        Token funcToken)
     {
         switch (functionType)
         {
             case FunctionType.Substring:
                 if (arguments.Count < 1 || arguments.Count > 2)
-                    throw new ExpressionParseException($"substring requires 1 or 2 arguments at position {funcToken.Position}");
+                    throw new ExpressionParseException(
+                        $"substring requires 1 or 2 arguments at position {funcToken.Position}");
                 break;
             case FunctionType.Replace:
                 if (arguments.Count != 2)
-                    throw new ExpressionParseException($"replace requires exactly 2 arguments at position {funcToken.Position}");
+                    throw new ExpressionParseException(
+                        $"replace requires exactly 2 arguments at position {funcToken.Position}");
                 break;
             case FunctionType.Concat:
                 if (arguments.Count < 1)
-                    throw new ExpressionParseException($"concat requires at least 1 argument at position {funcToken.Position}");
+                    throw new ExpressionParseException(
+                        $"concat requires at least 1 argument at position {funcToken.Position}");
                 break;
             case FunctionType.Split:
                 if (arguments.Count != 1)
-                    throw new ExpressionParseException($"split requires exactly 1 argument at position {funcToken.Position}");
+                    throw new ExpressionParseException(
+                        $"split requires exactly 1 argument at position {funcToken.Position}");
                 break;
         }
     }
@@ -1093,7 +1177,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
                 }
                 else
                 {
-                    throw new ExpressionParseException($"Unknown function '{funcToken.Value}' at position {funcToken.Position}");
+                    throw new ExpressionParseException(
+                        $"Unknown function '{funcToken.Value}' at position {funcToken.Position}");
                 }
             }
 
@@ -1249,7 +1334,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         }
 
         // Parse property path (can include navigation: Country.Name)
-        var pathParts = new List<string> { Consume(TokenType.Identifier, "Expected property name in projection").Value };
+        var pathParts = new List<string>
+            { Consume(TokenType.Identifier, "Expected property name in projection").Value };
 
         // Continue collecting path segments while we see dots (but not .{ for projection)
         while (Match(TokenType.Dot))

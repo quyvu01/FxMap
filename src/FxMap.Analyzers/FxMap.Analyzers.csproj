@@ -89,6 +89,9 @@
       <Compile Include="..\FxMap\Expressions\Nodes\RootProjectionNode.cs">
         <Link>Nodes\RootProjectionNode.cs</Link>
       </Compile>
+      <Compile Include="..\FxMap\Expressions\Nodes\SortKeyNode.cs">
+        <Link>Nodes\SortKeyNode.cs</Link>
+      </Compile>
       <Compile Include="..\FxMap\Expressions\Nodes\TernaryNode.cs">
         <Link>Nodes\TernaryNode.cs</Link>
       </Compile>

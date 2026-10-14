@@ -11,9 +11,6 @@ namespace FxMap.Expressions.Building;
 /// </summary>
 public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBuildResult, ExpressionBuildContext>
 {
-    private static readonly MethodInfo StringLengthProperty =
-        typeof(string).GetProperty(nameof(string.Length))!.GetMethod!;
-
     private static readonly MethodInfo StringContainsMethod =
         typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
 
@@ -621,6 +618,9 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
             FunctionType.Mod => BuildMathBinaryFunction(sourceResult, node, context, ExpressionType.Modulo),
             FunctionType.Pow => BuildPowFunction(sourceResult, node, context),
             // Collection functions
+            FunctionType.OrderBy => BuildOrderByFunction(sourceResult, node, context),
+            FunctionType.Skip => BuildSkipFunction(sourceResult, node, context),
+            FunctionType.Take => BuildTakeFunction(sourceResult, node, context),
             FunctionType.Distinct => BuildDistinctFunction(sourceResult, node, context),
             _ => throw new InvalidOperationException($"Unknown function: {node.FunctionName}")
         };
@@ -986,6 +986,121 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
         var call = Expression.Call(powMethod, sourceDouble, exponentDouble);
 
         return new ExpressionBuildResult(typeof(double), call);
+    }
+
+    /// <summary>
+    /// Builds OrderBy function: OrderBy/OrderByDescending for the first key, ThenBy/ThenByDescending for the others.
+    /// Example: Items:orderBy(Name) -> Items.OrderBy(x => x.Name)
+    /// Example: Items:orderBy(Name asc) -> Items.OrderBy(x => x.Name)
+    /// Example: Items:orderBy(Name desc) -> Items.OrderByDescending(x => x.Name)
+    /// Example: Items:orderBy(CreatedAt, CreatedBy desc) -> Items.OrderBy(x => x.CreatedAt).ThenByDescending(x => x.CreatedBy)
+    /// </summary>
+    private ExpressionBuildResult BuildOrderByFunction(ExpressionBuildResult source, FunctionNode node,
+        ExpressionBuildContext context)
+    {
+        if (!TryGetEnumerableElementType(source.Type, out var elementType))
+        {
+            throw new InvalidOperationException(
+                $"Cannot apply orderBy function to non-collection type '{source.Type.Name}'");
+        }
+
+        var args = node.GetArguments();
+        if (args.Count == 0)
+        {
+            throw new InvalidOperationException("orderBy function requires at least one property argument");
+        }
+
+        var typeAccessor = context.TypeAccessorProvider(elementType);
+        var parameter = Expression.Parameter(elementType, "a");
+        var current = source.Expression;
+        Type resultType = null;
+
+        for (var i = 0; i < args.Count; i++)
+        {
+            var (propertyName, direction) = args[i] switch
+            {
+                SortKeyNode key => (key.Name, key.Direction),
+                PropertyNode prop => (prop.Name, OrderDirection.Asc),
+                LiteralNode { LiteralType: LiteralType.String } literal => ((string)literal.Value!, OrderDirection.Asc),
+                _ => throw new InvalidOperationException("orderBy function requires property name arguments")
+            };
+
+            var propertyInfo = typeAccessor.GetPropertyInfo(propertyName)
+                               ?? throw new InvalidOperationException(
+                                   $"Property '{propertyName}' not found on type '{elementType.Name}'");
+            var keyLambda = Expression.Lambda(Expression.Property(parameter, propertyInfo), parameter);
+
+            var methodName = (i == 0, direction) switch
+            {
+                (true, OrderDirection.Asc) => nameof(Enumerable.OrderBy),
+                (true, _) => nameof(Enumerable.OrderByDescending),
+                (false, OrderDirection.Asc) => nameof(Enumerable.ThenBy),
+                _ => nameof(Enumerable.ThenByDescending)
+            };
+
+            current = Expression.Call(typeof(Enumerable), methodName, [elementType, propertyInfo.PropertyType],
+                current, keyLambda);
+            resultType = typeof(IOrderedEnumerable<>).MakeGenericType(elementType);
+        }
+
+        return new ExpressionBuildResult(resultType, current);
+    }
+
+    /// <summary>
+    /// Builds Skip function: source.Skip(n)
+    /// Example: Items:offset(2) -> Items.Skip(2)
+    /// </summary>
+    private ExpressionBuildResult BuildSkipFunction(ExpressionBuildResult source, FunctionNode node,
+        ExpressionBuildContext context)
+    {
+        if (!TryGetEnumerableElementType(source.Type, out var elementType))
+        {
+            throw new InvalidOperationException(
+                $"Cannot apply offset function to non-collection type '{source.Type.Name}'");
+        }
+
+        var count = GetNonNegativeCount(node, "offset");
+        var skipCall = Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [elementType],
+            source.Expression, Expression.Constant(count));
+
+        return new ExpressionBuildResult(typeof(IEnumerable<>).MakeGenericType(elementType), skipCall);
+    }
+
+    /// <summary>
+    /// Builds Take function: source.Take(n)
+    /// Example: Items:limit(10) -> Items.Take(10)
+    /// </summary>
+    private ExpressionBuildResult BuildTakeFunction(ExpressionBuildResult source, FunctionNode node,
+        ExpressionBuildContext context)
+    {
+        if (!TryGetEnumerableElementType(source.Type, out var elementType))
+        {
+            throw new InvalidOperationException(
+                $"Cannot apply limit function to non-collection type '{source.Type.Name}'");
+        }
+
+        var count = GetNonNegativeCount(node, "limit");
+        var takeCall = Expression.Call(typeof(Enumerable), nameof(Enumerable.Take), [elementType],
+            source.Expression, Expression.Constant(count));
+
+        return new ExpressionBuildResult(typeof(IEnumerable<>).MakeGenericType(elementType), takeCall);
+    }
+
+    /// <summary>
+    /// Reads the argument of offset/limit: a whole number that is not negative.
+    /// </summary>
+    private static int GetNonNegativeCount(FunctionNode node, string functionName)
+    {
+        var args = node.GetArguments();
+        if (args.Count != 1 || args[0] is not LiteralNode { LiteralType: LiteralType.Number } literal)
+            throw new InvalidOperationException($"{functionName} function requires one number argument");
+
+        var number = Convert.ToDecimal(literal.Value, System.Globalization.CultureInfo.InvariantCulture);
+        if (number < 0 || number != decimal.Truncate(number) || number > int.MaxValue)
+            throw new InvalidOperationException(
+                $"{functionName} function requires a whole number between 0 and {int.MaxValue}, got {number}");
+
+        return (int)number;
     }
 
     /// <summary>

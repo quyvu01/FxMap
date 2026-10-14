@@ -22,6 +22,10 @@ public class MongoProviderTests(MongoProviderFixture mongo) : IClassFixture<Mong
         ProviderScenarios.Navigation_and_aggregates_are_computed_by_the_database(mongo);
 
     [MongoFact]
+    public Task A_collection_is_ordered_and_paged_by_the_database() =>
+        ProviderScenarios.A_collection_is_ordered_and_paged_by_the_database(mongo);
+
+    [MongoFact]
     public Task A_missing_nested_object_and_an_empty_collection_give_null_and_zero() =>
         ProviderScenarios.A_missing_nested_object_and_an_empty_collection_give_null_and_zero(mongo);
 

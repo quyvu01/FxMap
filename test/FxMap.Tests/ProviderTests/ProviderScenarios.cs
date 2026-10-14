@@ -71,6 +71,27 @@ public static class ProviderScenarios
         ValueOf<int>(bob, "Orders:count").ShouldBe(1);
     }
 
+    public static async Task A_collection_is_ordered_and_paged_by_the_database(IProviderRunner run)
+    {
+        var response = await run.RunAsync<ProviderCustomerKey>(["c1", "c3"],
+            "Orders:orderBy(Total desc)", "Orders:orderBy(Status, Total desc)", "Orders:orderBy(Number desc):offset(1):limit(1)",
+            "Orders:offset(5)", "Orders:limit(0)");
+
+        var alice = response.Items.Single(i => i.Id == "c1");
+        ValueOf<List<ProviderOrder>>(alice, "Orders:orderBy(Total desc)").Select(o => o.Number).ShouldBe([3, 1, 2]);
+        // Done (1500, 350) before Pending, by total descending within a status
+        ValueOf<List<ProviderOrder>>(alice, "Orders:orderBy(Status, Total desc)").Select(o => o.Number)
+            .ShouldBe([1, 2, 3]);
+        ValueOf<List<ProviderOrder>>(alice, "Orders:orderBy(Number desc):offset(1):limit(1)").Select(o => o.Number)
+            .ShouldBe([2]);
+        ValueOf<List<ProviderOrder>>(alice, "Orders:offset(5)").ShouldBeEmpty();
+        ValueOf<List<ProviderOrder>>(alice, "Orders:limit(0)").ShouldBeEmpty();
+
+        // No order at all: an empty list, not a failure
+        var carol = response.Items.Single(i => i.Id == "c3");
+        (ValueOf<List<ProviderOrder>>(carol, "Orders:orderBy(Total desc)") ?? []).ShouldBeEmpty();
+    }
+
     public static async Task A_missing_nested_object_and_an_empty_collection_give_null_and_zero(IProviderRunner run)
     {
         var response = await run.RunAsync<ProviderCustomerKey>(["c3"], "Address.City", "Orders:count", "Orders:sum(Total)");

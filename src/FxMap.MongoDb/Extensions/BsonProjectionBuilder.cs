@@ -480,6 +480,9 @@ public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, Bs
             FunctionType.Mod => BuildMathBinaryFunction(sourceValue, "$mod", node, context),
             FunctionType.Pow => BuildMathBinaryFunction(sourceValue, "$pow", node, context),
             // Collection functions
+            FunctionType.OrderBy => BuildOrderByFunction(sourceValue, node),
+            FunctionType.Skip => BuildSkipFunction(sourceValue, node),
+            FunctionType.Take => BuildTakeFunction(sourceValue, node),
             FunctionType.Distinct => BuildDistinctFunction(sourceValue, node, context),
             _ => throw new InvalidOperationException($"Unknown function: {node.FunctionName}")
         };
@@ -664,6 +667,79 @@ public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, Bs
 
         var operandValue = args[0].Accept(this, context);
         return new BsonDocument(operation, new BsonArray { sourceValue, operandValue });
+    }
+
+    /// <summary>
+    /// Builds MongoDB $sortArray (MongoDB 5.2+): the keys are sorted in the order they were written.
+    /// Example: Items:orderBy(Day, By desc) -> { $sortArray: { input: "$Items", sortBy: { Day: 1, By: -1 } } }
+    /// </summary>
+    private static BsonValue BuildOrderByFunction(BsonValue sourceValue, FunctionNode node)
+    {
+        var args = node.GetArguments();
+        if (args.Count == 0)
+            throw new InvalidOperationException("orderBy function requires at least one property argument");
+
+        var sortBy = new BsonDocument();
+        foreach (var arg in args)
+        {
+            var (name, direction) = arg switch
+            {
+                SortKeyNode key => (key.Name, key.Direction),
+                PropertyNode prop => (prop.Name, OrderDirection.Asc),
+                LiteralNode { LiteralType: LiteralType.String } literal => ((string)literal.Value!, OrderDirection.Asc),
+                _ => throw new InvalidOperationException("orderBy function requires property name arguments")
+            };
+            if (sortBy.Contains(name))
+                throw new InvalidOperationException($"orderBy function has the property '{name}' twice");
+            sortBy.Add(name, direction == OrderDirection.Asc ? 1 : -1);
+        }
+
+        return new BsonDocument("$sortArray", new BsonDocument
+        {
+            { "input", new BsonDocument("$ifNull", new BsonArray { sourceValue, new BsonArray() }) },
+            { "sortBy", sortBy }
+        });
+    }
+
+    /// <summary>
+    /// Builds MongoDB $slice from a position to the end: Items:offset(2) -> { $slice: ["$Items", 2, int.MaxValue] }
+    /// </summary>
+    private static BsonValue BuildSkipFunction(BsonValue sourceValue, FunctionNode node)
+    {
+        var count = GetNonNegativeCount(node, "offset");
+        return new BsonDocument("$slice", new BsonArray
+        {
+            new BsonDocument("$ifNull", new BsonArray { sourceValue, new BsonArray() }), count, int.MaxValue
+        });
+    }
+
+    /// <summary>
+    /// Builds MongoDB $slice of the first n items: Items:limit(10) -> { $slice: ["$Items", 10] }
+    /// </summary>
+    private static BsonValue BuildTakeFunction(BsonValue sourceValue, FunctionNode node)
+    {
+        var count = GetNonNegativeCount(node, "limit");
+        // $slice does not take a count of 0
+        if (count == 0) return new BsonArray();
+
+        return new BsonDocument("$slice", new BsonArray
+        {
+            new BsonDocument("$ifNull", new BsonArray { sourceValue, new BsonArray() }), count
+        });
+    }
+
+    private static int GetNonNegativeCount(FunctionNode node, string functionName)
+    {
+        var args = node.GetArguments();
+        if (args.Count != 1 || args[0] is not LiteralNode { LiteralType: LiteralType.Number } literal)
+            throw new InvalidOperationException($"{functionName} function requires one number argument");
+
+        var number = Convert.ToDecimal(literal.Value, System.Globalization.CultureInfo.InvariantCulture);
+        if (number < 0 || number != decimal.Truncate(number) || number > int.MaxValue)
+            throw new InvalidOperationException(
+                $"{functionName} function requires a whole number between 0 and {int.MaxValue}, got {number}");
+
+        return (int)number;
     }
 
     /// <summary>

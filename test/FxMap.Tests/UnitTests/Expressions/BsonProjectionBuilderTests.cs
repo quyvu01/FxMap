@@ -499,4 +499,53 @@ public sealed class BsonProjectionBuilderTests
     }
 
     #endregion
+
+    #region Collection Functions - OrderBy, Offset, Limit
+
+    private BsonValue Build(string expression) =>
+        ExpressionParser.Parse(expression).Accept(_builder, new BsonBuildContext(null));
+
+    [Theory]
+    [InlineData("Items:orderBy(Day)", "{ Day: 1 }")]
+    [InlineData("Items:orderBy(Day asc)", "{ Day: 1 }")]
+    [InlineData("Items:orderBy(Day desc)", "{ Day: -1 }")]
+    [InlineData("Items:orderBy(Day, By desc)", "{ Day: 1, By: -1 }")]
+    public void OrderBy_builds_sortArray_with_the_keys_in_order(string expression, string sortBy)
+    {
+        var doc = Build(expression).ShouldBeOfType<BsonDocument>()["$sortArray"].AsBsonDocument;
+
+        doc["sortBy"].ShouldBe(BsonDocument.Parse(sortBy));
+        doc["input"].AsBsonDocument["$ifNull"].AsBsonArray[0].ShouldBe("$Items");
+    }
+
+    [Fact]
+    public void Offset_builds_slice_from_a_position()
+    {
+        var slice = Build("Items:offset(2)").ShouldBeOfType<BsonDocument>()["$slice"].AsBsonArray;
+
+        slice[1].ShouldBe(2);
+        slice[2].ShouldBe(int.MaxValue);
+    }
+
+    [Fact]
+    public void Limit_builds_slice_of_the_first_items_and_zero_gives_an_empty_array()
+    {
+        var slice = Build("Items:limit(3)").ShouldBeOfType<BsonDocument>()["$slice"].AsBsonArray;
+        slice.Count.ShouldBe(2);
+        slice[1].ShouldBe(3);
+
+        Build("Items:limit(0)").ShouldBeOfType<BsonArray>().ShouldBeEmpty();
+    }
+
+    [Theory]
+    [InlineData("Items:offset(-1)")]
+    [InlineData("Items:limit(1.5)")]
+    [InlineData("Items:limit(Name)")]
+    [InlineData("Items:orderBy(Day, Day desc)")]
+    public void A_wrong_argument_is_rejected(string expression)
+    {
+        Should.Throw<Exception>(() => Build(expression));
+    }
+
+    #endregion
 }

@@ -4,7 +4,7 @@ namespace FxMap.Analyzers;
 /// Represents a function applied to a property: Name:count, Orders:sum(Total), Name:upper, Name:substring(0, 3)
 /// </summary>
 /// <param name="Source">The source expression to apply the function on.</param>
-/// <param name="FunctionName">The function name: count, sum, avg, min, max, upper, lower, trim, substring, replace, concat, split.</param>
+/// <param name="FunctionName">The function name: count, sum, avg, min, max, upper, lower, trim, substring, replace, concat, split, orderBy, offset, limit, distinct, ...</param>
 /// <param name="Argument">Optional argument for aggregate functions (e.g., sum(Total)). For backwards compatibility.</param>
 /// <param name="Arguments">Multiple arguments for string functions (e.g., substring(0, 3), replace('a', 'b')).</param>
 public sealed record FunctionNode(
@@ -279,6 +279,31 @@ public enum FunctionType
     Pow,
 
     // Collection functions
+
+    /// <summary>
+    /// Skips the first n items of a collection: Items:offset(2) -> all items but the first two
+    /// Arguments: a whole number, 0 or greater
+    /// LINQ: .Skip(n)
+    /// MongoDB: $slice from position n
+    /// </summary>
+    Skip,
+
+    /// <summary>
+    /// Takes the first n items of a collection: Items:limit(10) -> at most 10 items
+    /// Arguments: a whole number, 0 or greater
+    /// LINQ: .Take(n)
+    /// MongoDB: $slice of the first n (limit(0) is an empty array)
+    /// </summary>
+    Take,
+
+    /// <summary>
+    /// Orders a collection by one or more properties: Items:orderBy(CreatedAt, CreatedBy desc)
+    /// Arguments: <see cref="SortKeyNode"/>s. The direction is asc (default) or desc; the first key orders,
+    /// the next keys order the items that are equal on the previous ones (thenBy).
+    /// LINQ: .OrderBy(x => x.CreatedAt).ThenByDescending(x => x.CreatedBy)
+    /// MongoDB: $sortArray with sortBy { CreatedAt: 1, CreatedBy: -1 } (MongoDB 5.2+)
+    /// </summary>
+    OrderBy,
 
     /// <summary>
     /// Selects distinct values from a collection by property: Items:distinct(Name) -> ["A", "B", "C"]
