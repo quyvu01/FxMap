@@ -142,7 +142,9 @@ public class ServerLifecycleTests(ITestOutputHelper output)
     [NatsFact]
     public async Task Nats_a_server_can_be_stopped_and_started_again()
     {
-        await using var h = await StartNats(startOwner: false);
+        // A short timeout for each attempt: a request sent in the few milliseconds after a server stopped can reach its subscription
+        // before the NATS server has processed the unsubscribe, and nobody answers it; the test must not wait for the default timeout.
+        await using var h = await StartNats(startOwner: false, Timeout);
         var server = h.OwnerServices.GetRequiredService<INatsServer<ProviderCustomer, ProviderCustomerKey>>();
 
         await LifecycleScenarios.A_server_can_be_stopped_and_started_again(h, server);
