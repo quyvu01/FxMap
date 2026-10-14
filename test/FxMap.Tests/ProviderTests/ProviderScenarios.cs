@@ -75,7 +75,7 @@ public static class ProviderScenarios
     {
         var response = await run.RunAsync<ProviderCustomerKey>(["c1", "c3"],
             "Orders:orderBy(Total desc)", "Orders:orderBy(Status, Total desc)", "Orders:orderBy(Number desc):offset(1):limit(1)",
-            "Orders:offset(5)", "Orders:limit(0)");
+            "Orders:offset(5)", "Orders:limit(0)", "Orders:orderBy(Total desc):first", "Orders:orderBy(Total desc):last");
 
         var alice = response.Items.Single(i => i.Id == "c1");
         ValueOf<List<ProviderOrder>>(alice, "Orders:orderBy(Total desc)").Select(o => o.Number).ShouldBe([3, 1, 2]);
@@ -86,6 +86,9 @@ public static class ProviderScenarios
             .ShouldBe([2]);
         ValueOf<List<ProviderOrder>>(alice, "Orders:offset(5)").ShouldBeEmpty();
         ValueOf<List<ProviderOrder>>(alice, "Orders:limit(0)").ShouldBeEmpty();
+
+        ValueOf<ProviderOrder>(alice, "Orders:orderBy(Total desc):first").Number.ShouldBe(3);
+        ValueOf<ProviderOrder>(alice, "Orders:orderBy(Total desc):last").Number.ShouldBe(2);
 
         // No order at all: an empty list, not a failure
         var carol = response.Items.Single(i => i.Id == "c3");

@@ -621,6 +621,8 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
             FunctionType.OrderBy => BuildOrderByFunction(sourceResult, node, context),
             FunctionType.Skip => BuildSkipFunction(sourceResult, node, context),
             FunctionType.Take => BuildTakeFunction(sourceResult, node, context),
+            FunctionType.First => BuildFirstOrLastFunction(sourceResult, nameof(Enumerable.FirstOrDefault)),
+            FunctionType.Last => BuildFirstOrLastFunction(sourceResult, nameof(Enumerable.LastOrDefault)),
             FunctionType.Distinct => BuildDistinctFunction(sourceResult, node, context),
             _ => throw new InvalidOperationException($"Unknown function: {node.FunctionName}")
         };
@@ -1084,6 +1086,22 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
             source.Expression, Expression.Constant(count));
 
         return new ExpressionBuildResult(typeof(IEnumerable<>).MakeGenericType(elementType), takeCall);
+    }
+
+    /// <summary>
+    /// Builds First/Last function: the first or the last item of the collection, or the default when it is empty.
+    /// Example: Items:orderBy(Date):first -> Items.OrderBy(x => x.Date).FirstOrDefault()
+    /// </summary>
+    private static ExpressionBuildResult BuildFirstOrLastFunction(ExpressionBuildResult source, string methodName)
+    {
+        if (!TryGetEnumerableElementType(source.Type, out var elementType))
+        {
+            throw new InvalidOperationException(
+                $"Cannot apply first/last function to non-collection type '{source.Type.Name}'");
+        }
+
+        var call = Expression.Call(typeof(Enumerable), methodName, [elementType], source.Expression);
+        return new ExpressionBuildResult(elementType, call);
     }
 
     /// <summary>

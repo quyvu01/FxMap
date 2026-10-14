@@ -29,7 +29,7 @@ namespace FxMap.Analyzers;
 /// Indexer          := '[' (Number (Number)?)? ('asc' | 'desc') Identifier ']'
 /// Projection       := '.{' Identifier (',' Identifier)* '}'
 /// Function         := ':' FunctionName ('(' Identifier ')' | '(' Condition ')')?
-/// FunctionName     := 'count' | 'sum' | 'avg' | 'min' | 'max' | 'any' | 'all' | 'orderBy' | 'offset' | 'limit' | 'distinct' | ...
+/// FunctionName     := 'count' | 'sum' | 'avg' | 'min' | 'max' | 'any' | 'all' | 'orderBy' | 'offset' | 'limit' | 'first' | 'last' | 'distinct' | ...
 /// SortKey          := Identifier ('asc' | 'desc')?        (orderBy takes SortKeys separated by ',': orderBy(CreatedAt, CreatedBy desc))
 /// </code>
 /// </remarks>
@@ -80,6 +80,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         ["orderBy"] = FunctionType.OrderBy,
         ["offset"] = FunctionType.Skip,
         ["limit"] = FunctionType.Take,
+        ["first"] = FunctionType.First,
+        ["last"] = FunctionType.Last,
         ["distinct"] = FunctionType.Distinct,
     };
 
@@ -126,6 +128,8 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         FunctionType.OrderBy,
         FunctionType.Skip,
         FunctionType.Take,
+        FunctionType.First,
+        FunctionType.Last,
         FunctionType.Distinct
     ];
 
@@ -153,7 +157,17 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         var tokenizer = new Tokenizer(expression);
         var tokens = tokenizer.Tokenize();
         var parser = new ExpressionParser(tokens);
-        return parser.ParseExpression();
+        var result = parser.ParseExpression();
+
+        // The whole text must be part of the expression: a rest that is left would be silently ignored
+        if (!parser.IsAtEnd())
+        {
+            var rest = parser.Current();
+            throw new ExpressionParseException(
+                $"Unexpected '{rest.Value}' at position {rest.Position}");
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -450,6 +464,19 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         if (Match(TokenType.Colon))
         {
             result = ParseFunctionOrAggregation(result);
+
+            // What follows a function that gives an item or a collection: Entries(Day > 1):first.{Name}, :first.Name
+            // (the functions that follow a segment without a filter are continued by the loop above)
+            var rest = new List<ExpressionNode> { result };
+            while (Match(TokenType.Dot))
+            {
+                if (Check(TokenType.OpenBrace))
+                    return ParseProjection(rest.Count == 1 ? rest[0] : new NavigationNode(rest));
+
+                rest.Add(ParseSegment());
+            }
+
+            if (rest.Count > 1) result = new NavigationNode(rest);
         }
 
         // Validate: projection must have '.' before '{'
@@ -505,7 +532,7 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
     /// Parses a function or aggregation: :count, :sum(Total), :any, :any(Status = 'Done'), :all(IsApproved = true)
     /// String functions: :upper, :lower, :trim, :substring(0, 3), :replace('a', 'b'), :concat(' ', LastName), :split(',')
     /// Date functions: :year, :month, :day, :hour, :minute, :second, :dayOfWeek, :daysAgo, :format('yyyy-MM-dd')
-    /// Collection functions: :orderBy(Property1, Property2 desc), :offset(2), :limit(10), :distinct(Property), :groupBy(Property1, Property2)
+    /// Collection functions: :orderBy(Property1, Property2 desc), :offset(2), :limit(10), :first, :last, :distinct(Property), :groupBy(Property1, Property2)
     /// </summary>
     private ExpressionNode ParseFunctionOrAggregation(ExpressionNode source)
     {
@@ -672,10 +699,15 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
     /// :orderBy(Key [asc|desc], ...) - orders by the first key, then by the others: x.Items.OrderBy(a => a.Key).ThenBy(...)
     /// :offset(n) - skips the first n items: x.Items.Skip(n)
     /// :limit(n) - takes the first n items: x.Items.Take(n)
+    /// :first, :last - the first or the last item, with no arguments: x.Items.FirstOrDefault(), x.Items.LastOrDefault()
     /// :distinct(PropertyName) - selects distinct values by property: x.Items.Select(a => a.Property).Distinct()
     /// </summary>
     private FunctionNode ParseCollectionFunction(ExpressionNode source, FunctionType functionType, Token funcToken)
     {
+        // :first and :last take no arguments
+        if (functionType is FunctionType.First or FunctionType.Last)
+            return new FunctionNode(source, functionType);
+
         // :orderBy(CreatedAt), :orderBy(CreatedAt desc), :orderBy(CreatedAt, CreatedBy desc): the first key orders, the others are thenBy
         if (functionType == FunctionType.OrderBy)
         {

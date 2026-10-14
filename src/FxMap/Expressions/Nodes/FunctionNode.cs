@@ -306,6 +306,23 @@ public enum FunctionType
     OrderBy,
 
     /// <summary>
+    /// The first item of a collection, or null when it is empty: Items:orderBy(CreatedAt):first
+    /// No arguments. The collection is not ordered by this function: put orderBy before it.
+    /// LINQ: .FirstOrDefault()
+    /// MongoDB: $first
+    /// </summary>
+    First,
+
+    /// <summary>
+    /// The last item of a collection, or null when it is empty: Items:orderBy(CreatedAt):last
+    /// No arguments. The collection is not ordered by this function: put orderBy before it
+    /// (some providers, such as EF Core, reject LastOrDefault on an unordered query).
+    /// LINQ: .LastOrDefault()
+    /// MongoDB: $last
+    /// </summary>
+    Last,
+
+    /// <summary>
     /// Selects distinct values from a collection by property: Items:distinct(Name) -> ["A", "B", "C"]
     /// Arguments: property name to select distinct values from
     /// LINQ: .Select(x => x.Property).Distinct()

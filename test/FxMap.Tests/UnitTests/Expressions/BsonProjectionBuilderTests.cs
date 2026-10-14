@@ -518,6 +518,17 @@ public sealed class BsonProjectionBuilderTests
         doc["input"].AsBsonDocument["$ifNull"].AsBsonArray[0].ShouldBe("$Items");
     }
 
+    [Theory]
+    [InlineData("Items:first", "$first")]
+    [InlineData("Items:last", "$last")]
+    [InlineData("Items:orderBy(Day desc):first", "$first")]
+    public void First_and_last_build_the_array_operators(string expression, string op)
+    {
+        var doc = Build(expression).ShouldBeOfType<BsonDocument>();
+
+        doc.Names.ShouldBe([op]);
+    }
+
     [Fact]
     public void Offset_builds_slice_from_a_position()
     {

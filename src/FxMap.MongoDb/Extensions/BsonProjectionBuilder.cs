@@ -483,6 +483,8 @@ public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, Bs
             FunctionType.OrderBy => BuildOrderByFunction(sourceValue, node),
             FunctionType.Skip => BuildSkipFunction(sourceValue, node),
             FunctionType.Take => BuildTakeFunction(sourceValue, node),
+            FunctionType.First => new BsonDocument("$first", EmptyIfNull(sourceValue)),
+            FunctionType.Last => new BsonDocument("$last", EmptyIfNull(sourceValue)),
             FunctionType.Distinct => BuildDistinctFunction(sourceValue, node, context),
             _ => throw new InvalidOperationException($"Unknown function: {node.FunctionName}")
         };
@@ -727,6 +729,10 @@ public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, Bs
             new BsonDocument("$ifNull", new BsonArray { sourceValue, new BsonArray() }), count
         });
     }
+
+    /// <summary>A null or missing array is an empty one: { $ifNull: [source, []] }</summary>
+    private static BsonValue EmptyIfNull(BsonValue sourceValue) =>
+        new BsonDocument("$ifNull", new BsonArray { sourceValue, new BsonArray() });
 
     private static int GetNonNegativeCount(FunctionNode node, string functionName)
     {
