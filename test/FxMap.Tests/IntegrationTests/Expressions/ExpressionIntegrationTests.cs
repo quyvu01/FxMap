@@ -557,7 +557,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_SimpleEquals_ReturnsMatchingItems()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed'):count" };
+        var expressions = new List<string> { "Orders:where(Status = 'Completed'):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -572,7 +572,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_GreaterThan_ReturnsMatchingItems()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Total > 1000):count" };
+        var expressions = new List<string> { "Orders:where(Total > 1000):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -587,7 +587,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_LessThanOrEqual_ReturnsMatchingItems()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Total <= 500):count" };
+        var expressions = new List<string> { "Orders:where(Total <= 500):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -602,7 +602,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_NotEquals_ReturnsNonMatchingItems()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status != 'Cancelled'):count" };
+        var expressions = new List<string> { "Orders:where(Status != 'Cancelled'):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -618,7 +618,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     {
         // Test contains filter on string property - Orders where Status contains 'end'
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status contains 'end'):count" };
+        var expressions = new List<string> { "Orders:where(Status contains 'end'):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -634,7 +634,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     {
         // Test startswith filter - Orders where Status starts with 'C'
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status startswith 'C'):count" };
+        var expressions = new List<string> { "Orders:where(Status startswith 'C'):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -650,7 +650,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     {
         // Test endswith filter - Orders where Status ends with 'ed'
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status endswith 'ed'):count" };
+        var expressions = new List<string> { "Orders:where(Status endswith 'ed'):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -665,7 +665,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_AndCondition_ReturnsMatchingItems()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed', Total > 500):count" };
+        var expressions = new List<string> { "Orders:where(Status = 'Completed', Total > 500):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -680,7 +680,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task Filter_OrCondition_ReturnsMatchingItems()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Pending' || Status = 'Cancelled'):count" };
+        var expressions = new List<string> { "Orders:where(Status = 'Pending' || Status = 'Cancelled'):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -886,9 +886,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_FilterThenIndexerThenProjection()
     {
-        // Orders(Status = 'Completed'):orderBy(OrderDate):first.{Id, Total}
+        // Orders:where(Status = 'Completed'):orderBy(OrderDate):first.{Id, Total}
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed'):orderBy(OrderDate):first.{Id, Total}" };
+        var expressions = new List<string> { "Orders:where(Status = 'Completed'):orderBy(OrderDate):first.{Id, Total}" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -907,9 +907,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_FilterThenAggregate()
     {
-        // Orders(Status = 'Completed'):sum(Total)
+        // Orders:where(Status = 'Completed'):sum(Total)
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed'):sum(Total)" };
+        var expressions = new List<string> { "Orders:where(Status = 'Completed'):sum(Total)" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -923,9 +923,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_FilteredCollectionMax()
     {
-        // Orders(Status = 'Completed'):max(Total)
+        // Orders:where(Status = 'Completed'):max(Total)
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed'):max(Total)" };
+        var expressions = new List<string> { "Orders:where(Status = 'Completed'):max(Total)" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -940,9 +940,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_FilteredCollectionMin()
     {
-        // Orders(Status = 'Completed'):min(Total)
+        // Orders:where(Status = 'Completed'):min(Total)
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed'):min(Total)" };
+        var expressions = new List<string> { "Orders:where(Status = 'Completed'):min(Total)" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -957,9 +957,9 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public async Task Complex_FilteredProvincesCount()
     {
-        // Provinces(Area > 200000):count - Texas and California
+        // Provinces:where(Area > 200000):count - Texas and California
         var builder = Countries();
-        var expressions = new List<string> { "Provinces(Area > 200000):count" };
+        var expressions = new List<string> { "Provinces:where(Area > 200000):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Countries
@@ -1001,7 +1001,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
             "Age",
             "IsVip",
             "Orders:count",
-            "Orders(Status = 'Completed'):sum(Total)",
+            "Orders:where(Status = 'Completed'):sum(Total)",
             "Orders:avg(Total)"
         };
         var projection = builder.Build(expressions);
@@ -1059,7 +1059,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     public async Task EdgeCase_FilterReturnsEmpty_CountReturnsZero()
     {
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'NonExistent'):count" };
+        var expressions = new List<string> { "Orders:where(Status = 'NonExistent'):count" };
         var projection = builder.Build(expressions);
 
         var results = await _dbContext.Customers
@@ -1369,7 +1369,7 @@ public sealed class ExpressionIntegrationTests : IDisposable
     {
         // Arrange
         var builder = Customers();
-        var expressions = new List<string> { "Orders(Status = 'Completed').{Id, Total}" };
+        var expressions = new List<string> { "Orders:where(Status = 'Completed').{Id, Total}" };
         var projection = builder.Build(expressions);
 
         // Act
@@ -1512,16 +1512,16 @@ public sealed class ExpressionIntegrationTests : IDisposable
     [Fact]
     public void Parser_ComplexChain_ParsesCorrectly()
     {
-        // Orders(Status = 'Done'):orderBy(OrderDate):limit(2).Items(Quantity > 1):sum(Price)
-        var node = ExpressionParser.Parse("Orders(Status = 'Done'):orderBy(OrderDate):limit(2).Items(Quantity > 1):sum(Price)");
+        // Orders:where(Status = 'Done'):orderBy(OrderDate):limit(2).Items:where(Quantity > 1):sum(Price)
+        var node = ExpressionParser.Parse("Orders:where(Status = 'Done'):orderBy(OrderDate):limit(2).Items:where(Quantity > 1):sum(Price)");
 
-        // The structure should be: sum over the navigation [limit(orderBy(filter(Orders))), Items(filter)]
-        var sum = node.ShouldBeOfType<AggregationNode>();
-        sum.AggregationType.ShouldBe(AggregationType.Sum);
-        var navigation = sum.Source.ShouldBeOfType<NavigationNode>();
+        // The structure should be: NavigationNode [limit(orderBy(where(Orders))), sum(where(Items))]
+        var navigation = node.ShouldBeOfType<NavigationNode>();
         navigation.Segments.Count.ShouldBe(2);
         navigation.Segments[0].ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.Take);
-        navigation.Segments[1].ShouldBeOfType<FilterNode>();
+        var sum = navigation.Segments[1].ShouldBeOfType<AggregationNode>();
+        sum.AggregationType.ShouldBe(AggregationType.Sum);
+        sum.Source.ShouldBeOfType<FilterNode>();
     }
 
     #endregion

@@ -307,7 +307,7 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             {
                 var funcName = Current().Value.ToLowerInvariant();
                 if (FunctionNames.ContainsKey(funcName) || BooleanFunctionNames.ContainsKey(funcName) ||
-                    AggregationNames.ContainsKey(funcName))
+                    AggregationNames.ContainsKey(funcName) || funcName == "where")
                 {
                     // It's a function, restore and parse normally
                     _position = savedPosition;
@@ -329,13 +329,9 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             }
         }
 
-        // Check for filter: (condition)
-        if (Match(TokenType.OpenParen))
-        {
-            var condition = ParseCondition();
-            Consume(TokenType.CloseParen, "Expected ')' after filter condition");
-            result = new FilterNode(result, condition);
-        }
+        // The filter Name(condition) was removed in 5.0: it is the function :where(condition)
+        if (Check(TokenType.OpenParen))
+            throw FilterRemoved();
 
         // The indexer syntax [skip take asc|desc Name] was removed in 5.0
         if (Check(TokenType.OpenBracket))
@@ -454,33 +450,7 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             segments.Add(ParseSegment());
         }
 
-        // Final result - check for trailing colon function (aggregation at end)
         var result = segments.Count == 1 ? segments[0] : new NavigationNode(segments);
-
-        // Handle trailing function like :count, :sum(Total)
-        if (Match(TokenType.Colon))
-        {
-            result = ParseFunctionOrAggregation(result);
-
-            // What follows a function that gives an item or a collection: Entries(Day > 1):first.{Name}, :first.Name
-            // (the functions that follow a segment without a filter are continued by the loop above)
-            var rest = new List<ExpressionNode> { result };
-            while (Match(TokenType.Dot))
-            {
-                if (Check(TokenType.OpenBrace))
-                    return ParseProjection(rest.Count == 1 ? rest[0] : new NavigationNode(rest));
-
-                rest.Add(ParseSegment());
-            }
-
-            if (rest.Count > 1)
-            {
-                result = new NavigationNode(rest);
-                // The last segment can end with a function of its own: Orders(..):first.Items(Quantity > 1):sum(Price)
-                if (Match(TokenType.Colon))
-                    result = ParseFunctionOrAggregation(result);
-            }
-        }
 
         // Validate: projection must have '.' before '{'
         if (Check(TokenType.OpenBrace))
@@ -507,13 +477,9 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             result = ParseFunctionOrAggregation(result);
         }
 
-        // Check for filter: (condition)
-        if (Match(TokenType.OpenParen))
-        {
-            var condition = ParseCondition();
-            Consume(TokenType.CloseParen, "Expected ')' after filter condition");
-            result = new FilterNode(result, condition);
-        }
+        // The filter Name(condition) was removed in 5.0: it is the function :where(condition)
+        if (Check(TokenType.OpenParen))
+            throw FilterRemoved();
 
         // The indexer syntax [skip take asc|desc Name] was removed in 5.0
         if (Check(TokenType.OpenBracket))
@@ -543,6 +509,10 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
         // Check for groupBy first (special handling, not a FunctionType)
         if (funcName == "groupby")
             return ParseGroupByFunction(source, funcToken);
+
+        // :where(condition) filters a collection (a FilterNode, not a FunctionType)
+        if (funcName == "where")
+            return ParseWhereFunction(source, funcToken);
 
         // Check for boolean functions first: :any, :all
         if (BooleanFunctionNames.TryGetValue(funcName, out var boolFuncType))
@@ -1121,6 +1091,39 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
                 break;
         }
     }
+
+    /// <summary>
+    /// Parses the filter function: :where(condition), e.g. Orders:where(Status = 'Done' && Total > 100).
+    /// Functions can follow it (Orders:where(Status = 'Done'):count) and it can follow other functions (Orders:orderBy(Date):where(...)).
+    /// </summary>
+    private ExpressionNode ParseWhereFunction(ExpressionNode source, Token funcToken)
+    {
+        if (!Match(TokenType.OpenParen))
+        {
+            throw new ExpressionParseException(
+                $"Function 'where' requires a condition at position {funcToken.Position}");
+        }
+
+        var condition = ParseCondition();
+        Consume(TokenType.CloseParen, "Expected ')' after where condition");
+
+        ExpressionNode result = new FilterNode(source, condition);
+
+        // Chained functions: :where(...):orderBy(...):first
+        while (Match(TokenType.Colon))
+        {
+            result = ParseFunctionOrAggregation(result);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// The filter syntax of the versions before 5.0, <c>Orders(Status = 'Done')</c>, was replaced by the function :where.
+    /// </summary>
+    private ExpressionParseException FilterRemoved() => new(
+        $"The filter '(...)' at position {Current().Position} is no longer supported (removed in 5.0). " +
+        "Use the function :where(condition): Orders(Status = 'Done') is Orders:where(Status = 'Done')");
 
     /// <summary>
     /// Parses a boolean function: :any, :any(condition), :all, :all(condition)

@@ -56,15 +56,15 @@ public static class ProviderScenarios
     public static async Task Navigation_and_aggregates_are_computed_by_the_database(IProviderRunner run)
     {
         var response = await run.RunAsync<ProviderCustomerKey>(["c1", "c2"],
-            "Address.City", "Orders:count", "Orders:sum(Total)", "Orders(Status = 'Done'):count",
-            "Orders(Status = 'Done'):sum(Total)");
+            "Address.City", "Orders:count", "Orders:sum(Total)", "Orders:where(Status = 'Done'):count",
+            "Orders:where(Status = 'Done'):sum(Total)");
 
         var alice = response.Items.Single(i => i.Id == "c1");
         ValueOf<string>(alice, "Address.City").ShouldBe("Hanoi");
         ValueOf<int>(alice, "Orders:count").ShouldBe(3);
         ValueOf<decimal>(alice, "Orders:sum(Total)").ShouldBe(4350.00m);
-        ValueOf<int>(alice, "Orders(Status = 'Done'):count").ShouldBe(2);
-        ValueOf<decimal>(alice, "Orders(Status = 'Done'):sum(Total)").ShouldBe(1850.00m);
+        ValueOf<int>(alice, "Orders:where(Status = 'Done'):count").ShouldBe(2);
+        ValueOf<decimal>(alice, "Orders:where(Status = 'Done'):sum(Total)").ShouldBe(1850.00m);
 
         var bob = response.Items.Single(i => i.Id == "c2");
         ValueOf<string>(bob, "Address.City").ShouldBe("Saigon");
@@ -75,7 +75,8 @@ public static class ProviderScenarios
     {
         var response = await run.RunAsync<ProviderCustomerKey>(["c1", "c3"],
             "Orders:orderBy(Total desc)", "Orders:orderBy(Status, Total desc)", "Orders:orderBy(Number desc):offset(1):limit(1)",
-            "Orders:offset(5)", "Orders:limit(0)", "Orders:orderBy(Total desc):first", "Orders:orderBy(Total desc):last");
+            "Orders:offset(5)", "Orders:limit(0)", "Orders:orderBy(Total desc):first", "Orders:orderBy(Total desc):last",
+            "Orders:orderBy(Total desc):where(Status = 'Done')", "Orders:where(Status = 'Done'):orderBy(Total):first");
 
         var alice = response.Items.Single(i => i.Id == "c1");
         ValueOf<List<ProviderOrder>>(alice, "Orders:orderBy(Total desc)").Select(o => o.Number).ShouldBe([3, 1, 2]);
@@ -89,6 +90,11 @@ public static class ProviderScenarios
 
         ValueOf<ProviderOrder>(alice, "Orders:orderBy(Total desc):first").Number.ShouldBe(3);
         ValueOf<ProviderOrder>(alice, "Orders:orderBy(Total desc):last").Number.ShouldBe(2);
+
+        // where after orderBy keeps the order; where before orderBy then first
+        ValueOf<List<ProviderOrder>>(alice, "Orders:orderBy(Total desc):where(Status = 'Done')").Select(o => o.Number)
+            .ShouldBe([1, 2]);
+        ValueOf<ProviderOrder>(alice, "Orders:where(Status = 'Done'):orderBy(Total):first").Number.ShouldBe(2);
 
         // No order at all: an empty list, not a failure
         var carol = response.Items.Single(i => i.Id == "c3");

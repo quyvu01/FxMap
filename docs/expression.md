@@ -7,7 +7,7 @@ FxMap Expression Language is a powerful expression language that allows flexible
 ## Table of Contents
 
 1. [Property Access](#1-property-access)
-2. [Filters](#2-filters)
+2. [Filters](#2-filters-where)
 3. [Ordering and Paging](#3-ordering-and-paging)
 4. [Functions](#4-functions)
 5. [Aggregations](#5-aggregations)
@@ -55,13 +55,14 @@ Order?.Customer?.Email
 
 ---
 
-## 2. Filters
+## 2. Filters (`:where`)
 
-Filters are applied to collections to narrow down results.
+The function `:where(condition)` filters a collection. It chains with the other functions in any order:
+`Orders:orderBy(Date):where(Total > 100)` and `Orders:where(Total > 100):orderBy(Date)` are both valid.
 
 ### Basic Syntax
 ```
-Collection(Condition)
+Collection:where(Condition)
 ```
 
 ### Comparison Operators
@@ -87,17 +88,29 @@ Collection(Condition)
 
 ### Filter Examples
 ```
-Orders(Status = 'Completed')
-Orders(Status = 'Done' && Total > 100)
-Orders(Year = 2024, Status = 'Active')           # Comma equals AND
-Orders(Status = 'Pending' || Status = 'Waiting')
-Orders((Status = 'Done' && Total > 100) || Priority = 'High')
+Orders:where(Status = 'Completed')
+Orders:where(Status = 'Done' && Total > 100)
+Orders:where(Year = 2024, Status = 'Active')           # Comma equals AND
+Orders:where(Status = 'Pending' || Status = 'Waiting')
+Orders:where((Status = 'Done' && Total > 100) || Priority = 'High')
 ```
+
+### Removed in 5.0: the filter `Collection(Condition)`
+The filter written as parentheses after a property is no longer supported and is rejected when parsed (the analyzer reports it at compile time):
+
+| Before 5.0 | From 5.0 |
+|------------|----------|
+| `Orders(Status = 'Done')` | `Orders:where(Status = 'Done')` |
+| `Orders(Status = 'Done'):sum(Total)` | `Orders:where(Status = 'Done'):sum(Total)` |
+| `Company.Departments(IsActive = true).Employees` | `Company.Departments:where(IsActive = true).Employees` |
+| `Provinces(Name:count > 3).{Id, Name}` | `Provinces:where(Name:count > 3).{Id, Name}` |
+
+`:any(condition)` and `:all(condition)` are unchanged.
 
 ### Filter with Function in Condition
 ```
-Orders(Items:count > 5)                          # Orders with more than 5 items
-Users(Name:lower = 'john')                       # Case-insensitive comparison
+Orders:where(Items:count > 5)                          # Orders with more than 5 items
+Users:where(Name:lower = 'john')                       # Case-insensitive comparison
 ```
 
 ---
@@ -105,7 +118,7 @@ Users(Name:lower = 'john')                       # Case-insensitive comparison
 ## 3. Ordering and Paging
 
 A collection is ordered and paged with functions. They are applied in the order they are written, so they chain:
-`Orders(Status = 'Done'):orderBy(Total desc):offset(5):limit(10).{Id, Total}` filters, orders, skips 5, takes 10, then projects.
+`Orders:where(Status = 'Done'):orderBy(Total desc):offset(5):limit(10).{Id, Total}` filters, orders, skips 5, takes 10, then projects.
 
 | Function | Syntax | Meaning |
 |----------|--------|---------|
@@ -133,7 +146,7 @@ Orders:orderBy(OrderDate):first.Total                    # One property of one i
 
 ### Combining Filter and Ordering
 ```
-Orders(Status = 'Done'):orderBy(Total desc):limit(5)     # Top 5 Done orders with highest Total
+Orders:where(Status = 'Done'):orderBy(Total desc):limit(5)     # Top 5 Done orders with highest Total
 ```
 
 ### Removed in 5.0: the indexer `[...]`
@@ -148,7 +161,7 @@ The indexer syntax is no longer supported, and an expression that uses it is rej
 | `Orders[5 asc Date]` | `Orders:orderBy(Date):offset(5):first` |
 | `Orders[0 10 asc Date]` | `Orders:orderBy(Date):limit(10)` |
 | `Orders[5 10 desc Date]` | `Orders:orderBy(Date desc):offset(5):limit(10)` |
-| `Orders(Status = 'Done')[0 asc Date]` | `Orders(Status = 'Done'):orderBy(Date):first` |
+| `Orders(Status = 'Done')[0 asc Date]` | `Orders:where(Status = 'Done'):orderBy(Date):first` |
 
 Notes on the move:
 - `[-1 ...]` was the only negative index that meant something (the last item); `:last` replaces it.
@@ -235,9 +248,9 @@ Aggregations operate on collections and return scalar values.
 
 ### Aggregation with Filter
 ```
-Orders(Status = 'Done'):count                    # Count Done orders
-Orders(Status = 'Done'):sum(Total)               # Sum of Done orders Total
-Orders(Year = 2024):avg(Total)                   # Average Total for 2024
+Orders:where(Status = 'Done'):count                    # Count Done orders
+Orders:where(Status = 'Done'):sum(Total)               # Sum of Done orders Total
+Orders:where(Year = 2024):avg(Total)                   # Average Total for 2024
 ```
 
 ---
@@ -507,13 +520,13 @@ Supported literal values in expressions.
 
 ### Navigation + Filter + Aggregation
 ```
-Customer.Orders(Status = 'Completed'):sum(Total)
-Company.Departments(IsActive = true).Employees:count
+Customer.Orders:where(Status = 'Completed'):sum(Total)
+Company.Departments:where(IsActive = true).Employees:count
 ```
 
 ### Projection with Multiple Features
 ```
-Orders(Status = 'Done'):orderBy(OrderDate desc):limit(10).{
+Orders:where(Status = 'Done'):orderBy(OrderDate desc):limit(10).{
   Id,
   OrderDate:format('yyyy-MM-dd') as Date,
   Total:round(2) as Amount,
@@ -543,15 +556,15 @@ Sales:groupBy(Year, Quarter, Region).{
   (Address?.City ?? Address?.Country ?? 'Unknown') as Location,
   (IsActive ? 'Active' : 'Inactive') as Status,
   Orders:count as TotalOrders,
-  Orders(Status = 'Done'):sum(Total) as TotalSpent
+  Orders:where(Status = 'Done'):sum(Total) as TotalSpent
 }
 ```
 
 ### Complex Chained Operations
 ```
-Company.Departments(IsActive = true):orderBy(EmployeeCount desc):limit(5).Employees(Role = 'Developer'):distinct(Skill)
+Company.Departments:where(IsActive = true):orderBy(EmployeeCount desc):limit(5).Employees:where(Role = 'Developer'):distinct(Skill)
 
-Orders(Year = 2024, Status != 'Cancelled'):groupBy(Month).{
+Orders:where(Year = 2024, Status != 'Cancelled'):groupBy(Month).{
   Month,
   :count as OrderCount,
   :sum(Total) as Revenue,
@@ -575,7 +588,7 @@ Orders(Year = 2024, Status != 'Cancelled'):groupBy(Month).{
 
 ### Comma in Filter
 - Comma `,` in filter equals `&&` (AND)
-- `Orders(A = 'x', B = 'y')` = `Orders(A = 'x' && B = 'y')`
+- `Orders:where(A = 'x', B = 'y')` = `Orders:where(A = 'x' && B = 'y')`
 
 ### Function Chaining
 - Functions can be chained as long as output type matches input type
@@ -591,9 +604,8 @@ Orders(Year = 2024, Status != 'Cancelled'):groupBy(Month).{
 3. Logical: `&&`, `||`
 4. Comparison: `=`, `!=`, `>`, `<`, `>=`, `<=`
 5. Navigation: `.`
-6. Filter: `()`
-7. Projection: `.{}`
-8. Function: `:`
+6. Projection: `.{}`
+7. Function: `:` (including the filter `:where()`)
 
 ---
 
@@ -606,9 +618,9 @@ Country?.Name                           # Null-safe
 Country.Province.City                   # Nested
 
 # Filters
-Orders(Status = 'Done')                 # Equal
-Orders(Total > 100 && Status = 'Active')# Multiple conditions
-Orders(Status = 'A' || Status = 'B')    # OR condition
+Orders:where(Status = 'Done')                 # Equal
+Orders:where(Total > 100 && Status = 'Active') # Multiple conditions
+Orders:where(Status = 'A' || Status = 'B')    # OR condition
 
 # Ordering and paging
 Orders:orderBy(Date):first              # First item

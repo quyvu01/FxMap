@@ -173,9 +173,9 @@ internal sealed class CustomerStatsViewProfile : ProfileOf<CustomerStatsView>
     protected override void Configure() =>
         UseDistributedKey<KCustomer>().Of(x => x.CustomerId)
             .For(x => x.Total, "Orders:count")
-            .For(x => x.Done, "Orders(Status = 'Done'):count")
-            .For(x => x.DoneAndBig, "Orders(Status = 'Done', Total > 100):count")
-            .For(x => x.NotCancelled, "Orders(Status != 'Cancelled'):count")
+            .For(x => x.Done, "Orders:where(Status = 'Done'):count")
+            .For(x => x.DoneAndBig, "Orders:where(Status = 'Done', Total > 100):count")
+            .For(x => x.NotCancelled, "Orders:where(Status != 'Cancelled'):count")
             .For(x => x.Sum, "Orders:sum(Total)")
             .For(x => x.Max, "Orders:max(Total)")
             .For(x => x.Min, "Orders:min(Total)")
@@ -183,7 +183,7 @@ internal sealed class CustomerStatsViewProfile : ProfileOf<CustomerStatsView>
             .For(x => x.AnyPending, "Orders:any(Status = 'Pending')")
             .For(x => x.AllPositive, "Orders:all(Total > 0)")
             .For(x => x.Latest, "Orders:orderBy(OrderDate desc):first.{Id, Status, Total}")
-            .For(x => x.DoneOrders, "Orders(Status = 'Done'):orderBy(OrderDate).{Id, Status, Total}");
+            .For(x => x.DoneOrders, "Orders:where(Status = 'Done'):orderBy(OrderDate).{Id, Status, Total}");
 }
 
 #endregion
@@ -214,7 +214,7 @@ internal sealed class CountryReportViewProfile : ProfileOf<CountryReportView>
             .For(x => x.ProvinceCount, "Provinces:count")
             .For(x => x.TotalArea, "Provinces:sum(Area)")
             .For(x => x.MaxArea, "Provinces:max(Area)")
-            .For(x => x.BigProvinces, "Provinces(Area > 400000):orderBy(Name).{Name, Area}");
+            .For(x => x.BigProvinces, "Provinces:where(Area > 400000):orderBy(Name).{Name, Area}");
 }
 
 #endregion

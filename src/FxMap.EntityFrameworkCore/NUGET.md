@@ -50,7 +50,7 @@ builder.Services.AddFxMap(cfg =>
 ## How requests are executed
 
 - **One query per request.** All ids and all expressions of a request are answered by a single `AsNoTracking` query with
-  a projection, using the expression language (navigation, filters, aggregations, projections, indexers).
+  a projection, using the expression language (navigation, filters, ordering and paging, aggregations, projections).
 - **Several `DbContext`s are supported.** FxMap routes each entity to the `DbContext` that exposes it as a `DbSet`.
 - **Each query runs in its own DI scope**, with its own `DbContext`, so requests can run in parallel safely. It does not
   see uncommitted data held by the caller's `DbContext` or transaction.

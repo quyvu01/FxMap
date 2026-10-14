@@ -57,7 +57,7 @@ No client code per field, and no coupling between the two services beyond a key 
 ## Features
 
 - **FluentAPI mapping**: declare the mapping with `ProfileOf<T>` and `EntityConfigureOf<T>`; no attributes on your DTOs, and property access is compiled once per type.
-- **Expression language**: a SQL-like DSL for navigation, filters, aggregations, projections, indexers and conditions (`Orders(Status = 'Done'):sum(Total)`).
+- **Expression language**: a SQL-like DSL for navigation, filters (`:where`), ordering and paging (`:orderBy`, `:offset`, `:limit`, `:first`, `:last`), aggregations, projections and conditions (`Orders:where(Status = 'Done'):sum(Total)`).
 - **Batched and chained**: one request per distributed key and dependency level, with distinct ids, however many objects are mapped; chains such as `UserId → ProvinceId → CountryId` resolve level by level.
 - **Data providers**: Entity Framework Core and MongoDB.
 - **Transports**: gRPC, NATS, RabbitMQ, Kafka, Azure Service Bus and Amazon SQS, with retries and supervision.
@@ -125,7 +125,7 @@ public class UserResponseProfile : ProfileOf<UserResponse>
             // Navigation properties
             .For(x => x.CountryName, "Country.Name")
             // Filtering
-            .For(x => x.CompletedOrders, "Orders(Status = 'Done')")
+            .For(x => x.CompletedOrders, "Orders:where(Status = 'Done')")
             // Aggregation
             .For(x => x.TotalSpent, "Orders:sum(Total)")
             // Projection
@@ -136,7 +136,7 @@ public class UserResponseProfile : ProfileOf<UserResponse>
 }
 ```
 
-For complete expression syntax including filters, indexers, functions, aggregations, boolean functions, coalesce,
+For complete expression syntax including filters, ordering and paging, functions, aggregations, boolean functions, coalesce,
 ternary operators, and more, visit **[Expression Documentation](https://fxmapper.net/docs/expressions)**.
 
 ## Packages

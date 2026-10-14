@@ -16,6 +16,9 @@ Details: [the notes of 5.0.0](docs/changelogs/v5.0.0.md).
   `Orders:orderBy(Date):first`, `Orders:orderBy(Date desc):last`, `Orders:orderBy(Date):offset(5):limit(10)`. An expression with `[` is rejected with
   a message that says what to use, and the analyzer reports it at build time. Services that exchange these expressions must be moved to 5.0 together
   (see the migration in the notes).
+- **The filter `Orders(Status = 'Done')` is removed**; use `:where(condition)`: `Orders:where(Status = 'Done')`. It is rejected with a message that says what to
+  use, and the analyzer reports it at build time. `:where` chains with the other functions in any order (`Orders:orderBy(Date):where(...)`). `:any(...)` and
+  `:all(...)` are not changed.
 - Removed public API: `IndexerNode`, `IExpressionNodeVisitor.VisitIndexer`, `ExpressionHelpers`, `ExpressionQueryableData` and the exceptions
   `CollectionFormatNotCorrected`, `CollectionIndexIncorrect`, `CollectionOrderDirectionIncorrect`.
 - `ExpressionParser.Parse` throws when text is left after the expression (it was ignored).
@@ -23,11 +26,11 @@ Details: [the notes of 5.0.0](docs/changelogs/v5.0.0.md).
 ### Added
 
 - **Collection functions `:orderBy(Key [asc|desc], ...)`, `:offset(n)`, `:limit(n)`, `:first`, `:last`** (LINQ and MongoDB), chained with filters, other
-  functions and projections: `Orders(Status = 'Done'):orderBy(Total desc):offset(5):limit(10).{Id, Total}`. `orderBy` takes several keys.
+  functions and projections: `Orders:where(Status = 'Done'):orderBy(Total desc):offset(5):limit(10).{Id, Total}`. `orderBy` takes several keys.
 
 ### Fixed
 
-- A projection or a property after a function that followed a filter (`Orders(Status = 'Done'):orderBy(Total):first.{Id}`) was dropped without an error.
+- A projection or a property after a function that followed a filter (`Orders(Status = 'Done'):orderBy(Total):first.{Id}`, before 5.0) was dropped without an error.
 
 ---
 

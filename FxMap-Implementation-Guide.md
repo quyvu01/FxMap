@@ -214,10 +214,10 @@ Country?.Province?.City.Name   // Null-safe navigation
 ### Filtering collections
 
 ```
-Orders(Status = 'Done')
-Orders(Status = 'Done' && Total > 100)
-Orders(Status = 'Pending' || Status = 'Waiting')
-Orders(Year = 2024, Status = 'Active')     // Comma means AND
+Orders:where(Status = 'Done')
+Orders:where(Status = 'Done' && Total > 100)
+Orders:where(Status = 'Pending' || Status = 'Waiting')
+Orders:where(Year = 2024, Status = 'Active')     // Comma means AND
 ```
 
 ### Sorting and paging
@@ -229,7 +229,7 @@ Orders:orderBy(OrderDate):first                        // First item, ascending
 Orders:orderBy(OrderDate desc):last                    // Last item, descending
 Orders:orderBy(OrderDate):limit(10)                    // First 10 items
 Orders:orderBy(OrderDate):offset(20):limit(10)         // Skip 20, take 10
-Orders(Status='Done'):orderBy(Total desc):limit(5)     // Filter, order, then page
+Orders:where(Status='Done'):orderBy(Total desc):limit(5)     // Filter, order, then page
 ```
 
 The indexer syntax `Orders[0 10 asc OrderDate]` was removed in 5.0: see [docs/expression.md](docs/expression.md#3-ordering-and-paging).
@@ -256,7 +256,7 @@ Orders:sum(Total)
 Orders:avg(Total)
 Orders:min(Total)
 Orders:max(Total)
-Orders(Status='Done'):sum(Total)   // Aggregate with filter
+Orders:where(Status='Done'):sum(Total)   // Aggregate with filter
 ```
 
 ### Projections

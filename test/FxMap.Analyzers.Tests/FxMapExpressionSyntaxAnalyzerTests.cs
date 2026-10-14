@@ -63,7 +63,7 @@ public class FxMapExpressionSyntaxAnalyzerTests
     public async Task ValidExpression_WithFilter_NoDiagnostic()
     {
         var testCode = TestSetup + """
-                    For<string>(x => x.CountryName, "Countries(Active = true)");
+                    For<string>(x => x.CountryName, "Countries:where(Active = true)");
             """ + TestTeardown;
 
         await VerifyAnalyzerAsync(testCode);
@@ -110,10 +110,10 @@ public class FxMapExpressionSyntaxAnalyzerTests
     }
 
     [Fact]
-    public async Task ValidExpression_ComplexFilterIndexerProjection_NoDiagnostic()
+    public async Task ValidExpression_ComplexWhereOrderByProjection_NoDiagnostic()
     {
         var testCode = TestSetup + """
-                    For<string>(x => x.CountryName, "Countries(Active = true):orderBy(Name).{Id, Name}");
+                    For<string>(x => x.CountryName, "Countries:where(Active = true):orderBy(Name).{Id, Name}");
             """ + TestTeardown;
 
         await VerifyAnalyzerAsync(testCode);
@@ -133,6 +133,22 @@ public class FxMapExpressionSyntaxAnalyzerTests
         var expected = VerifyCS.Diagnostic(FxMapExpressionSyntaxAnalyzer.DiagnosticId)
             .WithLocation(0)
             .WithArguments("Provinces:orderBy(Name", "Expected ')' after orderBy argument. Got 'EndOfExpression' at position 22");
+
+        await VerifyAnalyzerAsync(testCode, expected);
+    }
+
+    [Fact]
+    public async Task InvalidExpression_RemovedFilter_ReportsDiagnosticWithTheFunctionToUse()
+    {
+        var testCode = TestSetup + """
+                    For<string>(x => x.OrderInfo, {|#0:"Orders(Status = 'Done').Items"|});
+            """ + TestTeardown;
+
+        var expected = VerifyCS.Diagnostic(FxMapExpressionSyntaxAnalyzer.DiagnosticId)
+            .WithLocation(0)
+            .WithArguments("Orders(Status = 'Done').Items",
+                "The filter '(...)' at position 6 is no longer supported (removed in 5.0). " +
+                "Use the function :where(condition): Orders(Status = 'Done') is Orders:where(Status = 'Done')");
 
         await VerifyAnalyzerAsync(testCode, expected);
     }
@@ -215,13 +231,13 @@ public class FxMapExpressionSyntaxAnalyzerTests
     public async Task InvalidExpression_MissingDotAfterFilter_ReportsDiagnostic()
     {
         var testCode = TestSetup + """
-                    For<string>(x => x.OrderInfo, {|#0:"Orders(Status = 'Done')Items"|});
+                    For<string>(x => x.OrderInfo, {|#0:"Orders:where(Status = 'Done')Items"|});
             """ + TestTeardown;
 
         var expected = VerifyCS.Diagnostic(FxMapExpressionSyntaxAnalyzer.DiagnosticId)
             .WithLocation(0)
-            .WithArguments("Orders(Status = 'Done')Items",
-                "Property navigation requires '.' before identifier at position 23");
+            .WithArguments("Orders:where(Status = 'Done')Items",
+                "Property navigation requires '.' before identifier at position 29");
 
         await VerifyAnalyzerAsync(testCode, expected);
     }

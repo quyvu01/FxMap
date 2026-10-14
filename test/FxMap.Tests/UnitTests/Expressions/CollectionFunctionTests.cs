@@ -153,13 +153,21 @@ public class CollectionFunctionTests
     [InlineData("Entries:orderBy(Name):first.{Name}", """{"Name":"a"}""")]
     [InlineData("Entries:orderBy(Name):first.Name", "\"a\"")]
     // a filter before the order
-    [InlineData("Entries(Day > 1):orderBy(Name desc):limit(1)", """[{"Name":"d","Day":3,"By":"w"}]""")]
+    [InlineData("Entries:where(Day > 1):orderBy(Name desc):limit(1)", """[{"Name":"d","Day":3,"By":"w"}]""")]
     // a filter before the order, then the projection or a property of the item
-    [InlineData("Entries(Day > 1):orderBy(Name desc):first.{Name}", """{"Name":"d"}""")]
-    [InlineData("Entries(Day > 1):orderBy(Name desc):first.{Name, Day}", """{"Name":"d","Day":3}""")]
-    [InlineData("Entries(Day > 1):orderBy(Name):limit(2).{Name}", """[{"Name":"a"},{"Name":"c"}]""")]
-    [InlineData("Entries(Day > 1):first.{Name}", """{"Name":"c"}""")]
-    [InlineData("Entries(Day > 1):orderBy(Name desc):first.Name", "\"d\"")]
+    [InlineData("Entries:where(Day > 1):orderBy(Name desc):first.{Name}", """{"Name":"d"}""")]
+    [InlineData("Entries:where(Day > 1):orderBy(Name desc):first.{Name, Day}", """{"Name":"d","Day":3}""")]
+    [InlineData("Entries:where(Day > 1):orderBy(Name):limit(2).{Name}", """[{"Name":"a"},{"Name":"c"}]""")]
+    [InlineData("Entries:where(Day > 1):first.{Name}", """{"Name":"c"}""")]
+    [InlineData("Entries:where(Day > 1):orderBy(Name desc):first.Name", "\"d\"")]
+    // where can follow other functions, and a function or a second where can follow it
+    [InlineData("Entries:orderBy(Name):where(Day > 1).{Name}", """[{"Name":"a"},{"Name":"c"},{"Name":"d"}]""")]
+    [InlineData("Entries:where(Day > 1):where(By != 'z').{Name}", """[{"Name":"a"},{"Name":"d"}]""")]
+    [InlineData("Entries:where(Day > 1, By != 'z'):count", "2")]
+    [InlineData("Entries:limit(3):where(Day > 1):count", "2")]
+    [InlineData("Entries:where(Name startswith 'a' || Name = 'd'):orderBy(Name desc).{Name}", """[{"Name":"d"},{"Name":"a"}]""")]
+    [InlineData("Entries:where(Day > 5):first", "null")]
+    [InlineData("Entries:where(Day > 5):count", "0")]
     // aggregate or distinct values of a page
     [InlineData("Entries:orderBy(Name):limit(2):count", "2")]
     [InlineData("Entries:orderBy(Name):limit(3):sum(Day)", "5")]
@@ -170,7 +178,7 @@ public class CollectionFunctionTests
     }
 
     [Theory]
-    [InlineData("Entries(Day > 1):orderBy(Name) garbage")]
+    [InlineData("Entries:where(Day > 1):orderBy(Name) garbage")]
     [InlineData("Entries:first )")]
     [InlineData("Entries:limit(2) Name")]
     [InlineData("Name }")]

@@ -1,7 +1,7 @@
 namespace FxMap.Analyzers;
 
 /// <summary>
-/// Represents a filter applied to a collection: Orders(Status = 'Completed')
+/// Represents a filter applied to a collection: Orders:where(Status = 'Completed')
 /// </summary>
 /// <param name="Source">The source expression (usually a property or navigation).</param>
 /// <param name="Condition">The filter condition.</param>

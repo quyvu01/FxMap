@@ -86,7 +86,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterWithEquals_ReturnsFilterNode()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done')");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done')");
 
         // Assert
         result.ShouldBeOfType<FilterNode>();
@@ -103,7 +103,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterWithGreaterThan_ReturnsFilterNode()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Total > 100)");
+        var result = ExpressionParser.Parse("Orders:where(Total > 100)");
 
         // Assert
         result.ShouldBeOfType<FilterNode>();
@@ -116,7 +116,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterWithLogicalAnd_ReturnsFilterNode()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done' && Total > 100)");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done' && Total > 100)");
 
         // Assert
         result.ShouldBeOfType<FilterNode>();
@@ -130,7 +130,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterWithLogicalOr_ReturnsFilterNode()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done' || Status = 'Pending')");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done' || Status = 'Pending')");
 
         // Assert
         result.ShouldBeOfType<FilterNode>();
@@ -144,7 +144,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterWithAndKeyword_ReturnsFilterNode()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done' and Total > 100)");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done' and Total > 100)");
 
         // Assert
         result.ShouldBeOfType<FilterNode>();
@@ -158,7 +158,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterWithOrKeyword_ReturnsFilterNode()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done' or Status = 'Pending')");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done' or Status = 'Pending')");
 
         // Assert
         result.ShouldBeOfType<FilterNode>();
@@ -247,7 +247,7 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_FilterThenOrderBy_OrdersTheFilteredCollection()
     {
-        var node = Function("Orders(Status = 'Active'):orderBy(CreatedAt desc)", FunctionType.OrderBy);
+        var node = Function("Orders:where(Status = 'Active'):orderBy(CreatedAt desc)", FunctionType.OrderBy);
 
         node.GetArguments().ShouldBe([new SortKeyNode("CreatedAt", OrderDirection.Desc)]);
         node.Source.ShouldBeOfType<FilterNode>();
@@ -257,7 +257,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterThenFunctionsThenProjection_KeepsTheProjection()
     {
         // The projection after a function that follows a filter used to be dropped
-        var result = ExpressionParser.Parse("Orders(Status = 'Done'):orderBy(Total desc):first.{Id, Total}");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done'):orderBy(Total desc):first.{Id, Total}");
 
         var projNode = result.ShouldBeOfType<ProjectionNode>();
         projNode.Properties.Count.ShouldBe(2);
@@ -269,7 +269,7 @@ public sealed class ExpressionParserTests
     [InlineData("Orders[-1 desc OrderDate]")]
     [InlineData("Orders[0 10 asc OrderDate]")]
     [InlineData("Orders[asc OrderDate]")]
-    [InlineData("Orders(Status = 'Done')[0 asc OrderDate]")]
+    [InlineData("Orders:where(Status = 'Done')[0 asc OrderDate]")]
     [InlineData("Orders[asc OrderDate].{Id}")]
     [InlineData("Orders:orderBy(OrderDate)[0 asc OrderDate]")]
     public void Parse_TheRemovedIndexer_IsRejectedWithTheFunctionsToUseInstead(string expression)
@@ -278,6 +278,68 @@ public sealed class ExpressionParserTests
 
         error.Message.ShouldContain("no longer supported");
         error.Message.ShouldContain(":orderBy(");
+    }
+
+    [Fact]
+    public void Parse_Where_FiltersTheCollection()
+    {
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done' && Total > 100)");
+
+        var filter = result.ShouldBeOfType<FilterNode>();
+        filter.Source.ShouldBeOfType<PropertyNode>().Name.ShouldBe("Orders");
+        filter.Condition.ShouldBeOfType<LogicalConditionNode>();
+    }
+
+    [Fact]
+    public void Parse_Where_ChainsWithTheOtherFunctionsInAnyOrder()
+    {
+        // where after orderBy
+        var first = Function("Orders:orderBy(Date):where(Total > 100):first", FunctionType.First);
+        var filter = first.Source.ShouldBeOfType<FilterNode>();
+        filter.Source.ShouldBeOfType<FunctionNode>().FunctionName.ShouldBe(FunctionType.OrderBy);
+
+        // where, orderBy, then a projection
+        var projection = ExpressionParser.Parse("Orders:where(Status = 'Done'):orderBy(Total desc):limit(3).{Id}");
+        var limit = projection.ShouldBeOfType<ProjectionNode>().Source.ShouldBeOfType<FunctionNode>();
+        limit.FunctionName.ShouldBe(FunctionType.Take);
+
+        // two filters
+        ExpressionParser.Parse("Orders:where(Status = 'Done'):where(Total > 100)")
+            .ShouldBeOfType<FilterNode>().Source.ShouldBeOfType<FilterNode>();
+    }
+
+    [Fact]
+    public void Parse_Where_WithAFunctionInTheConditionAndAnAggregateAfterIt()
+    {
+        var result = ExpressionParser.Parse("Orders:where(Items:count > 5):sum(Total)");
+
+        var sum = result.ShouldBeOfType<AggregationNode>();
+        sum.Source.ShouldBeOfType<FilterNode>();
+    }
+
+    [Theory]
+    [InlineData("Orders(Status = 'Done')")]
+    [InlineData("Orders(Status = 'Done'):count")]
+    [InlineData("Orders?(Status = 'Done')")]
+    [InlineData("Customer.Orders(Total > 1).Items")]
+    [InlineData("Orders(Status = 'Done').{Id}")]
+    public void Parse_TheRemovedFilter_IsRejectedWithTheFunctionToUseInstead(string expression)
+    {
+        var error = Should.Throw<ExpressionParseException>(() => ExpressionParser.Parse(expression));
+
+        error.Message.ShouldContain("no longer supported");
+        error.Message.ShouldContain(":where(");
+    }
+
+    [Theory]
+    [InlineData("Orders:where")]
+    [InlineData("Orders:where()")]
+    [InlineData("Orders:where(Status = 'Done'")]
+    [InlineData("Orders:where(Status)")]
+    [InlineData("Orders:where(Status = )")]
+    public void Parse_WrongWhere_IsRejected(string expression)
+    {
+        Should.Throw<ExpressionParseException>(() => ExpressionParser.Parse(expression));
     }
 
     [Theory]
@@ -523,7 +585,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterThenFirst_ReturnsCorrectStructure()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done'):orderBy(OrderDate):first");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done'):orderBy(OrderDate):first");
 
         // Assert
         var first = result.ShouldBeOfType<FunctionNode>();
@@ -537,7 +599,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterThenProjection_ReturnsCorrectStructure()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done').{Id, Total}");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done').{Id, Total}");
 
         // Assert
         result.ShouldBeOfType<ProjectionNode>();
@@ -549,7 +611,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterThenCount_ReturnsCorrectStructure()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Done'):count");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done'):count");
 
         // Assert
         result.ShouldBeOfType<FunctionNode>();
@@ -561,10 +623,10 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_ComplexExpression_ReturnsCorrectStructure()
     {
-        // Provinces(Name:count > 3):orderBy(Name):limit(10).{Id, Name}
+        // Provinces:where(Name:count > 3):orderBy(Name):limit(10).{Id, Name}
         // Note: The parser builds segments sequentially, so the structure is:
         // ProjectionNode(source: limit(orderBy(filter(Provinces))))
-        var result = ExpressionParser.Parse("Provinces(Name:count > 3):orderBy(Name):limit(10).{Id, Name}");
+        var result = ExpressionParser.Parse("Provinces:where(Name:count > 3):orderBy(Name):limit(10).{Id, Name}");
 
         // Assert - should be ProjectionNode at top
         result.ShouldBeOfType<ProjectionNode>();
@@ -609,7 +671,7 @@ public sealed class ExpressionParserTests
     public void Parse_StringLiteral_ReturnsCorrectValue()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Status = 'Completed')");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Completed')");
 
         // Assert
         var filterNode = (FilterNode)result;
@@ -624,7 +686,7 @@ public sealed class ExpressionParserTests
     public void Parse_NumberLiteral_ReturnsCorrectValue()
     {
         // Act
-        var result = ExpressionParser.Parse("Orders(Total > 100)");
+        var result = ExpressionParser.Parse("Orders:where(Total > 100)");
 
         // Assert
         var filterNode = (FilterNode)result;
@@ -638,7 +700,7 @@ public sealed class ExpressionParserTests
     public void Parse_BooleanLiteral_ReturnsCorrectValue()
     {
         // Act
-        var result = ExpressionParser.Parse("Users(IsActive = true)");
+        var result = ExpressionParser.Parse("Users:where(IsActive = true)");
 
         // Assert
         var filterNode = (FilterNode)result;
@@ -654,12 +716,12 @@ public sealed class ExpressionParserTests
     #region Comparison Operator Tests
 
     [Theory]
-    [InlineData("Orders(Total = 100)", ComparisonOperator.Equal)]
-    [InlineData("Orders(Total != 100)", ComparisonOperator.NotEqual)]
-    [InlineData("Orders(Total > 100)", ComparisonOperator.GreaterThan)]
-    [InlineData("Orders(Total < 100)", ComparisonOperator.LessThan)]
-    [InlineData("Orders(Total >= 100)", ComparisonOperator.GreaterThanOrEqual)]
-    [InlineData("Orders(Total <= 100)", ComparisonOperator.LessThanOrEqual)]
+    [InlineData("Orders:where(Total = 100)", ComparisonOperator.Equal)]
+    [InlineData("Orders:where(Total != 100)", ComparisonOperator.NotEqual)]
+    [InlineData("Orders:where(Total > 100)", ComparisonOperator.GreaterThan)]
+    [InlineData("Orders:where(Total < 100)", ComparisonOperator.LessThan)]
+    [InlineData("Orders:where(Total >= 100)", ComparisonOperator.GreaterThanOrEqual)]
+    [InlineData("Orders:where(Total <= 100)", ComparisonOperator.LessThanOrEqual)]
     public void Parse_ComparisonOperators_ReturnsCorrectOperator(string expression, ComparisonOperator expected)
     {
         // Act
@@ -672,9 +734,9 @@ public sealed class ExpressionParserTests
     }
 
     [Theory]
-    [InlineData("Orders(Name contains 'test')", ComparisonOperator.Contains)]
-    [InlineData("Orders(Name startswith 'test')", ComparisonOperator.StartsWith)]
-    [InlineData("Orders(Name endswith 'test')", ComparisonOperator.EndsWith)]
+    [InlineData("Orders:where(Name contains 'test')", ComparisonOperator.Contains)]
+    [InlineData("Orders:where(Name startswith 'test')", ComparisonOperator.StartsWith)]
+    [InlineData("Orders:where(Name endswith 'test')", ComparisonOperator.EndsWith)]
     public void Parse_StringComparisonOperators_ReturnsCorrectOperator(string expression, ComparisonOperator expected)
     {
         // Act
@@ -818,7 +880,7 @@ public sealed class ExpressionParserTests
     public void Parse_FilterThenAny_ReturnsCorrectStructure()
     {
         // First filter, then check any on filtered result
-        var result = ExpressionParser.Parse("Orders(Year = 2024):any(Status = 'Done')");
+        var result = ExpressionParser.Parse("Orders:where(Year = 2024):any(Status = 'Done')");
 
         // Assert
         result.ShouldBeOfType<BooleanFunctionNode>();
@@ -1104,7 +1166,7 @@ public sealed class ExpressionParserTests
     {
         // Non-root projection (Collection.{...}) only supports simple property names
         // For computed expressions, use RootProjection syntax
-        var expression = "Provinces(Name endswith '0').{Id, Name}";
+        var expression = "Provinces:where(Name endswith '0').{Id, Name}";
 
         // Act
         var result = ExpressionParser.Parse(expression);
@@ -1128,7 +1190,7 @@ public sealed class ExpressionParserTests
     public void Parse_NonRootProjectionWithComputedExpression_ReturnsCorrectStructure()
     {
         // Non-root projection (Collection.{...}) now supports computed expressions
-        var expression = "Provinces(Name endswith '0').{Id, (Name endswith '0' ? Name : 'N/A') as DisplayName}";
+        var expression = "Provinces:where(Name endswith '0').{Id, (Name endswith '0' ? Name : 'N/A') as DisplayName}";
 
         // Act
         var result = ExpressionParser.Parse(expression);
@@ -2120,7 +2182,7 @@ public sealed class ExpressionParserTests
     public void Parse_MathFunctionInFilter_ReturnsCorrectStructure()
     {
         // Filter products where rounded price > 100
-        var result = ExpressionParser.Parse("Products(Price:floor > 100)");
+        var result = ExpressionParser.Parse("Products:where(Price:floor > 100)");
 
         result.ShouldBeOfType<FilterNode>();
         var filterNode = (FilterNode)result;
@@ -2185,8 +2247,8 @@ public sealed class ExpressionParserTests
         // This is because aggregation functions (with property selector) are handled
         // differently than regular functions.
         // To apply math operations on aggregation results, use projections:
-        // {Total: (Orders(Status = 'Done'):sum(Total)):round(2) as RoundedTotal}
-        var result = ExpressionParser.Parse("Orders(Status = 'Done'):sum(Total)");
+        // {Total: (Orders:where(Status = 'Done'):sum(Total)):round(2) as RoundedTotal}
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done'):sum(Total)");
 
         result.ShouldBeOfType<AggregationNode>();
         var sumAgg = (AggregationNode)result;
@@ -2200,8 +2262,8 @@ public sealed class ExpressionParserTests
     public void Parse_MathFunctionAfterCountFunction_ReturnsCorrectStructure()
     {
         // Chaining works for functions that return FunctionNode like :count
-        // Orders(Status = 'Done'):count:add(10)
-        var result = ExpressionParser.Parse("Orders(Status = 'Done'):count:add(10)");
+        // Orders:where(Status = 'Done'):count:add(10)
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done'):count:add(10)");
 
         result.ShouldBeOfType<FunctionNode>();
         var addFunc = (FunctionNode)result;
@@ -2265,15 +2327,15 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_DistinctAfterFilter_ReturnsCorrectStructure()
     {
-        // Orders(Status = 'Done').Items:distinct(CustomerId)
+        // Orders:where(Status = 'Done').Items:distinct(CustomerId)
         // Structure: NavigationNode([FilterNode(Orders), FunctionNode(Items:distinct)])
-        var result = ExpressionParser.Parse("Orders(Status = 'Done').Items:distinct(CustomerId)");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Done').Items:distinct(CustomerId)");
 
         result.ShouldBeOfType<NavigationNode>();
         var navNode = (NavigationNode)result;
         navNode.Segments.Count.ShouldBe(2);
 
-        // First segment: FilterNode for Orders(Status = 'Done')
+        // First segment: FilterNode for Orders:where(Status = 'Done')
         navNode.Segments[0].ShouldBeOfType<FilterNode>();
         var filterNode = (FilterNode)navNode.Segments[0];
         ((PropertyNode)filterNode.Source).Name.ShouldBe("Orders");
@@ -2325,9 +2387,9 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_DistinctWithFilterAndCount_ComplexChain()
     {
-        // Orders(Status = 'Completed').Items:distinct(ProductId):count
+        // Orders:where(Status = 'Completed').Items:distinct(ProductId):count
         // Structure: NavigationNode([FilterNode(Orders), FunctionNode(Items:distinct(ProductId):count)])
-        var result = ExpressionParser.Parse("Orders(Status = 'Completed').Items:distinct(ProductId):count");
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Completed').Items:distinct(ProductId):count");
 
         result.ShouldBeOfType<NavigationNode>();
         var navNode = (NavigationNode)result;
@@ -2417,9 +2479,9 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_DistinctWithFilterOnNestedCollection_ComplexQuery()
     {
-        // Company.Departments(IsActive = true).Employees.Items:distinct(Role)
+        // Company.Departments:where(IsActive = true).Employees.Items:distinct(Role)
         // Structure: NavigationNode([Company, FilterNode(Departments), Employees, FunctionNode(Items:distinct(Role))])
-        var result = ExpressionParser.Parse("Company.Departments(IsActive = true).Employees.Items:distinct(Role)");
+        var result = ExpressionParser.Parse("Company.Departments:where(IsActive = true).Employees.Items:distinct(Role)");
 
         result.ShouldBeOfType<NavigationNode>();
         var navNode = (NavigationNode)result;
@@ -2537,9 +2599,9 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_DistinctWithAndFilter_ComplexQuery()
     {
-        // Orders(Year = 2024, Status = 'Active').Items:distinct(CustomerId)
+        // Orders:where(Year = 2024, Status = 'Active').Items:distinct(CustomerId)
         // Use AND condition instead of multiple filter blocks
-        var result = ExpressionParser.Parse("Orders(Year = 2024, Status = 'Active').Items:distinct(CustomerId)");
+        var result = ExpressionParser.Parse("Orders:where(Year = 2024, Status = 'Active').Items:distinct(CustomerId)");
 
         result.ShouldBeOfType<NavigationNode>();
         var navNode = (NavigationNode)result;
@@ -2634,8 +2696,8 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_GroupByAfterFilter_ReturnsCorrectStructure()
     {
-        // Orders(Status = 'Active'):groupBy(CustomerId)
-        var result = ExpressionParser.Parse("Orders(Status = 'Active'):groupBy(CustomerId)");
+        // Orders:where(Status = 'Active'):groupBy(CustomerId)
+        var result = ExpressionParser.Parse("Orders:where(Status = 'Active'):groupBy(CustomerId)");
 
         result.ShouldBeOfType<GroupByNode>();
         var groupByNode = (GroupByNode)result;
@@ -2902,8 +2964,8 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_GroupByAfterFilterWithProjection_ComplexChain()
     {
-        // Orders(Year = 2024):groupBy(Status).{Status, :count as Count, :sum(Total) as Revenue}
-        var result = ExpressionParser.Parse("Orders(Year = 2024):groupBy(Status).{Status, :count as Count, :sum(Total) as Revenue}");
+        // Orders:where(Year = 2024):groupBy(Status).{Status, :count as Count, :sum(Total) as Revenue}
+        var result = ExpressionParser.Parse("Orders:where(Year = 2024):groupBy(Status).{Status, :count as Count, :sum(Total) as Revenue}");
 
         result.ShouldBeOfType<ProjectionNode>();
         var projNode = (ProjectionNode)result;
@@ -3087,30 +3149,23 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_GroupByOnNestedCollection_AfterNavigation()
     {
-        // Customer.Orders(Status != 'Cancelled'):groupBy(ProductCategory).{ProductCategory, :count as CategoryCount}
-        // The whole expression is parsed as a ProjectionNode with NavigationNode source containing GroupByNode
-        var result = ExpressionParser.Parse("Customer.Orders(Status != 'Cancelled'):groupBy(ProductCategory).{ProductCategory, :count as CategoryCount}");
+        // Customer.Orders:where(Status != 'Cancelled'):groupBy(ProductCategory).{ProductCategory, :count as CategoryCount}
+        // The functions belong to the segment Orders, as for any other function: NavigationNode [Customer, Projection(GroupBy(Where(Orders)))]
+        var result = ExpressionParser.Parse("Customer.Orders:where(Status != 'Cancelled'):groupBy(ProductCategory).{ProductCategory, :count as CategoryCount}");
 
-        // Top level is ProjectionNode
-        result.ShouldBeOfType<ProjectionNode>();
-        var projNode = (ProjectionNode)result;
-
-        // Source is GroupByNode
-        projNode.Source.ShouldBeOfType<GroupByNode>();
-        var groupByNode = (GroupByNode)projNode.Source;
-        groupByNode.KeyProperties[0].ShouldBe("ProductCategory");
-
-        // GroupByNode's source is NavigationNode with FilterNode
-        groupByNode.Source.ShouldBeOfType<NavigationNode>();
-        var navNode = (NavigationNode)groupByNode.Source;
+        var navNode = result.ShouldBeOfType<NavigationNode>();
         navNode.Segments.Count.ShouldBe(2);
 
         // First segment: Customer
         ((PropertyNode)navNode.Segments[0]).Name.ShouldBe("Customer");
 
-        // Second segment: FilterNode for Orders(Status != 'Cancelled')
-        navNode.Segments[1].ShouldBeOfType<FilterNode>();
-        var filterNode = (FilterNode)navNode.Segments[1];
+        // Second segment: the projection of the groups
+        var projNode = navNode.Segments[1].ShouldBeOfType<ProjectionNode>();
+        var groupByNode = projNode.Source.ShouldBeOfType<GroupByNode>();
+        groupByNode.KeyProperties[0].ShouldBe("ProductCategory");
+
+        // The groups are made of the filtered Orders
+        var filterNode = groupByNode.Source.ShouldBeOfType<FilterNode>();
         ((PropertyNode)filterNode.Source).Name.ShouldBe("Orders");
     }
 
@@ -3310,8 +3365,8 @@ public sealed class ExpressionParserTests
     [Fact]
     public void Parse_GroupByWithInnerProjection_AfterFilter()
     {
-        // Orders(Year = 2024):groupBy(Status).{Status, {Id, CustomerName} as Items}
-        var result = ExpressionParser.Parse("Orders(Year = 2024):groupBy(Status).{Status, {Id, CustomerName} as Items}");
+        // Orders:where(Year = 2024):groupBy(Status).{Status, {Id, CustomerName} as Items}
+        var result = ExpressionParser.Parse("Orders:where(Year = 2024):groupBy(Status).{Status, {Id, CustomerName} as Items}");
 
         result.ShouldBeOfType<ProjectionNode>();
         var projNode = (ProjectionNode)result;

@@ -14,7 +14,7 @@ namespace FxMap.MongoDb.Extensions;
 /// <list type="bullet">
 ///   <item><description>Simple property: <c>Name</c> → <c>$Name</c></description></item>
 ///   <item><description>Navigation: <c>Address.City</c> → <c>$getField</c></description></item>
-///   <item><description>Filter: <c>Orders(Status = 'Done')</c> → <c>$filter</c></description></item>
+///   <item><description>Filter: <c>Orders:where(Status = 'Done')</c> → <c>$filter</c></description></item>
 ///   <item><description>Indexer: <c>Orders:orderBy(Date):first</c> → <c>$sortArray</c> + <c>$first</c>/<c>$slice</c></description></item>
 ///   <item><description>Function: <c>Name:count</c> → <c>$strLenCP</c>, <c>Orders:count</c> → <c>$size</c></description></item>
 ///   <item><description>Aggregation: <c>Orders:sum(Total)</c> → <c>$reduce</c></description></item>

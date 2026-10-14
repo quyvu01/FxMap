@@ -21,11 +21,11 @@ This analyzer validates FxMap Expression strings for correct syntax including:
 
 #### 1. **Balanced Delimiters**
 - Braces `{}` for projections
-- Parentheses `()` for filters
+- Parentheses `()` for the arguments of functions, such as `:where(condition)`
 
 #### 2. **Property Navigation**
 - Projection requires dot: `Country.{Id, Name}` not `Country{Id, Name}`
-- Navigation after filter requires dot: `Orders(Status = 'Done').Items` not `Orders(Status = 'Done')Items`
+- Navigation after a filter requires dot: `Orders:where(Status = 'Done').Items` not `Orders:where(Status = 'Done')Items`
 - Navigation after a function requires dot: `Provinces:orderBy(Name):first.Name` not `Provinces:orderBy(Name):firstName`
 
 #### 3. **Function Validation**
@@ -68,13 +68,13 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 .For(x => x.Data, "{Id, Country.Name as CountryName}")
 
 // Filter with proper navigation
-.For(x => x.OrderItems, "Orders(Status = 'Done').Items")
+.For(x => x.OrderItems, "Orders:where(Status = 'Done').Items")
 
 // Ordering a collection, taking one item, then navigating
 .For(x => x.ProvinceName, "Provinces:orderBy(Name):first.Name")
 
 // Complex filter with string operations
-.For(x => x.ProvinceName, "Provinces(Name endswith 'a'):orderBy(Name desc):first.Name")
+.For(x => x.ProvinceName, "Provinces:where(Name endswith 'a'):orderBy(Name desc):first.Name")
 
 // Functions with arguments
 .For(x => x.ShortName, "{Id, Name:substring(0, 3) as Short}")
@@ -102,15 +102,15 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 // Error: The indexer '[...]' is no longer supported (removed in 5.0). Use the functions: ...
 
 // Missing closing parenthesis
-.For(x => x.OrderInfo, "Orders(Status = 'Done'")
-// Error: Expected ')' after filter condition
+.For(x => x.OrderInfo, "Orders:where(Status = 'Done'")
+// Error: Expected ')' after where condition
 
 // Missing dot before projection
 .For(x => x.CountryInfo, "Country{Id, Name}")
 // Error: Projection requires '.' before '{'
 
 // Missing dot after filter
-.For(x => x.OrderItems, "Orders(Status = 'Done')Items")
+.For(x => x.OrderItems, "Orders:where(Status = 'Done')Items")
 // Error: Property navigation requires '.' before identifier
 
 // Missing dot after a function
@@ -130,7 +130,7 @@ public class ProvinceResponseProfile : ProfileOf<ProvinceResponse>
 // Error: Expected 'as' keyword after computed expression - alias is required
 
 // Invalid operator
-.For(x => x.Users, "Users(Age >> 18)")
+.For(x => x.Users, "Users:where(Age >> 18)")
 // Error: Expected value ('>>' is not a valid operator)
 ```
 
@@ -207,7 +207,7 @@ error OFX001: Expression 'Country{Id, Name}' is invalid: Projection requires '.'
 - Property navigation: `Country.Name`, `Country.Province.Name`
 - Projections: `Country.{Id, Name}`, `{Id, Name as UserName}`
 - Root projections: `{Id, Email, Country.Name as CountryName}`
-- Filters: `Countries(Active = true)`, `Provinces(Name contains 'land')`
+- Filters: `Countries:where(Active = true)`, `Provinces:where(Name contains 'land')`
 - Collection functions: `Provinces:orderBy(Name):limit(10)`, `Items:orderBy(Price desc):offset(5):limit(10)`, `Orders:orderBy(Date):first`
 - Functions: `Name:upper`, `Price:round(2)`, `Items:count`
 - String functions: `upper`, `lower`, `trim`, `substring`, `replace`, `concat`, `split`
