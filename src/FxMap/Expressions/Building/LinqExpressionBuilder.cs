@@ -978,7 +978,7 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
 
         var count = GetNonNegativeCount(node, "offset");
         var skipCall = Expression.Call(typeof(Enumerable), nameof(Enumerable.Skip), [elementType],
-            source.Expression, Expression.Constant(count));
+            source.Expression, Parameterized(new OffsetValue(count), nameof(OffsetValue.Offset)));
 
         return new ExpressionBuildResult(typeof(IEnumerable<>).MakeGenericType(elementType), skipCall);
     }
@@ -998,7 +998,7 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
 
         var count = GetNonNegativeCount(node, "limit");
         var takeCall = Expression.Call(typeof(Enumerable), nameof(Enumerable.Take), [elementType],
-            source.Expression, Expression.Constant(count));
+            source.Expression, Parameterized(new LimitValue(count), nameof(LimitValue.Limit)));
 
         return new ExpressionBuildResult(typeof(IEnumerable<>).MakeGenericType(elementType), takeCall);
     }
@@ -1018,6 +1018,22 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
         var call = Expression.Call(typeof(Enumerable), methodName, [elementType], source.Expression);
         return new ExpressionBuildResult(elementType, call);
     }
+
+    // The number of offset/limit is read from a member of an object, as a variable captured by a lambda is, and not written as a
+    // constant: EF Core turns the member into a query parameter (@__Offset_0) and reuses the same SQL and the same compiled query
+    // whatever the number is, while a constant is written into the SQL text (WHERE 2 < row) and makes one query per number.
+    private sealed class OffsetValue(int offset)
+    {
+        public int Offset { get; } = offset;
+    }
+
+    private sealed class LimitValue(int limit)
+    {
+        public int Limit { get; } = limit;
+    }
+
+    private static MemberExpression Parameterized(object holder, string member) =>
+        Expression.Property(Expression.Constant(holder), member);
 
     /// <summary>
     /// Reads the argument of offset/limit: a whole number that is not negative.
