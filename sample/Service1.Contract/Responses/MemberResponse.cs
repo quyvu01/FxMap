@@ -58,7 +58,7 @@ public class MemberResponseProfile : ProfileOf<MemberResponse>
 
         UseDistributedKey<CountryDistributedKey>()
             .Of(x => x.CountryId)
-            .For(x => x.Provinces, "Provinces:offset(1)")
+            .For(x => x.Provinces, "Provinces:orderBy(Name):offset(2):limit(1)")
             .For(x => x.Province, "Provinces:orderBy(Name):first");
     }
 }
