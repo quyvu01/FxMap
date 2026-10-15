@@ -23,7 +23,7 @@ namespace Shared.Transports;
 /// </summary>
 public static class ConfiguredTransportExtensions
 {
-    public static void AddConfiguredTransport(this MapConfigurator cfg, IConfiguration configuration)
+    public static void AddConfiguredTransport(this IMapConfigurator cfg, IConfiguration configuration)
     {
         var fxMap = configuration.GetSection("FxMap");
         var transport = fxMap["Transport"];

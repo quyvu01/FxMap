@@ -17,7 +17,7 @@ namespace FxMap.Grpc.Implementations;
 /// This client is automatically registered when <c>AddGrpcClients</c> is called and handles
 /// the serialization and transport of FxMap requests to remote gRPC servers.
 /// </remarks>
-public sealed class GrpcRequestClient(GetMapperResponseFunc mapperResponseFunc) : IRequestClient
+internal sealed class GrpcRequestClient(GetMapperResponseFunc mapperResponseFunc) : IRequestClient
 {
     private const string TransportName = "grpc";
 

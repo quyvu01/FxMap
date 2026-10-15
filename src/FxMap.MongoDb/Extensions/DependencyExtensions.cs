@@ -38,7 +38,7 @@ public static class DependencyExtensions
     /// </code>
     /// </example>
     public static ConfiguratorWrapped AddMongoDb(this ConfiguratorWrapped serviceInjector,
-        Action<MongoDbConfigurator> registrarAction)
+        Action<IMongoDbConfigurator> registrarAction)
     {
         var entityConfig = serviceInjector.MapConfigurator.EntityConfigs;
         if (entityConfig is not { Count: > 0 })

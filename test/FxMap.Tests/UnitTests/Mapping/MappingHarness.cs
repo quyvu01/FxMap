@@ -131,7 +131,7 @@ public sealed class MappingHarness : IDisposable
     }
 
     /// <summary>Builds a container with the standard test remote already wired for every key.</summary>
-    public static MappingHarness Create(Action<MapConfigurator> configure = null, Action<FakeRemote> remote = null)
+    public static MappingHarness Create(Action<IMapConfigurator> configure = null, Action<FakeRemote> remote = null)
     {
         var fake = new FakeRemote();
         // Conventions used by most tests: Name/Email/ProvinceId/CountryId/CategoryId are derived from the id.

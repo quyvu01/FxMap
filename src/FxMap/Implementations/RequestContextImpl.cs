@@ -13,7 +13,7 @@ namespace FxMap.Implementations;
 /// This implementation is used internally by the FxMap framework to pass request context
 /// through both send and received pipeline behaviors.
 /// </remarks>
-public class RequestContextImpl<TDistributedKey>(
+internal class RequestContextImpl<TDistributedKey>(
     MapRequest<TDistributedKey> query,
     Dictionary<string, string> headers,
     CancellationToken token)

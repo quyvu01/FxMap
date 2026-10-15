@@ -37,7 +37,7 @@ public static class DependencyExtensions
     /// .AddEntityFrameworkCore(cfg => cfg.AddDbContexts(typeof(ApplicationDbContext)));
     /// </code>
     /// </example>
-    public static ConfiguratorWrapped AddFxMap(this IServiceCollection services, Action<MapConfigurator> options)
+    public static ConfiguratorWrapped AddFxMap(this IServiceCollection services, Action<IMapConfigurator> options)
     {
         var mapConfigurator = new MapConfigurator(services);
         options.Invoke(mapConfigurator);

@@ -52,7 +52,7 @@ public static class DependencyExtensions
     /// });
     /// </code>
     /// </example>
-    public static void AddGrpcClients(this MapConfigurator mapRegister, Action<GrpcClientsConfigurator> options)
+    public static void AddGrpcClients(this IMapConfigurator mapRegister, Action<IGrpcClientsConfigurator> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         var clientsRegister = new GrpcClientsConfigurator();
@@ -74,7 +74,7 @@ public static class DependencyExtensions
                         .Where(a => !a.Key.IsProbed)
                         .Select(a => a.Key.ServiceHost);
                     var missingTypes = await GetHostMapAttributesAsync(probeHosts, context,
-                        mapRegister.ThrowIfExceptions); // read when it runs: ThrowIfException() may be called after AddGrpcClients
+                        mapRegister.Internal().ThrowIfExceptions); // read when it runs: ThrowIfException() may be called after AddGrpcClients
                     missingTypes.Where(a => a.Key.IsProbed)
                         .ForEach(x =>
                         {

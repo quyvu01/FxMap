@@ -9,7 +9,7 @@ namespace FxMap.Extensions;
 /// <summary>
 /// Provides general-purpose extension methods used throughout the FxMap framework.
 /// </summary>
-public static class Extensions
+internal static class Extensions
 {
     /// <summary>
     /// Extension methods for IEnumerable collections.
@@ -20,7 +20,7 @@ public static class Extensions
         /// Executes an action for each element in the collection.
         /// </summary>
         /// <param name="action">The action to execute for each element.</param>
-        public void ForEach(Action<T> action)
+        internal void ForEach(Action<T> action)
         {
             foreach (var item in src ?? []) action?.Invoke(item);
         }

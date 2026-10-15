@@ -10,7 +10,7 @@ namespace FxMap.Extensions;
 /// These utilities are used internally by FxMap for extracting member names and property information
 /// from lambda expressions in a type-safe manner.
 /// </remarks>
-public static class ExpressionExtensions
+internal static class ExpressionExtensions
 {
     /// <summary>
     /// Gets the name of the member specified

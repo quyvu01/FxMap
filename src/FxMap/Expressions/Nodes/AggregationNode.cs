@@ -6,7 +6,7 @@ namespace FxMap.Analyzers;
 /// <param name="Source">The source collection expression.</param>
 /// <param name="AggregationType">The type of aggregation.</param>
 /// <param name="PropertyName">The property to aggregate (optional for Count).</param>
-public sealed record AggregationNode(
+internal sealed record AggregationNode(
     ExpressionNode Source,
     AggregationType AggregationType,
     string PropertyName = null) : ExpressionNode
@@ -18,7 +18,7 @@ public sealed record AggregationNode(
 /// <summary>
 /// Types of aggregation operations.
 /// </summary>
-public enum AggregationType
+internal enum AggregationType
 {
     /// <summary>
     /// Count of items: .Count()

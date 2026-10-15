@@ -8,7 +8,7 @@ namespace FxMap.Supervision;
 /// Base implementation of <see cref="IServerSupervisor"/> that manages
 /// the lifecycle and failure recovery of <see cref="IRequestServer"/> instances.
 /// </summary>
-public class ServerSupervisor(SupervisorOptions options, ILogger<ServerSupervisor> logger = null)
+internal class ServerSupervisor(SupervisorOptions options, ILogger<ServerSupervisor> logger = null)
     : IServerSupervisor
 {
     private readonly ConcurrentDictionary<string, SupervisedServerState> _servers = new();

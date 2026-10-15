@@ -126,7 +126,7 @@ public class ServerLifecycleTests(ITestOutputHelper output)
 
     // ---------------------------------------------------------------- NATS
 
-    private static Action<MapConfigurator> Nats(string prefix) => cfg =>
+    private static Action<IMapConfigurator> Nats(string prefix) => cfg =>
         cfg.AddNats(c =>
         {
             c.TopicPrefix(prefix);
@@ -173,7 +173,7 @@ public class ServerLifecycleTests(ITestOutputHelper output)
     {
         var endpoint = RabbitMqTransportTests.Endpoint.FromEnvironment();
         var vhost = await RabbitMqTransportTests.VirtualHost.CreateAsync(endpoint);
-        Action<MapConfigurator> rabbit = cfg => cfg.AddRabbitMq(c => c.Host(endpoint.Host, vhost.Name, endpoint.AmqpPort));
+        Action<IMapConfigurator> rabbit = cfg => cfg.AddRabbitMq(c => c.Host(endpoint.Host, vhost.Name, endpoint.AmqpPort));
         var harness = await TransportHarness.StartAsync(r => OwnerHosts.BrokerAsync(r, rabbit, startOwner), _ => rabbit, timeout);
         return (harness, vhost);
     }
@@ -211,7 +211,7 @@ public class ServerLifecycleTests(ITestOutputHelper output)
 
     // ---------------------------------------------------------------- SQS
 
-    private static Action<MapConfigurator> Sqs(string account) => cfg =>
+    private static Action<IMapConfigurator> Sqs(string account) => cfg =>
         cfg.AddSqs(s => s.Region(RegionEndpoint.USEast1, c =>
         {
             c.ServiceUrl(TransportEnvironment.Get(TransportEnvironment.Sqs));
@@ -256,7 +256,7 @@ public class ServerLifecycleTests(ITestOutputHelper output)
     private static async Task<TransportHarness> StartKafka(bool startOwner, TimeSpan? timeout = null)
     {
         await KafkaTransportTests.ResetTopicsAsync();
-        Action<MapConfigurator> kafka = cfg => cfg.AddKafka(c => c.Host(TransportEnvironment.Get(TransportEnvironment.Kafka)));
+        Action<IMapConfigurator> kafka = cfg => cfg.AddKafka(c => c.Host(TransportEnvironment.Get(TransportEnvironment.Kafka)));
         return await TransportHarness.StartAsync(
             r => OwnerHosts.BrokerAsync(r, kafka, startOwner, ready: TimeSpan.FromSeconds(8)), _ => kafka, timeout);
     }

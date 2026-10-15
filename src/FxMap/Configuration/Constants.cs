@@ -1,6 +1,6 @@
 namespace FxMap.Configuration;
 
-public static class Constants
+internal static class Constants
 {
     public static readonly string Version = PackageInfo.Version;
     public const string Source = "FxMap";

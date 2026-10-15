@@ -9,7 +9,7 @@ namespace FxMap.HotChocolate.GraphQlContext;
 /// This context is stored in the HotChocolate resolver context and passed
 /// to the DataResolver for field resolution.
 /// </remarks>
-public class FieldContext
+internal class FieldContext
 {
     /// <summary>
     /// Gets or sets the property info of the field being resolved.

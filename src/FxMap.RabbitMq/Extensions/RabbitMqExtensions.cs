@@ -11,7 +11,7 @@ namespace FxMap.RabbitMq.Extensions;
 
 public static class RabbitMqExtensions
 {
-    public static void AddRabbitMq(this MapConfigurator mapRegister, Action<RabbitMqConfigurator> options)
+    public static void AddRabbitMq(this IMapConfigurator mapRegister, Action<IRabbitMqConfigurator> options)
     {
         var config = new RabbitMqConfigurator();
         options.Invoke(config);
@@ -30,7 +30,7 @@ public static class RabbitMqExtensions
         services.AddSingleton<IRequestClient, RabbitMqRequestClient>();
 
         // Register supervisor options: global > default
-        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.Internal().SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use RabbitMqSupervisorWorker with supervisor pattern

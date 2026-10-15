@@ -5,7 +5,7 @@ namespace FxMap.Analyzers;
 /// </summary>
 /// <param name="Source">The source expression (usually a property or navigation).</param>
 /// <param name="Condition">The filter condition.</param>
-public sealed record FilterNode(ExpressionNode Source, ConditionNode Condition) : ExpressionNode
+internal sealed record FilterNode(ExpressionNode Source, ConditionNode Condition) : ExpressionNode
 {
     public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor, TContext context)
         => visitor.VisitFilter(this, context);
@@ -14,4 +14,4 @@ public sealed record FilterNode(ExpressionNode Source, ConditionNode Condition) 
 /// <summary>
 /// Base class for condition nodes used in filters.
 /// </summary>
-public abstract record ConditionNode : ExpressionNode;
+internal abstract record ConditionNode : ExpressionNode;

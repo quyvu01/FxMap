@@ -24,10 +24,14 @@
         <PackageReference Include="Grpc.Net.Client" Version="[2.51.0, )"/>
     </ItemGroup>
     <ItemGroup>
-        <Protobuf Include="fxMap.proto">
+        <Protobuf Include="fxMap.proto" Access="Internal">
             <CopyToOutputDirectory>Always</CopyToOutputDirectory>
         </Protobuf>
     </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="FxMap.Tests" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\FxMap\FxMap.csproj"/>
         <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>

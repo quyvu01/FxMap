@@ -11,7 +11,7 @@ namespace FxMap.Expressions.Building;
 /// <param name="ElementType">The type of elements in each group.</param>
 /// <param name="GroupParameter">The parameter expression representing the IGrouping (g).</param>
 /// <param name="KeyExpression">The expression to access the Key (g.Key).</param>
-public sealed record GroupByBuildContext(
+internal sealed record GroupByBuildContext(
     IReadOnlyList<string> KeyProperties,
     Type KeyType,
     Type ElementType,

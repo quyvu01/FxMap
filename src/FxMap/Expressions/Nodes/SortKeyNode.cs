@@ -6,7 +6,7 @@ namespace FxMap.Analyzers;
 /// <remarks>
 /// It exists only as an argument of the orderBy function, which reads it directly; it is not visited like other nodes.
 /// </remarks>
-public sealed record SortKeyNode(string Name, OrderDirection Direction = OrderDirection.Asc) : ExpressionNode
+internal sealed record SortKeyNode(string Name, OrderDirection Direction = OrderDirection.Asc) : ExpressionNode
 {
     public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor, TContext context)
         => throw new InvalidOperationException("A sort key is only valid as an argument of the orderBy function");

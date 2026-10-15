@@ -16,7 +16,7 @@ namespace FxMap.EntityFrameworkCore.Registries;
 /// multiple databases or bounded contexts. FxMap will automatically route queries to
 /// the correct DbContext based on which one contains the target entity type.
 /// </remarks>
-public sealed class EfCoreConfigurator(IServiceCollection serviceCollection)
+internal sealed class EfCoreConfigurator(IServiceCollection serviceCollection) : IEfCoreConfigurator
 {
     private readonly HashSet<Type> _dbContextTypes = [];
     internal bool IsolatesExpressionErrors { get; private set; }

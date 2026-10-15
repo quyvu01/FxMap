@@ -1,6 +1,6 @@
 namespace FxMap.RabbitMq.Registries;
 
-public sealed class RabbitMqConfigurator
+internal sealed class RabbitMqConfigurator : IRabbitMqConfigurator
 {
     internal string HostValue { get; private set; }
     internal string VirtualHostValue { get; private set; }

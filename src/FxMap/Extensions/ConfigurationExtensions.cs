@@ -5,7 +5,7 @@ using FxMap.Models;
 
 namespace FxMap.Extensions;
 
-public static class ConfigurationExtensions
+internal static class ConfigurationExtensions
 {
     private static readonly ConcurrentDictionary<string, DistributedTypeData> DistributedKeyAssemblyMapHandlers = [];
 

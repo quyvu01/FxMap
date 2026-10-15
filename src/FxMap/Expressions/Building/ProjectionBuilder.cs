@@ -28,7 +28,7 @@ namespace FxMap.Expressions.Building;
 /// The result can then be transformed to DataResponse in memory.
 /// </para>
 /// </remarks>
-public sealed class ProjectionBuilder<TModel> where TModel : class
+internal sealed class ProjectionBuilder<TModel> where TModel : class
 {
     private readonly ParameterExpression _parameter = Expression.Parameter(typeof(TModel), "x");
     private readonly GetTypeAccessor _typeAccessor;
@@ -155,7 +155,7 @@ public sealed class ProjectionBuilder<TModel> where TModel : class
 /// <typeparam name="TModel">The model type.</typeparam>
 /// <param name="Projection">The projection lambda expression.</param>
 /// <param name="Metadata">Metadata about each projected value.</param>
-public sealed record ProjectionResult<TModel>(
+internal sealed record ProjectionResult<TModel>(
     Expression<Func<TModel, object[]>> Projection,
     IReadOnlyList<ProjectionMetadata> Metadata) where TModel : class;
 
@@ -166,7 +166,7 @@ public sealed record ProjectionResult<TModel>(
 /// <param name="Expression">The original expression string (null for default/Id).</param>
 /// <param name="IsId">Whether this is the Id field.</param>
 /// <param name="Error">Error message if expression building failed.</param>
-public sealed record ProjectionMetadata(int Index, string Expression, bool IsId, string Error = null)
+internal sealed record ProjectionMetadata(int Index, string Expression, bool IsId, string Error = null)
 {
     public bool HasError => Error != null;
 }

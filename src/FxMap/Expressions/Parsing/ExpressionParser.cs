@@ -32,7 +32,7 @@ namespace FxMap.Analyzers;
 /// SortKey          := Identifier ('asc' | 'desc')?        (orderBy takes SortKeys separated by ',': orderBy(CreatedAt, CreatedBy desc))
 /// </code>
 /// </remarks>
-public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
+internal sealed class ExpressionParser(IReadOnlyList<Token> tokens)
 {
     private readonly IReadOnlyList<Token> _tokens = tokens ?? throw new ArgumentNullException(nameof(tokens));
     private int _position;
@@ -1465,4 +1465,4 @@ public sealed class ExpressionParser(IReadOnlyList<Token> tokens)
 /// <summary>
 /// Exception thrown when parsing fails.
 /// </summary>
-public class ExpressionParseException(string message) : Exception(message);
+internal class ExpressionParseException(string message) : Exception(message);

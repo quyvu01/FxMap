@@ -35,8 +35,8 @@ internal sealed class ExceptionPipelineBehavior<TDistributedKey>(IServiceProvide
 
             // Only suppress non-critical exceptions
             if (ex is OutOfMemoryException or StackOverflowException or ThreadAbortException) throw;
-            var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-            if (fxMapConfiguration.ThrowIfExceptions) throw;
+            var mapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+            if (mapConfiguration.ThrowIfExceptions) throw;
             return new ItemsResponse<DataResponse>([]);
         }
     }

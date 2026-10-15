@@ -3,7 +3,7 @@ namespace FxMap.Helpers;
 /// <summary>
 /// Provides general-purpose helper methods used throughout the FxMap framework.
 /// </summary>
-public static class GeneralHelpers
+internal static class GeneralHelpers
 {
     /// <summary>
     /// Determines if a type is a primitive or value type.

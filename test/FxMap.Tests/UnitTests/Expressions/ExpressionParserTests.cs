@@ -189,10 +189,11 @@ public sealed class ExpressionParserTests
     }
 
     [Theory]
-    [InlineData("Orders:orderBy(OrderDate asc)", OrderDirection.Asc)]
-    [InlineData("Orders:orderBy(OrderDate desc)", OrderDirection.Desc)]
-    public void Parse_OrderBy_WithDirection(string expression, OrderDirection direction)
+    [InlineData("Orders:orderBy(OrderDate asc)", "Asc")]
+    [InlineData("Orders:orderBy(OrderDate desc)", "Desc")]
+    public void Parse_OrderBy_WithDirection(string expression, string directionName)
     {
+        var direction = Enum.Parse<OrderDirection>(directionName);
         Function(expression, FunctionType.OrderBy).GetArguments()
             .ShouldBe([new SortKeyNode("OrderDate", direction)]);
     }
@@ -225,10 +226,11 @@ public sealed class ExpressionParserTests
     }
 
     [Theory]
-    [InlineData("Orders:orderBy(OrderDate):first", FunctionType.First)]
-    [InlineData("Orders:orderBy(OrderDate desc):last", FunctionType.Last)]
-    public void Parse_FirstAndLast_TakeNoArguments(string expression, FunctionType type)
+    [InlineData("Orders:orderBy(OrderDate):first", "First")]
+    [InlineData("Orders:orderBy(OrderDate desc):last", "Last")]
+    public void Parse_FirstAndLast_TakeNoArguments(string expression, string typeName)
     {
+        var type = Enum.Parse<FunctionType>(typeName);
         var node = Function(expression, type);
 
         node.GetArguments().ShouldBeEmpty();
@@ -716,14 +718,15 @@ public sealed class ExpressionParserTests
     #region Comparison Operator Tests
 
     [Theory]
-    [InlineData("Orders:where(Total = 100)", ComparisonOperator.Equal)]
-    [InlineData("Orders:where(Total != 100)", ComparisonOperator.NotEqual)]
-    [InlineData("Orders:where(Total > 100)", ComparisonOperator.GreaterThan)]
-    [InlineData("Orders:where(Total < 100)", ComparisonOperator.LessThan)]
-    [InlineData("Orders:where(Total >= 100)", ComparisonOperator.GreaterThanOrEqual)]
-    [InlineData("Orders:where(Total <= 100)", ComparisonOperator.LessThanOrEqual)]
-    public void Parse_ComparisonOperators_ReturnsCorrectOperator(string expression, ComparisonOperator expected)
+    [InlineData("Orders:where(Total = 100)", "Equal")]
+    [InlineData("Orders:where(Total != 100)", "NotEqual")]
+    [InlineData("Orders:where(Total > 100)", "GreaterThan")]
+    [InlineData("Orders:where(Total < 100)", "LessThan")]
+    [InlineData("Orders:where(Total >= 100)", "GreaterThanOrEqual")]
+    [InlineData("Orders:where(Total <= 100)", "LessThanOrEqual")]
+    public void Parse_ComparisonOperators_ReturnsCorrectOperator(string expression, string expectedName)
     {
+        var expected = Enum.Parse<ComparisonOperator>(expectedName);
         // Act
         var result = ExpressionParser.Parse(expression);
 
@@ -734,11 +737,12 @@ public sealed class ExpressionParserTests
     }
 
     [Theory]
-    [InlineData("Orders:where(Name contains 'test')", ComparisonOperator.Contains)]
-    [InlineData("Orders:where(Name startswith 'test')", ComparisonOperator.StartsWith)]
-    [InlineData("Orders:where(Name endswith 'test')", ComparisonOperator.EndsWith)]
-    public void Parse_StringComparisonOperators_ReturnsCorrectOperator(string expression, ComparisonOperator expected)
+    [InlineData("Orders:where(Name contains 'test')", "Contains")]
+    [InlineData("Orders:where(Name startswith 'test')", "StartsWith")]
+    [InlineData("Orders:where(Name endswith 'test')", "EndsWith")]
+    public void Parse_StringComparisonOperators_ReturnsCorrectOperator(string expression, string expectedName)
     {
+        var expected = Enum.Parse<ComparisonOperator>(expectedName);
         // Act
         var result = ExpressionParser.Parse(expression);
 

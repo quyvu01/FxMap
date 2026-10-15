@@ -11,7 +11,7 @@ namespace FxMap.Expressions.Building;
 /// <param name="Parameter">The root parameter expression (x => ...).</param>
 /// <param name="TypeAccessorProvider">Function to get TypeAccessor for ExposedName resolution.</param>
 /// <param name="GroupByContext">Optional context when building projections after GroupBy.</param>
-public sealed record ExpressionBuildContext(
+internal sealed record ExpressionBuildContext(
     Type CurrentType,
     Expression CurrentExpression,
     ParameterExpression Parameter,

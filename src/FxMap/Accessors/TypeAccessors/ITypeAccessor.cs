@@ -2,7 +2,7 @@ using System.Reflection;
 
 namespace FxMap.Accessors.TypeAccessors;
 
-public interface ITypeAccessor
+internal interface ITypeAccessor
 {
     /// <summary>
     /// Gets property info by name, respecting ExposedName configuration.

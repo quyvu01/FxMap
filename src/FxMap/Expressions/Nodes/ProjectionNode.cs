@@ -14,7 +14,7 @@ namespace FxMap.Analyzers;
 ///   <item><description><c>Orders.{Id, (Status = 'Done' ? 'Yes' : 'No') as StatusText}</c> → computed expression</description></item>
 /// </list>
 /// </remarks>
-public sealed record ProjectionNode(
+internal sealed record ProjectionNode(
     ExpressionNode Source,
     IReadOnlyList<ProjectionProperty> Properties) : ExpressionNode
 {

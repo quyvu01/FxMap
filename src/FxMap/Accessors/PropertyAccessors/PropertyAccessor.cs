@@ -18,7 +18,7 @@ namespace FxMap.Accessors.PropertyAccessors;
 /// <see cref="IPropertyAccessor.Set"/> directly, especially in high-throughput mapping scenarios.
 /// </para>
 /// </remarks>
-public class PropertyAccessor<T, TProp> : IPropertyAccessor
+internal class PropertyAccessor<T, TProp> : IPropertyAccessor
 {
     private readonly Action<T, TProp> _setter;
     private readonly Func<T, TProp> _getter;

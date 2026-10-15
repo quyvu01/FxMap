@@ -18,7 +18,7 @@ public class KafkaTransportTests
 {
     private static string Bootstrap => TransportEnvironment.Get(TransportEnvironment.Kafka);
 
-    private static Action<MapConfigurator> Kafka() => cfg => cfg.AddKafka(c => c.Host(Bootstrap));
+    private static Action<IMapConfigurator> Kafka() => cfg => cfg.AddKafka(c => c.Host(Bootstrap));
 
     internal static async Task ResetTopicsAsync()
     {
@@ -125,7 +125,7 @@ public class KafkaTransportTests
     public async Task The_request_topic_is_created_with_the_partitions_and_the_replication_that_are_configured()
     {
         await ResetTopicsAsync();
-        Action<MapConfigurator> kafka = cfg => cfg.AddKafka(c =>
+        Action<IMapConfigurator> kafka = cfg => cfg.AddKafka(c =>
         {
             c.Host(Bootstrap);
             c.Partitions(3);

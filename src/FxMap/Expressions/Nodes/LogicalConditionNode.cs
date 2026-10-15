@@ -6,7 +6,7 @@ namespace FxMap.Analyzers;
 /// <param name="Left">The left condition.</param>
 /// <param name="Operator">The logical operator (And/Or).</param>
 /// <param name="Right">The right condition.</param>
-public sealed record LogicalConditionNode(
+internal sealed record LogicalConditionNode(
     ConditionNode Left,
     LogicalOperator Operator,
     ConditionNode Right) : ConditionNode
@@ -18,7 +18,7 @@ public sealed record LogicalConditionNode(
 /// <summary>
 /// Logical operators for combining conditions.
 /// </summary>
-public enum LogicalOperator
+internal enum LogicalOperator
 {
     And,  // && or and
     Or    // || or or

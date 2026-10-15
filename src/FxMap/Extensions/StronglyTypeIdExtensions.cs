@@ -25,7 +25,7 @@ public static class StronglyTypeIdExtensions
     /// });
     /// </code>
     /// </example>
-    public static void AddStronglyTypeIdConverter(this MapConfigurator mapRegister, Action<StronglyTypeIdRegister> options)
+    public static void AddStronglyTypeIdConverter(this IMapConfigurator mapRegister, Action<StronglyTypeIdRegister> options)
     {
         if (options is null) throw new DistributedMapException.StronglyTypeConfigurationMustNotBeNull();
         var stronglyTypeIdRegister = new StronglyTypeIdRegister(mapRegister.Services);

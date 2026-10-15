@@ -67,7 +67,7 @@ public class RabbitMqTransportTests
         }
     }
 
-    private static Action<MapConfigurator> RabbitMq(Endpoint endpoint, string vhost) => cfg =>
+    private static Action<IMapConfigurator> RabbitMq(Endpoint endpoint, string vhost) => cfg =>
         cfg.AddRabbitMq(c => c.Host(endpoint.Host, vhost, endpoint.AmqpPort));
 
     private static async Task<Run> StartAsync(bool startOwner = true, TimeSpan? timeout = null)

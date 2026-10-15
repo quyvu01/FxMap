@@ -210,7 +210,7 @@ public static class OwnerHosts
     /// A generic host: the transport registers a hosted worker that listens on the broker once the host is started.
     /// With <paramref name="start"/> false nobody listens (a request has no owner to answer it).
     /// </summary>
-    public static async Task<OwnerHandle> BrokerAsync(OwnerRecorder recorder, Action<MapConfigurator> configureTransport,
+    public static async Task<OwnerHandle> BrokerAsync(OwnerRecorder recorder, Action<IMapConfigurator> configureTransport,
         bool start = true, TimeSpan? ready = null)
     {
         var builder = Host.CreateApplicationBuilder();
@@ -278,7 +278,7 @@ public sealed class TransportHarness : IAsyncDisposable
     /// <param name="consumerTransport">Registers the transport of the consumer (it may need the address of the owner).</param>
     /// <param name="timeout">The request timeout of the consumer, or the default.</param>
     public static async Task<TransportHarness> StartAsync(Func<OwnerRecorder, Task<OwnerHandle>> startOwner,
-        Func<OwnerHandle, Action<MapConfigurator>> consumerTransport, TimeSpan? timeout = null)
+        Func<OwnerHandle, Action<IMapConfigurator>> consumerTransport, TimeSpan? timeout = null)
     {
         var recorder = new OwnerRecorder();
         var owner = await startOwner(recorder);

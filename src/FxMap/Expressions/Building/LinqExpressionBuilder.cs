@@ -9,7 +9,7 @@ namespace FxMap.Expressions.Building;
 /// <summary>
 /// Builds System.Linq.Expressions from FxMap expression AST nodes.
 /// </summary>
-public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBuildResult, ExpressionBuildContext>
+internal sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBuildResult, ExpressionBuildContext>
 {
     private static readonly MethodInfo StringContainsMethod =
         typeof(string).GetMethod(nameof(string.Contains), [typeof(string)])!;
@@ -534,8 +534,8 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
             FunctionType.Pow => BuildPowFunction(sourceResult, node, context),
             // Collection functions
             FunctionType.OrderBy => BuildOrderByFunction(sourceResult, node, context),
-            FunctionType.Skip => BuildSkipFunction(sourceResult, node, context),
-            FunctionType.Take => BuildTakeFunction(sourceResult, node, context),
+            FunctionType.Skip => BuildSkipFunction(sourceResult, node),
+            FunctionType.Take => BuildTakeFunction(sourceResult, node),
             FunctionType.First => BuildFirstOrLastFunction(sourceResult, nameof(Enumerable.FirstOrDefault)),
             FunctionType.Last => BuildFirstOrLastFunction(sourceResult, nameof(Enumerable.LastOrDefault)),
             FunctionType.Distinct => BuildDistinctFunction(sourceResult, node, context),
@@ -967,8 +967,7 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
     /// Builds Skip function: source.Skip(n)
     /// Example: Items:offset(2) -> Items.Skip(2)
     /// </summary>
-    private ExpressionBuildResult BuildSkipFunction(ExpressionBuildResult source, FunctionNode node,
-        ExpressionBuildContext context)
+    private ExpressionBuildResult BuildSkipFunction(ExpressionBuildResult source, FunctionNode node)
     {
         if (!TryGetEnumerableElementType(source.Type, out var elementType))
         {
@@ -987,8 +986,7 @@ public sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionBui
     /// Builds Take function: source.Take(n)
     /// Example: Items:limit(10) -> Items.Take(10)
     /// </summary>
-    private ExpressionBuildResult BuildTakeFunction(ExpressionBuildResult source, FunctionNode node,
-        ExpressionBuildContext context)
+    private ExpressionBuildResult BuildTakeFunction(ExpressionBuildResult source, FunctionNode node)
     {
         if (!TryGetEnumerableElementType(source.Type, out var elementType))
         {

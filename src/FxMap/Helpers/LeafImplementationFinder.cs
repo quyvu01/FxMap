@@ -7,7 +7,7 @@ namespace FxMap.Helpers;
 /// </summary>
 /// <param name="ClassType">The concrete class type that implements the interface.</param>
 /// <param name="ImplementedClosedInterface">The closed generic interface type as implemented by the class.</param>
-public record GenericInterfaceMatch(Type ClassType, Type ImplementedClosedInterface);
+internal record GenericInterfaceMatch(Type ClassType, Type ImplementedClosedInterface);
 
 /// <summary>
 /// Provides methods for finding the most derived (deepest) classes implementing a generic interface.
@@ -17,7 +17,7 @@ public record GenericInterfaceMatch(Type ClassType, Type ImplementedClosedInterf
 /// duplicate registrations when inheritance hierarchies exist. It ensures only the most derived
 /// (leaf) implementations are registered.
 /// </remarks>
-public static class LeafImplementationFinder
+internal static class LeafImplementationFinder
 {
     /// <summary>
     /// Finds all "leaf" classes in an assembly that implement a specified open generic interface.

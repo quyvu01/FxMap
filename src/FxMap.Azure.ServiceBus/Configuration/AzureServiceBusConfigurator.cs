@@ -2,10 +2,10 @@ using Azure.Messaging.ServiceBus;
 
 namespace FxMap.Azure.ServiceBus.Configuration;
 
-public sealed class AzureServiceBusClientSetting
+internal sealed class AzureServiceBusConfigurator : IAzureServiceBusConfigurator
 {
-    public string ConnectionString { get; private set; }
-    public ServiceBusClientOptions ServiceBusClientOptions { get; private set; }
+    internal string ConnectionString { get; private set; }
+    internal ServiceBusClientOptions ServiceBusClientOptions { get; private set; }
     internal string TopicPrefixValue { get; private set; }
     internal int MaxConcurrentSessionsValue { get; private set; } = 8;
 

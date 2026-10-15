@@ -5,7 +5,7 @@ namespace FxMap.Analyzers;
 /// </summary>
 /// <param name="Value">The literal value.</param>
 /// <param name="LiteralType">The type of the literal.</param>
-public sealed record LiteralNode(object Value, LiteralType LiteralType) : ExpressionNode
+internal sealed record LiteralNode(object Value, LiteralType LiteralType) : ExpressionNode
 {
     public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor, TContext context)
         => visitor.VisitLiteral(this, context);
@@ -34,7 +34,7 @@ public sealed record LiteralNode(object Value, LiteralType LiteralType) : Expres
 /// <summary>
 /// The type of a literal value.
 /// </summary>
-public enum LiteralType
+internal enum LiteralType
 {
     String,
     Number,

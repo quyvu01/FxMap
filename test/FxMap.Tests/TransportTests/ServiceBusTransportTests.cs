@@ -15,7 +15,7 @@ namespace FxMap.Tests.TransportTests;
 [Collection(TransportTestsCollection.Name)]
 public class ServiceBusTransportTests
 {
-    private static Action<MapConfigurator> ServiceBus(string prefix) => cfg =>
+    private static Action<IMapConfigurator> ServiceBus(string prefix) => cfg =>
         cfg.AddAzureServiceBus(s =>
         {
             s.Host(TransportEnvironment.Get(TransportEnvironment.ServiceBus));

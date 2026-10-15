@@ -32,7 +32,7 @@ public static class DependencyExtensions
     /// </code>
     /// </example>
     public static ConfiguratorWrapped AddHotChocolate(this ConfiguratorWrapped serviceInjector,
-        Action<HotChocolateConfigurator> action)
+        Action<IHotChocolateConfigurator> action)
     {
         var hotChocolateRegister = new HotChocolateConfigurator();
         action.Invoke(hotChocolateRegister);

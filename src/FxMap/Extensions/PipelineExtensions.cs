@@ -11,7 +11,7 @@ public static class PipelineExtensions
     /// <summary>
     /// Extension methods for FxMapConfigurator to configure pipelines.
     /// </summary>
-    extension(MapConfigurator mapRegister)
+    extension(IMapConfigurator mapRegister)
     {
         /// <summary>
         /// Registers server-side (received) pipeline behaviors.

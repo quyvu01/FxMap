@@ -30,6 +30,12 @@
         <InternalsVisibleTo Include="FxMap.EntityFrameworkCore" />
         <InternalsVisibleTo Include="FxMap.MongoDb" />
         <InternalsVisibleTo Include="FxMap.HotChocolate" />
+        <InternalsVisibleTo Include="FxMap.Aws.Sqs" />
+        <InternalsVisibleTo Include="FxMap.Azure.ServiceBus" />
+        <InternalsVisibleTo Include="FxMap.Grpc" />
+        <InternalsVisibleTo Include="FxMap.Kafka" />
+        <InternalsVisibleTo Include="FxMap.Nats" />
+        <InternalsVisibleTo Include="FxMap.RabbitMq" />
     </ItemGroup>
 
     <ItemGroup>

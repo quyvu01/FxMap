@@ -9,14 +9,14 @@ namespace FxMap.Grpc.Registries;
 /// Use this registrar to specify the gRPC server addresses that the client will
 /// communicate with to fetch data across microservices.
 /// </remarks>
-public class GrpcClientsConfigurator
+internal sealed class GrpcClientsConfigurator : IGrpcClientsConfigurator
 {
     private readonly HashSet<string> _serverHost = [];
 
     /// <summary>
     /// Gets the collection of registered service host addresses.
     /// </summary>
-    public IReadOnlyCollection<string> ServiceHosts => _serverHost;
+    internal IReadOnlyCollection<string> ServiceHosts => _serverHost;
 
     /// <summary>
     /// Adds multiple gRPC server hosts.

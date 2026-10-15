@@ -7,7 +7,7 @@ namespace FxMap.Analyzers;
 /// <param name="FunctionName">The function name: count, sum, avg, min, max, upper, lower, trim, substring, replace, concat, split, orderBy, offset, limit, distinct, ...</param>
 /// <param name="Argument">Optional argument for aggregate functions (e.g., sum(Total)). For backwards compatibility.</param>
 /// <param name="Arguments">Multiple arguments for string functions (e.g., substring(0, 3), replace('a', 'b')).</param>
-public sealed record FunctionNode(
+internal sealed record FunctionNode(
     ExpressionNode Source,
     FunctionType FunctionName,
     string Argument = null,
@@ -34,7 +34,7 @@ public sealed record FunctionNode(
 /// <summary>
 /// Available functions in the expression language.
 /// </summary>
-public enum FunctionType
+internal enum FunctionType
 {
     /// <summary>
     /// Count of items in collection or length of string.

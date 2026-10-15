@@ -53,7 +53,7 @@ public class BrokerOutageTests(ITestOutputHelper output)
         return (uri.Host, uri.Port);
     }
 
-    private static Action<MapConfigurator> Nats(string prefix, int port) => cfg =>
+    private static Action<IMapConfigurator> Nats(string prefix, int port) => cfg =>
         cfg.AddNats(c =>
         {
             c.TopicPrefix(prefix);
@@ -122,7 +122,7 @@ public class BrokerOutageTests(ITestOutputHelper output)
 
     // ---------------------------------------------------------------- RabbitMQ
 
-    private static Action<MapConfigurator> RabbitMq(string vhost, int port) => cfg =>
+    private static Action<IMapConfigurator> RabbitMq(string vhost, int port) => cfg =>
         cfg.AddRabbitMq(c => c.Host("127.0.0.1", vhost, port));
 
     private sealed class RabbitRun(RabbitMqTransportTests.VirtualHost vhost, TransportHarness harness, params BrokerProxy[] links)
@@ -204,7 +204,7 @@ public class BrokerOutageTests(ITestOutputHelper output)
 
     // ---------------------------------------------------------------- SQS
 
-    private static Action<MapConfigurator> Sqs(string account, int port) => cfg =>
+    private static Action<IMapConfigurator> Sqs(string account, int port) => cfg =>
         cfg.AddSqs(s => s.Region(RegionEndpoint.USEast1, c =>
         {
             c.ServiceUrl($"http://127.0.0.1:{port}");

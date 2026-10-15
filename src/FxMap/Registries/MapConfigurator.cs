@@ -29,20 +29,20 @@ namespace FxMap.Registries;
 /// </example>
 /// </remarks>
 /// <param name="services">The service collection to register services into.</param>
-public class MapConfigurator(IServiceCollection services)
+internal sealed class MapConfigurator(IServiceCollection services) : IMapConfigurator
 {
     private readonly HashSet<Type> _knownEntityTypes = [];
     private readonly HashSet<Type> _knownProfileTypes = [];
     private readonly ConcurrentDictionary<Type, IFluentProfileConfig> _profileConfigs = [];
     private readonly ConcurrentDictionary<Type, IFluentEntityConfig> _entityConfigs = [];
-    public IReadOnlyDictionary<Type, IFluentProfileConfig> ProfileConfigs => _profileConfigs.AsReadOnly();
-    public IReadOnlyDictionary<Type, IFluentEntityConfig> EntityConfigs => _entityConfigs;
-    public int MaxNestingDepth { get; private set; } = 128;
-    public int MaxConcurrentProcessing { get; private set; } = 128;
-    public bool ThrowIfExceptions { get; private set; }
-    public TimeSpan DefaultRequestTimeout { get; private set; } = TimeSpan.FromSeconds(30);
+    internal IReadOnlyDictionary<Type, IFluentProfileConfig> ProfileConfigs => _profileConfigs.AsReadOnly();
+    internal IReadOnlyDictionary<Type, IFluentEntityConfig> EntityConfigs => _entityConfigs;
+    internal int MaxNestingDepth { get; private set; } = 128;
+    internal int MaxConcurrentProcessing { get; private set; } = 128;
+    internal bool ThrowIfExceptions { get; private set; }
+    internal TimeSpan DefaultRequestTimeout { get; private set; } = TimeSpan.FromSeconds(30);
     internal RetryPolicy RetryPolicy { get; private set; }
-    public SupervisorOptions SupervisorOptions { get; private set; }
+    internal SupervisorOptions SupervisorOptions { get; private set; }
 
     /// <summary>
     /// Gets the underlying service collection for advanced registration scenarios.

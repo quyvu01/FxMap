@@ -21,7 +21,7 @@ namespace FxMap.MongoDb.Extensions;
 ///   <item><description>Projection: <c>.{Id, Name}</c> → <c>$map</c></description></item>
 /// </list>
 /// </remarks>
-public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, BsonBuildContext>
+internal sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, BsonBuildContext>
 {
     /// <summary>
     /// Builds a BSON projection document from multiple expression strings.
@@ -1207,7 +1207,7 @@ public sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, Bs
 /// <param name="CurrentPath">The current BSON path being built.</param>
 /// <param name="ItemVariable">The variable name for array iteration (e.g., "$$item").</param>
 /// <param name="GroupByContext">Optional context when building projections after GroupBy.</param>
-public sealed record BsonBuildContext(BsonValue CurrentPath, string ItemVariable = null, BsonGroupByContext GroupByContext = null)
+internal sealed record BsonBuildContext(BsonValue CurrentPath, string ItemVariable = null, BsonGroupByContext GroupByContext = null)
 {
     /// <summary>
     /// Gets the field reference prefix based on context.
@@ -1226,4 +1226,4 @@ public sealed record BsonBuildContext(BsonValue CurrentPath, string ItemVariable
 /// </summary>
 /// <param name="KeyProperties">The property names used for grouping.</param>
 /// <param name="IsSingleKey">Whether this is a single-key groupBy.</param>
-public sealed record BsonGroupByContext(IReadOnlyList<string> KeyProperties, bool IsSingleKey);
+internal sealed record BsonGroupByContext(IReadOnlyList<string> KeyProperties, bool IsSingleKey);

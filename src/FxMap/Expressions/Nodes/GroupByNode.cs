@@ -28,7 +28,7 @@ namespace FxMap.Analyzers;
 ///   <item><description><c>Items</c> resolves to the group elements (<c>g</c> as <c>IEnumerable&lt;T&gt;</c>)</description></item>
 /// </list>
 /// </remarks>
-public sealed record GroupByNode(
+internal sealed record GroupByNode(
     ExpressionNode Source,
     IReadOnlyList<string> KeyProperties) : ExpressionNode
 {

@@ -3,7 +3,7 @@ namespace FxMap.Analyzers;
 /// <summary>
 /// Represents the type of token in the FxMap expression language.
 /// </summary>
-public enum TokenType
+internal enum TokenType
 {
     // Literals
     Identifier,        // Property names, function names: Name, Country, count

@@ -13,13 +13,13 @@ namespace FxMap.Delegates;
 /// <returns>
 /// The <see cref="IMapEntityConfig"/> containing the ID and default property configuration.
 /// </returns>
-public delegate IMapEntityConfig MapperDelegates(Type modelType, Type distributedKeyType);
+internal delegate IMapEntityConfig MapperDelegates(Type modelType, Type distributedKeyType);
 
-public delegate IFluentProfileConfig GetProfileConfig(Type profileType);
+internal delegate IFluentProfileConfig GetProfileConfig(Type profileType);
 
-public delegate IFluentEntityConfig GetEntityConfig(Type entityType);
+internal delegate IFluentEntityConfig GetEntityConfig(Type entityType);
 
-public delegate ITypeAccessor GetTypeAccessor(Type type);
+internal delegate ITypeAccessor GetTypeAccessor(Type type);
 
 public delegate Task<ItemsResponse<DataResponse>> SendHandlerDelegate();
 

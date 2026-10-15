@@ -13,7 +13,7 @@ namespace FxMap.Helpers;
 /// spelling (upper case or braced Guid, <c>"007"</c> for 7, surrounding spaces) is found by the query, but its row
 /// would never be matched back. <see cref="Align"/> returns one answer per requested spelling.
 /// </remarks>
-public static class RequestedIdAnswers
+internal static class RequestedIdAnswers
 {
     /// <summary>
     /// Returns the rows re-keyed so that every requested id text that resolves to a row gets an answer under that

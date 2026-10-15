@@ -5,7 +5,7 @@ namespace FxMap.Analyzers;
 /// </summary>
 /// <param name="Name">The property name (can be ExposedName).</param>
 /// <param name="IsNullSafe">Whether this is a null-safe access (?).</param>
-public sealed record PropertyNode(string Name, bool IsNullSafe = false) : ExpressionNode
+internal sealed record PropertyNode(string Name, bool IsNullSafe = false) : ExpressionNode
 {
     public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor, TContext context)
         => visitor.VisitProperty(this, context);

@@ -6,7 +6,7 @@ namespace FxMap.Recyclable;
 /// have to know whether the instance they get back is the original or a recreated one.
 /// Same pattern as MassTransit's Util.Recycle&lt;T&gt;, minus the full Agent/Supervisor machinery.
 /// </summary>
-public sealed class Recycle<T> where T : class, IRecyclable
+internal sealed class Recycle<T> where T : class, IRecyclable
 {
     private readonly Func<T> _factory;
     private Lazy<T> _current;

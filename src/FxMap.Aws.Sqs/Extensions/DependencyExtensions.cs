@@ -12,7 +12,7 @@ namespace FxMap.Aws.Sqs.Extensions;
 
 public static class DependencyExtensions
 {
-    public static void AddSqs(this MapConfigurator mapRegister, Action<SqsConfigurator> options)
+    public static void AddSqs(this IMapConfigurator mapRegister, Action<ISqsConfigurator> options)
     {
         var config = new SqsConfigurator();
         options.Invoke(config);
@@ -27,7 +27,7 @@ public static class DependencyExtensions
         services.AddSingleton<IRequestClient, SqsRequestClient>();
 
         // Register supervisor options: global > default
-        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.Internal().SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use SqsSupervisorWorker with supervisor pattern

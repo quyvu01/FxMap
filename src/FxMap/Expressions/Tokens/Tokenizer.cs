@@ -15,7 +15,7 @@ namespace FxMap.Analyzers;
 ///   <item><description>Functions: :count, :sum, :avg, :min, :max</description></item>
 /// </list>
 /// </remarks>
-public sealed class Tokenizer(string expression)
+internal sealed class Tokenizer(string expression)
 {
     private readonly string _expression = expression ?? throw new ArgumentNullException(nameof(expression));
     private int _position;
@@ -199,4 +199,4 @@ public sealed class Tokenizer(string expression)
 /// <summary>
 /// Exception thrown when tokenization fails.
 /// </summary>
-public class ExpressionTokenizeException(string message) : Exception(message);
+internal class ExpressionTokenizeException(string message) : Exception(message);

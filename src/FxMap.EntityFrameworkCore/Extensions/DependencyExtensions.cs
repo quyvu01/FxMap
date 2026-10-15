@@ -39,7 +39,7 @@ public static class DependencyExtensions
     /// </code>
     /// </example>
     public static ConfiguratorWrapped AddEntityFrameworkCore(this ConfiguratorWrapped serviceInjector,
-        [NotNull] Action<EfCoreConfigurator> registrarAction)
+        [NotNull] Action<IEfCoreConfigurator> registrarAction)
     {
         var entityConfig = serviceInjector.MapConfigurator.EntityConfigs;
         if (entityConfig is not { Count: > 0 })

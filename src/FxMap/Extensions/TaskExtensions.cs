@@ -10,7 +10,7 @@ namespace FxMap.Extensions;
 /// These utilities provide robust async operation handling with proper exception management,
 /// timeout support with detailed error messages, and cancellation token integration.
 /// </remarks>
-public static class TaskExtensions
+internal static class TaskExtensions
 {
     private static readonly TimeSpan DefaultTimeout = new(0, 0, 0, 5, 0);
 

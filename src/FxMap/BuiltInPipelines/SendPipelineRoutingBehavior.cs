@@ -28,8 +28,8 @@ internal sealed class SendPipelineRoutingBehavior<TDistributedKey>(
         SendHandlerDelegate next)
     {
         // Check if we have the inner handler for `TDistributedKey` or not. If have, we will call the ReceivedPipelinesOrchestrator<,> instead of sending via the message!
-        var fxConfig = serviceProvider.GetRequiredService<IMapperConfiguration>();
-        var handlers = fxConfig.DistributedKeyMapHandlers;
+        var mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+        var handlers = mapperConfiguration.DistributedKeyMapHandlers;
         if (!handlers.TryGetValue(typeof(TDistributedKey), out var handlerType) || !handlerType.IsGenericType)
             return await next.Invoke();
         _receivedPipelinesOrchestratorType ??= typeof(ReceivedPipelinesOrchestrator<,>)

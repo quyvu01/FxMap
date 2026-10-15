@@ -5,7 +5,7 @@ using FxMap.Exceptions;
 
 namespace FxMap.Accessors.TypeAccessors;
 
-public sealed class TypeAccessor(Type objectType, GetEntityConfig getEntityConfig) : ITypeAccessor
+internal sealed class TypeAccessor(Type objectType, GetEntityConfig getEntityConfig) : ITypeAccessor
 {
     private readonly ConcurrentDictionary<string, PropertyInfo> _properties = [];
     private readonly ConcurrentDictionary<string, PropertyInfo> _directProperties = [];

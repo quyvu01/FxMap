@@ -15,7 +15,7 @@ namespace FxMap.Tests.TransportTests;
 [Collection(TransportTestsCollection.Name)]
 public class SqsTransportTests
 {
-    private static Action<MapConfigurator> Sqs(string account) => cfg =>
+    private static Action<IMapConfigurator> Sqs(string account) => cfg =>
         cfg.AddSqs(s => s.Region(RegionEndpoint.USEast1, c =>
         {
             c.ServiceUrl(TransportEnvironment.Get(TransportEnvironment.Sqs));

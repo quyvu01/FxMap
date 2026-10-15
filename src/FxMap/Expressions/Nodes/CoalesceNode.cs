@@ -14,7 +14,7 @@ namespace FxMap.Analyzers;
 ///   <item><description><c>A ?? B ?? C</c> → returns first non-null value (right-to-left associativity)</description></item>
 /// </list>
 /// </remarks>
-public sealed record CoalesceNode(
+internal sealed record CoalesceNode(
     ExpressionNode Left,
     ExpressionNode Right) : ExpressionNode
 {

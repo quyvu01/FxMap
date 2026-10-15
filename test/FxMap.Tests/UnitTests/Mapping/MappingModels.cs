@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace FxMap.Tests.UnitTests.Mapping;
 
-// Profiles are INTERNAL on purpose: MapConfigurator.ScanProfileConfigs only scans exported types, so these never leak
+// Profiles are INTERNAL on purpose: IMapConfigurator.ScanProfileConfigs only scans exported types, so these never leak
 // into the tests that call AddProfilesFromAssemblyContaining<ITestAssemblyMarker>().
 
 #region Keys

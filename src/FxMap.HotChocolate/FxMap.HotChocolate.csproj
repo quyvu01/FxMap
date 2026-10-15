@@ -19,6 +19,10 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <InternalsVisibleTo Include="FxMap.Tests" />
+    </ItemGroup>
+
+    <ItemGroup>
         <ProjectReference Include="..\FxMap\FxMap.csproj"/>
         <None Include="..\..\LICENSE" Pack="true" PackagePath="\"/>
         <None Include="NUGET.md" Pack="true" PackagePath="\README.md"/>

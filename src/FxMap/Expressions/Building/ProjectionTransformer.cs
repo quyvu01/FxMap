@@ -6,7 +6,7 @@ namespace FxMap.Expressions.Building;
 /// <summary>
 /// Transforms raw projection results (object[]) into DataResponse objects.
 /// </summary>
-public static class ProjectionTransformer
+internal static class ProjectionTransformer
 {
     /// <summary>
     /// Transforms a collection of raw projection results into DataResponse objects.

@@ -11,7 +11,7 @@ namespace FxMap.Kafka.Extensions;
 
 public static class DependencyExtensions
 {
-    public static void AddKafka(this MapConfigurator mapRegister, Action<KafkaConfigurator> options)
+    public static void AddKafka(this IMapConfigurator mapRegister, Action<IKafkaConfigurator> options)
     {
         var config = new KafkaConfigurator();
         options.Invoke(config);
@@ -23,7 +23,7 @@ public static class DependencyExtensions
         services.AddSingleton<IRequestClient, KafkaClient>();
 
         // Register supervisor options: global > default
-        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.Internal().SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use KafkaSupervisorWorker with supervisor pattern

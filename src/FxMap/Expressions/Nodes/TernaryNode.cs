@@ -15,7 +15,7 @@ namespace FxMap.Analyzers;
 ///   <item><description><c>Score >= 90 ? 'A' : Score >= 80 ? 'B' : 'C'</c> (nested ternary)</description></item>
 /// </list>
 /// </remarks>
-public sealed record TernaryNode(
+internal sealed record TernaryNode(
     ConditionNode Condition,
     ExpressionNode WhenTrue,
     ExpressionNode WhenFalse) : ExpressionNode

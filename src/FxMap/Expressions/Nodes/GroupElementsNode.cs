@@ -17,7 +17,7 @@ namespace FxMap.Analyzers;
 ///   <item><description><c>:first</c> → g.First()</description></item>
 /// </list>
 /// </remarks>
-public sealed record GroupElementsNode : ExpressionNode
+internal sealed record GroupElementsNode : ExpressionNode
 {
     public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor, TContext context)
         => visitor.VisitGroupElements(this, context);

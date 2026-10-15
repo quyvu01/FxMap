@@ -15,7 +15,7 @@ namespace FxMap.Implementations;
 /// This class provides the abstract contract for executing received requests on the server side.
 /// Concrete implementations handle the deserialization, pipeline execution, and response building.
 /// </remarks>
-public abstract class ReceivedPipelinesOrchestrator
+internal abstract class ReceivedPipelinesOrchestrator
 {
     /// <summary>
     /// Executes the received request and returns the data response.
@@ -45,7 +45,7 @@ public abstract class ReceivedPipelinesOrchestrator
 ///   <item><description>Merges results from custom expression handlers with standard results</description></item>
 /// </list>
 /// </remarks>
-public class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
+internal class ReceivedPipelinesOrchestrator<TModel, TDistributedKey>(
     IEnumerable<IReceivedPipelineBehavior<TDistributedKey>> behaviors,
     IEnumerable<IQueryOfHandler<TModel, TDistributedKey>> handlers,
     IEnumerable<ICustomExpressionBehavior<TDistributedKey>> customExpressionHandlers) :

@@ -13,12 +13,12 @@ namespace FxMap.MongoDb.Registries;
 /// Use this registrar to add MongoDB collections that FxMap will query for data.
 /// Each collection is registered as a singleton service.
 /// </remarks>
-public sealed class MongoDbConfigurator(IServiceCollection serviceCollection)
+internal sealed class MongoDbConfigurator(IServiceCollection serviceCollection) : IMongoDbConfigurator
 {
     /// <summary>
     /// Gets the types of models that have been registered with MongoDB collections.
     /// </summary>
-    public IReadOnlyCollection<Type> MongoModelTypes => _mongoModelTypes;
+    internal IReadOnlyCollection<Type> MongoModelTypes => _mongoModelTypes;
     private readonly List<Type> _mongoModelTypes = [];
 
     internal bool IsolatesExpressionErrors { get; private set; }
@@ -45,7 +45,7 @@ public sealed class MongoDbConfigurator(IServiceCollection serviceCollection)
     /// });
     /// </code>
     /// </example>
-    public MongoDbConfigurator AddCollection<TModel>(IMongoCollection<TModel> collection)
+    public IMongoDbConfigurator AddCollection<TModel>(IMongoCollection<TModel> collection)
     {
         _mongoModelTypes.Add(typeof(TModel));
         serviceCollection.AddTransient<IMongoCollectionInternal<TModel>>(_ =>

@@ -16,7 +16,7 @@ namespace FxMap.Analyzers;
 ///   <item><description><c>(Status = 'Active' ? 'Yes' : 'No') as StatusText</c> → Expression=TernaryNode, Alias="StatusText"</description></item>
 /// </list>
 /// </remarks>
-public sealed record ProjectionProperty(string Path, string Alias = null, ExpressionNode Expression = null)
+internal sealed record ProjectionProperty(string Path, string Alias = null, ExpressionNode Expression = null)
 {
     /// <summary>
     /// Gets the output key name for this property.
@@ -67,7 +67,7 @@ public sealed record ProjectionProperty(string Path, string Alias = null, Expres
 ///   <item><description>Aliased properties: <c>{Id, Country.Name as CountryName}</c></description></item>
 /// </list>
 /// </remarks>
-public sealed record RootProjectionNode(IReadOnlyList<ProjectionProperty> Properties) : ExpressionNode
+internal sealed record RootProjectionNode(IReadOnlyList<ProjectionProperty> Properties) : ExpressionNode
 {
     public override TResult Accept<TResult, TContext>(IExpressionNodeVisitor<TResult, TContext> visitor, TContext context)
         => visitor.VisitRootProjection(this, context);

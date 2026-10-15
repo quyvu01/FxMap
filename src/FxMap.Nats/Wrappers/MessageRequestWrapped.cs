@@ -5,7 +5,7 @@ using FxMap.Implementations;
 
 namespace FxMap.Nats.Wrappers;
 
-public class MessageRequestWrapped<TDistributedKey> where TDistributedKey : IDistributedKey
+internal class MessageRequestWrapped<TDistributedKey> where TDistributedKey : IDistributedKey
 {
     public Dictionary<string, string> Headers { get; set; }
     public MapRequest<TDistributedKey> Query { get; set; }

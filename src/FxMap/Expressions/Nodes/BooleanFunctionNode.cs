@@ -15,7 +15,7 @@ namespace FxMap.Analyzers;
 ///   <item><description><c>Documents:all(IsApproved = true)</c> → true if all documents are approved</description></item>
 /// </list>
 /// </remarks>
-public sealed record BooleanFunctionNode(
+internal sealed record BooleanFunctionNode(
     ExpressionNode Source,
     BooleanFunctionType FunctionName,
     ConditionNode Condition = null) : ExpressionNode
@@ -32,7 +32,7 @@ public sealed record BooleanFunctionNode(
 /// <summary>
 /// Boolean functions that operate on collections.
 /// </summary>
-public enum BooleanFunctionType
+internal enum BooleanFunctionType
 {
     /// <summary>
     /// Returns true if any item in the collection matches the condition.

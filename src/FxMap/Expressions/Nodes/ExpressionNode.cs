@@ -3,7 +3,7 @@ namespace FxMap.Analyzers;
 /// <summary>
 /// Base class for all AST nodes in the FxMap expression language.
 /// </summary>
-public abstract record ExpressionNode
+internal abstract record ExpressionNode
 {
     /// <summary>
     /// Accepts a visitor to process this node.
@@ -14,7 +14,7 @@ public abstract record ExpressionNode
 /// <summary>
 /// Visitor interface for traversing expression AST nodes.
 /// </summary>
-public interface IExpressionNodeVisitor<out TResult, in TContext>
+internal interface IExpressionNodeVisitor<out TResult, in TContext>
 {
     TResult VisitProperty(PropertyNode node, TContext context);
     TResult VisitNavigation(NavigationNode node, TContext context);

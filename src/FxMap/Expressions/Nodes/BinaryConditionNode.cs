@@ -6,7 +6,7 @@ namespace FxMap.Analyzers;
 /// <param name="Left">The left operand (property or function).</param>
 /// <param name="Operator">The comparison operator.</param>
 /// <param name="Right">The right operand (literal value).</param>
-public sealed record BinaryConditionNode(
+internal sealed record BinaryConditionNode(
     ExpressionNode Left,
     ComparisonOperator Operator,
     ExpressionNode Right) : ConditionNode
@@ -18,7 +18,7 @@ public sealed record BinaryConditionNode(
 /// <summary>
 /// Comparison operators for binary conditions.
 /// </summary>
-public enum ComparisonOperator
+internal enum ComparisonOperator
 {
     Equal,              // =
     NotEqual,           // !=

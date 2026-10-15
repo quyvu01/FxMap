@@ -14,9 +14,9 @@ namespace FxMap.Nats.Extensions;
 
 public static class DependencyExtensions
 {
-    public static void AddNats(this MapConfigurator mapRegister, Action<NatsClientSetting> options)
+    public static void AddNats(this IMapConfigurator mapRegister, Action<INatsConfigurator> options)
     {
-        var natsSetting = new NatsClientSetting();
+        var natsSetting = new NatsConfigurator();
         options.Invoke(natsSetting);
         var services = mapRegister.Services;
         services.AddSingleton<INatsConfiguration>(new NatsConfiguration(natsSetting.TopicPrefixValue));
@@ -24,7 +24,7 @@ public static class DependencyExtensions
         services.AddSingleton(typeof(INatsServer<,>), typeof(NatsServer<,>));
 
         // Register supervisor options: global > default
-        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.Internal().SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use NatsSupervisorWorker with supervisor pattern

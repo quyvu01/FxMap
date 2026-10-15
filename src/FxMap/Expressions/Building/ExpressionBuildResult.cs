@@ -8,7 +8,7 @@ namespace FxMap.Expressions.Building;
 /// <param name="Type">The result type of the expression.</param>
 /// <param name="Expression">The built LINQ expression.</param>
 /// <param name="Metadata">Optional metadata for special expression types (e.g., GroupBy).</param>
-public sealed record ExpressionBuildResult(Type Type, Expression Expression, object Metadata = null);
+internal sealed record ExpressionBuildResult(Type Type, Expression Expression, object Metadata = null);
 
 /// <summary>
 /// Metadata for GroupBy expression results.
@@ -17,4 +17,4 @@ public sealed record ExpressionBuildResult(Type Type, Expression Expression, obj
 /// <param name="KeyProperties">The property names used for grouping.</param>
 /// <param name="KeyType">The type of the grouping key (single property type or anonymous type for multi-key).</param>
 /// <param name="ElementType">The type of elements in each group.</param>
-public sealed record GroupByMetadata(IReadOnlyList<string> KeyProperties, Type KeyType, Type ElementType);
+internal sealed record GroupByMetadata(IReadOnlyList<string> KeyProperties, Type KeyType, Type ElementType);

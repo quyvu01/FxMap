@@ -1,6 +1,6 @@
 namespace FxMap.Kafka.Registries;
 
-public sealed class KafkaConfigurator
+internal sealed class KafkaConfigurator : IKafkaConfigurator
 {
     internal string KafkaHostValue { get; private set; }
     internal KafkaSslOptions KafkaSslOptionsValue { get; private set; }

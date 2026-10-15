@@ -8,4 +8,4 @@ namespace FxMap.Models;
 /// Examples include simple property names like <c>"Name"</c>, navigation paths like <c>"Country.Name"</c>,
 /// or complex expressions like <c>"Orders:orderBy(CreatedAt desc):first.TotalAmount"</c>.
 /// </param>
-public sealed record ExpressionValue(string Expression);
+internal sealed record ExpressionValue(string Expression);

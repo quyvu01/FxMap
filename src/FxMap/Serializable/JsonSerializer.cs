@@ -9,7 +9,7 @@ namespace FxMap.Serializable;
 /// This class wraps the native .NET JSON serialization to provide a consistent serialization
 /// interface across the framework. All FxMap data is serialized as JSON strings for transport.
 /// </remarks>
-public static class JsonSerializer
+internal static class JsonSerializer
 {
     /// <summary>
     /// Serializes an object to a JSON string.

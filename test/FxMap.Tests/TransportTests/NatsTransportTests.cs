@@ -10,7 +10,7 @@ namespace FxMap.Tests.TransportTests;
 [Collection(TransportTestsCollection.Name)]
 public class NatsTransportTests
 {
-    private static Action<MapConfigurator> Nats(string prefix) => cfg =>
+    private static Action<IMapConfigurator> Nats(string prefix) => cfg =>
         cfg.AddNats(c =>
         {
             c.TopicPrefix(prefix);

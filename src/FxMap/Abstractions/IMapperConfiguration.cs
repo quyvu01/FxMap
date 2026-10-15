@@ -3,7 +3,7 @@ using FxMap.Supervision;
 
 namespace FxMap.Abstractions;
 
-public interface IMapperConfiguration
+internal interface IMapperConfiguration
 {
     IReadOnlyCollection<Type> DistributedKeyTypes { get; }
     IReadOnlyCollection<EntityInfo> EntityInfos { get; }

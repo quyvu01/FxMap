@@ -10,7 +10,7 @@ namespace FxMap.Extensions;
 /// These utilities support the FxMap framework's reflection-based property discovery
 /// and type analysis capabilities.
 /// </remarks>
-public static class TypeExtensions
+internal static class TypeExtensions
 {
     /// <param name="type"></param>
     extension(Type type)

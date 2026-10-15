@@ -15,9 +15,9 @@ namespace FxMap.Azure.ServiceBus.Extensions;
 
 public static class DependencyExtensions
 {
-    public static void AddAzureServiceBus(this MapConfigurator mapRegister, Action<AzureServiceBusClientSetting> options)
+    public static void AddAzureServiceBus(this IMapConfigurator mapRegister, Action<IAzureServiceBusConfigurator> options)
     {
-        var setting = new AzureServiceBusClientSetting();
+        var setting = new AzureServiceBusConfigurator();
         options.Invoke(setting);
         var connectionString = setting.ConnectionString;
         var serviceBusClientOptions = setting.ServiceBusClientOptions;
@@ -37,7 +37,7 @@ public static class DependencyExtensions
         services.AddSingleton<IRequestClient, AzureServiceBusClient>();
 
         // Register supervisor options: global > default
-        var supervisorOptions = mapRegister.SupervisorOptions ?? new SupervisorOptions();
+        var supervisorOptions = mapRegister.Internal().SupervisorOptions ?? new SupervisorOptions();
         services.AddSingleton(supervisorOptions);
 
         // Use AzureServiceBusSupervisorWorker with supervisor pattern

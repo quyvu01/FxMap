@@ -22,7 +22,7 @@ namespace FxMap.Grpc.Implementations;
 ///   <item><description><c>GeTDistributedKeys</c> - Returns the list of distributed key types this server can handle (for discovery)</description></item>
 /// </list>
 /// </remarks>
-public sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTransportService.FxMapTransportServiceBase
+internal sealed class GrpcServer(IServiceProvider serviceProvider) : FxMapTransportService.FxMapTransportServiceBase
 {
     private static readonly Lazy<ConcurrentDictionary<string, Type>> ReceivedPipelineTypes = new(() => []);
     private readonly ILogger<GrpcServer> _logger = serviceProvider.GetService<ILogger<GrpcServer>>();
