@@ -173,7 +173,12 @@ builder.Services
 cfg.SetMaxNestingDepth(128);                      // Prevent infinite recursion (default: 128)
 cfg.SetMaxConcurrentProcessing(256);              // Backpressure for message transports
 cfg.SetRequestTimeOut(TimeSpan.FromSeconds(60));  // Per-request timeout (default: 30s)
-cfg.SetRetryPolicy(3, attempt => TimeSpan.FromMilliseconds(200 * attempt), onRetry: null);
+cfg.SetRetryPolicy(
+    retryCount: 3,                                                    // retries after the first attempt (at most 4 attempts)
+    sleepDurationProvider: n => TimeSpan.FromMilliseconds(            // waited BEFORE retry n (1 = the first retry); exponential backoff + jitter
+        Random.Shared.Next(0, 200 * (1 << (n - 1)))),
+    onRetry: (ex, delay) => logger.LogWarning(ex, "Retry in {Delay}", delay),  // before each retry; not for the last failure
+    shouldRetry: ex => ex is TimeoutException or IOException);        // retry only what can go away; the others are thrown at once
 cfg.ConfigureSupervisor(opts =>
 {
     opts.Strategy = SupervisionStrategy.OneForOne;

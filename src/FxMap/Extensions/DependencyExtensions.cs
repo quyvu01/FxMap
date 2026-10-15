@@ -102,10 +102,14 @@ public static class DependencyExtensions
             return new EntityConfiguration(config.IdPropertySelector, config.DefaultPropertySelector);
         });
 
+        // The first one registered is the outermost. The routing sends a request that a local handler can answer to that handler and
+        // calls the next ones only for a request that goes through a transport. For such a request the suppression of the errors
+        // (ThrowIfExceptions off) must wrap the retries: an exception it swallowed inside them would never be retried, and a retry
+        // policy would do nothing by default. The errors of a local handler are neither suppressed nor retried.
         mapConfigurator.AddSendPipelines(c => c
-            .OfType(typeof(RetryPipelineBehavior<>))
             .OfType(typeof(SendPipelineRoutingBehavior<>))
             .OfType(typeof(ExceptionPipelineBehavior<>))
+            .OfType(typeof(RetryPipelineBehavior<>))
         );
 
         services.AddSingleton(typeof(QueryHandlerBuilder<,,>));

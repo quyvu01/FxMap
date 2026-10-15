@@ -11,12 +11,14 @@ namespace FxMap.BuiltInPipelines;
 /// </summary>
 /// <typeparam name="TDistributedKey">The FxMap distributed key type.</typeparam>
 /// <remarks>
-/// This behavior uses the <see cref="RetryPolicy"/> configuration to retry failed requests.
-/// Features include:
+/// This behavior uses the <see cref="RetryPolicy"/> configuration to retry failed requests:
 /// <list type="bullet">
-///   <item><description>Configurable retry count</description></item>
-///   <item><description>Custom sleep duration provider for backoff strategies</description></item>
-///   <item><description>Optional callback for retry notifications</description></item>
+///   <item><description>At most <c>RetryCount</c> retries after the first attempt.</description></item>
+///   <item><description>The delay (custom backoff) is waited <b>before</b> each retry, not after the last failure.</description></item>
+///   <item><description><c>OnRetry</c> is invoked before each retry, with the exception of the attempt that failed and the delay.</description></item>
+///   <item><description><c>ShouldRetry</c> can refuse a retry; the exception is thrown at once.</description></item>
+///   <item><description>When the caller cancels the request nothing is retried and no more delay is waited.</description></item>
+///   <item><description>When the attempts are used up, the last exception is thrown.</description></item>
 /// </list>
 /// </remarks>
 internal sealed class RetryPipelineBehavior<TDistributedKey>(IServiceProvider serviceProvider)
@@ -26,37 +28,29 @@ internal sealed class RetryPipelineBehavior<TDistributedKey>(IServiceProvider se
     public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
         SendHandlerDelegate next)
     {
-        var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-        var retryPolicy = fxMapConfiguration.RetryPolicy;
+        var mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+        var retryPolicy = mapperConfiguration.RetryPolicy;
         if (retryPolicy is null) return await next.Invoke();
         var ct = requestContext.CancellationToken;
-        try
+        var retry = 0;
+
+        while (true)
         {
-            return await next.Invoke();
-        }
-        catch (Exception)
-        {
-            foreach (var retryCount in Enumerable.Range(1, retryPolicy.RetryCount))
+            try
             {
-                ct.ThrowIfCancellationRequested();
-                try
-                {
-                    return await next.Invoke();
-                }
-                catch (Exception ex)
-                {
-                    var retryAfter = TimeSpan.Zero;
-                    if (retryPolicy.SleepDurationProvider is { } sleepDurationProvider)
-                    {
-                        retryAfter = sleepDurationProvider.Invoke(retryCount);
-                        await Task.Delay(retryAfter, ct);
-                    }
-
-                    retryPolicy.OnRetry?.Invoke(ex, retryAfter);
-                }
+                return await next.Invoke();
             }
+            catch (Exception ex) when (retry < retryPolicy.RetryCount && !ct.IsCancellationRequested &&
+                                       ex is not OutOfMemoryException)
+            {
+                // The exception of a retry that is refused (or the last one) leaves from here as it is
+                if (retryPolicy.ShouldRetry is { } shouldRetry && !shouldRetry(ex)) throw;
 
-            throw;
+                retry++;
+                var delay = retryPolicy.SleepDurationProvider?.Invoke(retry) ?? TimeSpan.Zero;
+                retryPolicy.OnRetry?.Invoke(ex, delay);
+                if (delay > TimeSpan.Zero) await Task.Delay(delay, ct);
+            }
         }
     }
 }

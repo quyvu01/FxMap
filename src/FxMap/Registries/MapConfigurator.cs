@@ -207,14 +207,31 @@ public class MapConfigurator(IServiceCollection services)
     /// <summary>
     /// Configures the retry policy for failed requests.
     /// </summary>
-    /// <param name="retryCount">The maximum number of retry attempts.</param>
-    /// <param name="sleepDurationProvider">A function to calculate delay between retries.</param>
-    /// <param name="onRetry">A callback invoked on each retry attempt.</param>
+    /// <param name="retryCount">The maximum number of retries after the first attempt (3 means at most 4 attempts).</param>
+    /// <param name="sleepDurationProvider">
+    /// A function that returns the delay before a retry; its parameter is the number of the retry (1 for the first retry).
+    /// Without it the retries follow each other at once. An exponential backoff with jitter is usual:
+    /// <c>n => TimeSpan.FromMilliseconds(Random.Shared.Next(0, 200 * (1 &lt;&lt; (n - 1))))</c>.
+    /// </param>
+    /// <param name="onRetry">
+    /// A callback invoked before each retry, with the exception of the attempt that failed and the delay that is about to be waited.
+    /// It is not invoked for the last failure.
+    /// </param>
+    /// <param name="shouldRetry">
+    /// Decides whether an exception is worth a retry; when it returns false the exception is thrown at once. Without it every exception
+    /// is retried (but not when the caller cancelled the request). Retry only the failures that can go away, such as a timeout or a
+    /// connection that was lost, not an error that the same request will cause again.
+    /// </param>
+    /// <remarks>
+    /// The retries wrap the requests that go through a transport (a request that a local handler answers is not retried), and the
+    /// suppression of the errors (when <see cref="ThrowIfException"/> is not called) wraps the retries: an exception is suppressed only
+    /// after the last attempt failed. The last exception is the one that is thrown (or suppressed).
+    /// </remarks>
     public void SetRetryPolicy(int retryCount = 3, Func<int, TimeSpan> sleepDurationProvider = null,
-        Action<Exception, TimeSpan> onRetry = null)
+        Action<Exception, TimeSpan> onRetry = null, Func<Exception, bool> shouldRetry = null)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(retryCount, 0);
-        RetryPolicy = new RetryPolicy(retryCount, sleepDurationProvider, onRetry);
+        RetryPolicy = new RetryPolicy(retryCount, sleepDurationProvider, onRetry, shouldRetry);
     }
 
     /// <summary>
