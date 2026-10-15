@@ -6,6 +6,31 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [5.1.0]
+
+Details: [the notes of 5.1.0](docs/changelogs/v5.1.0.md).
+
+### Fixed
+
+- **Retry policy (`SetRetryPolicy`)**: the delay is waited **before** each retry (it was waited after a failed retry, and after the last failure); `OnRetry` is called
+  before each retry with the exception that just failed; the **last** exception is thrown (the first was); a caller that cancels stops the retries.
+- **The retry policy did nothing when `ThrowIfException()` was not called** (the default): the suppression of the errors swallowed every failure inside the retries.
+  A request through a transport is now retried and suppressed only after the last attempt. A request answered by a local handler is not retried.
+
+### Added
+
+- `shouldRetry` in `SetRetryPolicy`: decides whether a failure is worth a retry; `false` throws the exception at once.
+
+### Changed
+
+- **The configuration is published by interfaces**, the classes are `internal sealed`: `IMapConfigurator`, `IKafkaConfigurator`, `IRabbitMqConfigurator`,
+  `ISqsConfigurator`, `IGrpcClientsConfigurator`, `IEfCoreConfigurator`, `IMongoDbConfigurator`, `IHotChocolateConfigurator`, `INatsConfigurator` (was `NatsClientSetting`),
+  `IAzureServiceBusConfigurator` (was `AzureServiceBusClientSetting`). The lambdas of `AddFxMap(cfg => ...)` and `AddXxx(c => ...)` do not change.
+- **Details of the implementation are `internal`**: the expression engine (nodes, tokenizer, parser, builders), the accessors, `ServerSupervisor`, the generated gRPC
+  messages and more (list in the notes). Code that names these types has to change; see the notes.
+
+---
+
 ## [5.0.0]
 
 Details: [the notes of 5.0.0](docs/changelogs/v5.0.0.md).
