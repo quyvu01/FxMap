@@ -6,6 +6,23 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [5.1.1]
+
+Details: [the notes of 5.1.1](docs/changelogs/v5.1.1.md).
+
+### Fixed
+
+- **MongoDB**: `avg` answered the sum (also in a `groupBy`); `any(condition)` and `all(condition)` compared the text of the property, so they were wrong; `endswith` failed the
+  request and `contains`/`startswith` read the value as a regular expression; `Orders.{Number, Status}` (a collection projected from a field) answered `{}`.
+- **Expression language**: `Address?.City` threw `NullReferenceException` when `Address` was null; `&&` and `||` in a ternary were a parse error.
+- **Configuration**: `AddProfileConfig<T>()` / `AddEntityConfig<T>()` registered twice threw (now idempotent); RabbitMQ `ChannelPoolSize(0)` or a negative value is rejected.
+
+### Tests
+
+- About 215 tests added; line coverage 70.7% to 82.6% (MongoDB 55% to 89%). Found by running 81 expressions on the LINQ builder, PostgreSQL and MongoDB.
+
+---
+
 ## [5.1.0]
 
 Details: [the notes of 5.1.0](docs/changelogs/v5.1.0.md).
