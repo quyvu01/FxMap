@@ -236,6 +236,9 @@ public static class ProviderScenarios
         // aggregations (the orders of c1: 1500, 350, 2500)
         ("c1", "Orders:count", "3"), ("c1", "Orders:sum(Total)", "4350"), ("c1", "Orders:avg(Total)", "1450"),
         ("c1", "Orders:min(Total)", "350"), ("c1", "Orders:max(Total)", "2500"),
+        // a customer with no order (c3): the count and the sum are 0, the others have no value
+        ("c3", "Orders:count", "0"), ("c3", "Orders:sum(Total)", "0"),
+        ("c3", "Orders:avg(Total)", "null"), ("c3", "Orders:min(Total)", "null"), ("c3", "Orders:max(Total)", "null"),
         // math functions
         ("c1", "Orders:sum(Total):add(50)", "4400"), ("c1", "Orders:sum(Total):subtract(50)", "4300"),
         ("c1", "Orders:sum(Total):multiply(2)", "8700"), ("c1", "Orders:sum(Total):divide(2)", "2175"),
