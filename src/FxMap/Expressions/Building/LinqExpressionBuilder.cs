@@ -96,13 +96,7 @@ internal sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionB
 
         Expression propertyAccess = Expression.Property(context.CurrentExpression, propertyInfo);
 
-        if (node.IsNullSafe && !context.CurrentType.IsValueType)
-        {
-            // Generate: x.Property == null ? null : x.Property.NextProperty
-            // For now, just mark it - actual null-safe handling will be in navigation
-            propertyAccess = Expression.Property(context.CurrentExpression, propertyInfo);
-        }
-
+        // A null-safe segment (`Property?`) is handled by VisitNavigation, which sees the segments that follow it.
         return new ExpressionBuildResult(propertyInfo.PropertyType, propertyAccess);
     }
 
@@ -131,10 +125,11 @@ internal sealed class LinqExpressionBuilder : IExpressionNodeVisitor<ExpressionB
         {
             result = segment.Accept(this, currentContext);
 
-            // Handle null-safe navigation
-            if (segment is PropertyNode { IsNullSafe: true } && !currentContext.CurrentType.IsValueType)
+            // Handle null-safe navigation: `Address?.City` stops when the value of the segment (Address) is null.
+            // (The value to test is the one this segment gave, not the one it was read from.)
+            if (segment is PropertyNode { IsNullSafe: true } && !result.Type.IsValueType)
             {
-                var nullCheck = Expression.Equal(currentContext.CurrentExpression, Expression.Constant(null));
+                var nullCheck = Expression.Equal(result.Expression, Expression.Constant(null, result.Type));
                 nullCheckExpression = nullCheckExpression == null
                     ? nullCheck
                     : Expression.OrElse(nullCheckExpression, nullCheck);

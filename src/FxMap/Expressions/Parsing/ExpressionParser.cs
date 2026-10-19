@@ -193,7 +193,10 @@ internal sealed class ExpressionParser(IReadOnlyList<Token> tokens)
             // This is a condition: parse the comparison
             var op = ParseComparisonOperator();
             var rightValue = ParseValue();
-            var condition = new BinaryConditionNode(expr, op, rightValue);
+            ConditionNode condition = new BinaryConditionNode(expr, op, rightValue);
+
+            // More comparisons joined by && and ||: Name = 'John' && Score > 80 ? 'Hit' : 'Miss'
+            condition = ParseLogicalRest(condition);
 
             // Now check for ternary
             if (Match(TokenType.Question))
@@ -1150,6 +1153,27 @@ internal sealed class ExpressionParser(IReadOnlyList<Token> tokens)
     /// <summary>
     /// Parses OR conditions: A || B || C
     /// </summary>
+    /// <summary>
+    /// The comparisons that follow the first one of a condition outside of a filter: <c>&amp;&amp;</c> binds tighter than <c>||</c>.
+    /// A comma does not join them here (it separates the items of a projection).
+    /// </summary>
+    private ConditionNode ParseLogicalRest(ConditionNode first)
+    {
+        var left = first;
+        while (Match(TokenType.And))
+            left = new LogicalConditionNode(left, LogicalOperator.And, ParseComparison());
+
+        while (Match(TokenType.Or))
+        {
+            var right = ParseComparison();
+            while (Match(TokenType.And))
+                right = new LogicalConditionNode(right, LogicalOperator.And, ParseComparison());
+            left = new LogicalConditionNode(left, LogicalOperator.Or, right);
+        }
+
+        return left;
+    }
+
     private ConditionNode ParseOrCondition()
     {
         var left = ParseAndCondition();

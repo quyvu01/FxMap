@@ -22,6 +22,10 @@ public class MongoProviderTests(MongoProviderFixture mongo) : IClassFixture<Mong
         ProviderScenarios.Navigation_and_aggregates_are_computed_by_the_database(mongo);
 
     [MongoFact]
+    public Task Every_function_answers_the_documented_value() =>
+        ProviderScenarios.Every_function_answers_the_documented_value(mongo);
+
+    [MongoFact]
     public Task A_collection_is_ordered_and_paged_by_the_database() =>
         ProviderScenarios.A_collection_is_ordered_and_paged_by_the_database(mongo);
 

@@ -21,6 +21,10 @@ public class PostgresProviderTests(PostgresProviderFixture postgres) : IClassFix
         ProviderScenarios.Navigation_and_aggregates_are_computed_by_the_database(postgres);
 
     [PostgresFact]
+    public Task Every_function_answers_the_documented_value() =>
+        ProviderScenarios.Every_function_answers_the_documented_value(postgres);
+
+    [PostgresFact]
     public Task A_collection_is_ordered_and_paged_by_the_database() =>
         ProviderScenarios.A_collection_is_ordered_and_paged_by_the_database(postgres);
 

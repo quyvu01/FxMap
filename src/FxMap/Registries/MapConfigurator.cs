@@ -71,11 +71,10 @@ internal sealed class MapConfigurator(IServiceCollection services) : IMapConfigu
             ScanProfileConfigs(assembly);
     }
 
-    public void AddProfileConfig<TProfileConfig>() where TProfileConfig : IFluentProfileConfig
-    {
-        var profileType = typeof(TProfileConfig);
-        if (profileType.IsClosedConcreteType()) AddProfileConfig(profileType);
-    }
+    // Through the same path as AddProfileConfigs, so a profile that is registered twice is registered once
+    // (it threw "both 'X' and 'X' configure the same model").
+    public void AddProfileConfig<TProfileConfig>() where TProfileConfig : IFluentProfileConfig =>
+        AddProfileConfigs(typeof(TProfileConfig));
 
     public void AddProfileConfigs(params Type[] profiles)
     {
@@ -122,11 +121,8 @@ internal sealed class MapConfigurator(IServiceCollection services) : IMapConfigu
             ScanEntityConfigs(assembly);
     }
 
-    public void AddEntityConfig<TEntityConfig>() where TEntityConfig : IFluentEntityConfig
-    {
-        var type = typeof(TEntityConfig);
-        if (type.IsClosedConcreteType()) AddEntityConfig(type);
-    }
+    public void AddEntityConfig<TEntityConfig>() where TEntityConfig : IFluentEntityConfig =>
+        AddEntityConfigs(typeof(TEntityConfig));
 
     public void AddEntityConfigs(params Type[] profiles)
     {

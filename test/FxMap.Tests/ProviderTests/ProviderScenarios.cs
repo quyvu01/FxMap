@@ -202,4 +202,109 @@ public static class ProviderScenarios
         error.Errors.ShouldHaveSingleItem().Expression.ShouldBe("Name:bogus");
         error.Message.ShouldContain("Name:bogus");
     }
+
+    // ------------------------------------------------------------------------------------------------------------------
+    // Every function of the expression language, answered by the database. The expected values are the ones that
+    // docs/expression.md gives (computed by hand from the rows of ProviderData), and are the same for every provider.
+    // ------------------------------------------------------------------------------------------------------------------
+
+    private static string Canonical(System.Text.Json.Nodes.JsonNode node) => node switch
+    {
+        null => "null",
+        System.Text.Json.Nodes.JsonArray a => "[" + string.Join(",", a.Select(Canonical).Order(StringComparer.Ordinal)) + "]",
+        System.Text.Json.Nodes.JsonObject o => "{" + string.Join(",", o.OrderBy(p => p.Key, StringComparer.Ordinal)
+            .Select(p => $"\"{p.Key}\":{Canonical(p.Value)}")) + "}",
+        System.Text.Json.Nodes.JsonValue v when v.GetValueKind() == System.Text.Json.JsonValueKind.Number && v.TryGetValue<decimal>(out var d) =>
+            d.ToString("0.#############################", System.Globalization.CultureInfo.InvariantCulture),
+        _ => node.ToJsonString()
+    };
+
+    /// <summary>(customer id, expression, expected value as JSON; arrays are compared without their order)</summary>
+    public static readonly (string Id, string Expression, string Expected)[] FunctionCases =
+    [
+        // string functions
+        ("c1", "Name:upper", "\"ALICE\""), ("c1", "Name:lower", "\"alice\""),
+        ("c1", "Name:substring(0, 3)", "\"Ali\""), ("c1", "Name:substring(2)", "\"ice\""), ("c1", "Name:substring(1, 2)", "\"li\""),
+        ("c1", "Name:replace('i', 'I')", "\"AlIce\""), ("c1", "Name:concat('-', Email)", "\"Alice-alice@example.com\""),
+        ("c1", "Tags:split(',')", "[\"a\",\"b\",\"c\"]"), ("c1", "Name:upper:lower", "\"alice\""),
+        ("c1", "Name:concat(' ', Email):upper", "\"ALICE ALICE@EXAMPLE.COM\""),
+        // date functions (2024-12-25 14:30:45 UTC, a Wednesday)
+        ("c1", "JoinedAt:year", "2024"), ("c1", "JoinedAt:month", "12"), ("c1", "JoinedAt:day", "25"), ("c1", "JoinedAt:hour", "14"),
+        ("c1", "JoinedAt:minute", "30"), ("c1", "JoinedAt:second", "45"), ("c1", "JoinedAt:dayOfWeek", "3"),
+        ("c1", "JoinedAt:format('yyyy-MM-dd')", "\"2024-12-25\""), ("c1", "JoinedAt:format('dd/MM/yyyy HH:mm:ss')", "\"25/12/2024 14:30:45\""),
+        ("c1", "JoinedAt:year:add(1)", "2025"),
+        // aggregations (the orders of c1: 1500, 350, 2500)
+        ("c1", "Orders:count", "3"), ("c1", "Orders:sum(Total)", "4350"), ("c1", "Orders:avg(Total)", "1450"),
+        ("c1", "Orders:min(Total)", "350"), ("c1", "Orders:max(Total)", "2500"),
+        // math functions
+        ("c1", "Orders:sum(Total):add(50)", "4400"), ("c1", "Orders:sum(Total):subtract(50)", "4300"),
+        ("c1", "Orders:sum(Total):multiply(2)", "8700"), ("c1", "Orders:sum(Total):divide(2)", "2175"),
+        ("c1", "Orders:sum(Total):mod(7)", "3"), ("c1", "Orders:sum(Total):round(0)", "4350"),
+        ("c1", "Orders:avg(Total):floor", "1450"), ("c1", "Orders:avg(Total):ceil", "1450"), ("c1", "Orders:avg(Total):abs", "1450"),
+        ("c1", "Score:pow(2)", "7225"), ("c1", "Score:mod(10)", "5"), ("c1", "Score:add(5):multiply(2)", "180"),
+        // filters
+        ("c1", "Orders:where(Status = 'Done'):count", "2"), ("c1", "Orders:where(Status = 'Done'):sum(Total)", "1850"),
+        ("c1", "Orders:where(Total > 1000):count", "2"), ("c1", "Orders:where(Status = 'Done' && Total > 1000):count", "1"),
+        ("c1", "Orders:where(Status = 'Done' || Total > 2000):count", "3"), ("c1", "Orders:where(Status != 'Done'):count", "1"),
+        ("c1", "Orders:where(Status contains 'on'):count", "2"), ("c1", "Orders:where(Status startswith 'Pe'):count", "1"),
+        ("c1", "Orders:where(Status endswith 'ne'):count", "2"), ("c1", "Orders:where(Status = 'Done', Total > 1000):count", "1"),
+        ("c1", "Orders:where(Total >= 350 && Total <= 1500):count", "2"), ("c1", "Orders:where(Status:lower = 'done'):count", "2"),
+        ("c1", "Orders:where(Number > 1):sum(Total)", "2850"),
+        // boolean functions
+        ("c1", "Orders:any", "true"), ("c3", "Orders:any", "false"), ("c1", "Orders:any(Status = 'Pending')", "true"),
+        ("c1", "Orders:any(Total > 5000)", "false"), ("c1", "Orders:all(Total > 100)", "true"), ("c1", "Orders:all(Total > 400)", "false"),
+        // coalesce and ternary
+        ("c1", "Nick ?? Name", "\"Alice\""), ("c2", "Nick ?? Name", "\"Bobby\""), ("c1", "Nick ?? 'Anonymous'", "\"Anonymous\""),
+        ("c3", "Address.City ?? 'Unknown'", "\"Unknown\""), ("c1", "Address.City ?? 'Unknown'", "\"Hanoi\""),
+        ("c1", "Name = 'Alice' ? 'Yes' : 'No'", "\"Yes\""), ("c1", "Score >= 90 ? 'A' : Score >= 80 ? 'B' : 'C'", "\"B\""),
+        ("c2", "Score >= 90 ? 'A' : Score >= 80 ? 'B' : 'C'", "\"A\""),
+        ("c1", "Orders:any(Status = 'Pending') ? 'Has' : 'None'", "\"Has\""), ("c1", "Orders:count > 2 ? 'Many' : 'Few'", "\"Many\""),
+        ("c1", "Name = 'Alice' && Score > 80 ? 'Hit' : 'Miss'", "\"Hit\""), ("c1", "Name = 'Zed' || Score > 90 ? 'Hit' : 'Miss'", "\"Miss\""),
+        ("c1", "Name = 'Zed' || Score > 80 ? 'Hit' : 'Miss'", "\"Hit\""),
+        // distinct and group by
+        ("c1", "Orders:distinct(Status)", "[\"Done\",\"Pending\"]"), ("c1", "Orders:distinct(Status):count", "2"),
+        ("c1", "Orders:groupBy(Status).{Status, :count as N, :sum(Total) as Sum}",
+            "[{\"Status\":\"Done\",\"N\":2,\"Sum\":1850},{\"Status\":\"Pending\",\"N\":1,\"Sum\":2500}]"),
+        ("c1", "Orders:groupBy(Status).{Status, :avg(Total) as Avg, :min(Total) as Min, :max(Total) as Max}",
+            "[{\"Status\":\"Done\",\"Avg\":925,\"Min\":350,\"Max\":1500},{\"Status\":\"Pending\",\"Avg\":2500,\"Min\":2500,\"Max\":2500}]"),
+        ("c1", "Orders:groupBy(Status, Number).{Status, Number, :count as N}",
+            "[{\"Status\":\"Done\",\"Number\":1,\"N\":1},{\"Status\":\"Done\",\"Number\":2,\"N\":1},{\"Status\":\"Pending\",\"Number\":3,\"N\":1}]"),
+        ("c1", "Orders:groupBy(Status).{Status, {Number, Total} as Items}",
+            "[{\"Status\":\"Done\",\"Items\":[{\"Number\":1,\"Total\":1500},{\"Number\":2,\"Total\":350}]},{\"Status\":\"Pending\",\"Items\":[{\"Number\":3,\"Total\":2500}]}]"),
+        // projections
+        ("c1", "{Name, Email}", "{\"Name\":\"Alice\",\"Email\":\"alice@example.com\"}"),
+        ("c1", "{Name:upper as Loud}", "{\"Loud\":\"ALICE\"}"), ("c1", "{(Nick ?? Name) as D}", "{\"D\":\"Alice\"}"),
+        ("c1", "Orders.{Number, Status}", "[{\"Number\":1,\"Status\":\"Done\"},{\"Number\":2,\"Status\":\"Done\"},{\"Number\":3,\"Status\":\"Pending\"}]"),
+        // navigation
+        ("c1", "Address.City", "\"Hanoi\""), ("c1", "Address.Country", "\"VN\""),
+    ];
+
+    public static async Task Every_function_answers_the_documented_value(IProviderRunner run)
+    {
+        var problems = new List<string>();
+        foreach (var (id, expression, expected) in FunctionCases)
+        {
+            try
+            {
+                var response = await run.RunAsync<ProviderCustomerKey>([id], expression);
+                if (response.Errors is { Length: > 0 })
+                {
+                    problems.Add($"{id} {expression}  =>  error reported: {response.Errors[0].Message}");
+                    continue;
+                }
+
+                var row = response.Items.SingleOrDefault();
+                var value = row?.Values.SingleOrDefault(v => v.Expression == expression)?.Value;
+                var actual = value is null ? "null" : Canonical(System.Text.Json.Nodes.JsonNode.Parse(value));
+                var wanted = Canonical(System.Text.Json.Nodes.JsonNode.Parse(expected));
+                if (actual != wanted) problems.Add($"{id} {expression}  =>  expected {wanted}, got {actual}");
+            }
+            catch (Exception e)
+            {
+                problems.Add($"{id} {expression}  =>  threw {e.GetType().Name}: {e.Message.Split('\n')[0]}");
+            }
+        }
+
+        problems.ShouldBeEmpty($"{problems.Count} of {FunctionCases.Length} expressions:\n" + string.Join("\n", problems));
+    }
 }

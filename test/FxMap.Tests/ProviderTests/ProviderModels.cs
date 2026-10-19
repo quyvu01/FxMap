@@ -22,6 +22,10 @@ public class ProviderCustomer
     public string Id { get; set; }
     public string Name { get; set; }
     public string Email { get; set; }
+    public string Nick { get; set; }
+    public string Tags { get; set; }
+    public int Score { get; set; }
+    public DateTime JoinedAt { get; set; }
     public ProviderAddress Address { get; set; }
     public List<ProviderOrder> Orders { get; set; } = [];
 }
@@ -157,7 +161,8 @@ public static class ProviderData
     [
         new()
         {
-            Id = "c1", Name = "Alice", Email = "alice@example.com",
+            Id = "c1", Name = "Alice", Email = "alice@example.com", Tags = "a,b,c", Score = 85,
+            JoinedAt = new DateTime(2024, 12, 25, 14, 30, 45, DateTimeKind.Utc),
             Address = new ProviderAddress { City = "Hanoi", Country = "VN" },
             Orders =
             [
@@ -168,12 +173,13 @@ public static class ProviderData
         },
         new()
         {
-            Id = "c2", Name = "Bob", Email = "bob@example.com",
+            Id = "c2", Name = "Bob", Email = "bob@example.com", Nick = "Bobby", Tags = "x", Score = 95,
+            JoinedAt = new DateTime(2023, 1, 2, 3, 4, 5, DateTimeKind.Utc),
             Address = new ProviderAddress { City = "Saigon", Country = "VN" },
             Orders = [new ProviderOrder { Number = 1, Status = "Done", Total = 100.00m }]
         },
         // No address, no order
-        new() { Id = "c3", Name = "Carol", Email = "carol@example.com" }
+        new() { Id = "c3", Name = "Carol", Email = "carol@example.com", JoinedAt = new DateTime(2022, 6, 7, 8, 9, 10, DateTimeKind.Utc) }
     ];
 
     public static ProviderDevice Device() => new() { Id = DeviceId, Label = "scanner" };

@@ -122,32 +122,29 @@ public sealed class BsonProjectionBuilderTests
     #region Single Object Projection Tests
 
     [Fact]
-    public void VisitProjection_SingleObject_ReturnsGetFieldDocument()
+    public void VisitProjection_OfAFieldReference_ChoosesBetweenAnArrayAndAnObjectInTheDatabase()
     {
-        // Arrange - Country.{Id, Name}
-        var expression = "Country.{Id, Name}";
-        var node = ExpressionParser.Parse(expression);
-        var context = new BsonBuildContext(null);
+        // Arrange - Country.{Id, Name}: the builder does not know whether Country holds an object or an array
+        var node = ExpressionParser.Parse("Country.{Id, Name}");
 
         // Act
-        var result = node.Accept(_builder, context);
+        var result = node.Accept(_builder, new BsonBuildContext(null));
 
-        // Assert
-        result.ShouldBeOfType<BsonDocument>();
-        var doc = (BsonDocument)result;
+        // Assert - { $cond: [ { $isArray: "$Country" }, <map over the items>, <the fields of the object> ] }
+        var cond = result.ShouldBeOfType<BsonDocument>()["$cond"].AsBsonArray;
+        cond[0].AsBsonDocument["$isArray"].ShouldBe("$Country");
 
-        // Should have Id and Name fields extracted using $getField
-        doc.Contains("Id").ShouldBeTrue();
-        doc.Contains("Name").ShouldBeTrue();
+        var items = cond[1].AsBsonDocument["$map"].AsBsonDocument;
+        items["input"].ShouldBe("$Country");
+        items["in"].AsBsonDocument["Id"].ShouldBe("$$item.Id");
+        items["in"].AsBsonDocument["Name"].ShouldBe("$$item.Name");
 
-        // Each field should be a $getField expression
+        // Each field of the object is read with $getField
+        var doc = cond[2].AsBsonDocument;
         var idField = doc["Id"].AsBsonDocument;
-        idField.Contains("$getField").ShouldBeTrue();
         idField["$getField"]["field"].ShouldBe("Id");
         idField["$getField"]["input"].ShouldBe("$Country");
-
         var nameField = doc["Name"].AsBsonDocument;
-        nameField.Contains("$getField").ShouldBeTrue();
         nameField["$getField"]["field"].ShouldBe("Name");
         nameField["$getField"]["input"].ShouldBe("$Country");
     }

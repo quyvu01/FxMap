@@ -20,5 +20,10 @@ internal sealed class RabbitMqConfigurator : IRabbitMqConfigurator
     /// Number of channels each transport component (request client, server) keeps open
     /// concurrently over the shared connection. Defaults to 5.
     /// </summary>
-    public void ChannelPoolSize(int size) => ChannelPoolSizeValue = size;
+    public void ChannelPoolSize(int size)
+    {
+        // A pool with no channel could never lend one: the requests would wait for ever
+        ArgumentOutOfRangeException.ThrowIfLessThan(size, 1);
+        ChannelPoolSizeValue = size;
+    }
 }

@@ -168,8 +168,14 @@ internal sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, 
             return BuildCollectionProjection(sourceValue, node.Properties, context);
         }
 
-        // Single object projection: Country.{Id, Name} -> direct field extraction
-        return BuildSingleObjectProjection(sourceValue, node.Properties, context);
+        // A field reference ("$Orders", "$Country") can hold an array or an object, and the builder does not know the type of the
+        // property: the database decides. An array is mapped item by item, an object is read field by field.
+        return new BsonDocument("$cond", new BsonArray
+        {
+            new BsonDocument("$isArray", sourceValue),
+            BuildCollectionProjection(sourceValue, node.Properties, context),
+            BuildSingleObjectProjection(sourceValue, node.Properties, context)
+        });
     }
 
     /// <summary>
@@ -827,8 +833,9 @@ internal sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, 
     /// </summary>
     private BsonValue BuildConditionForArrayElement(ConditionNode condition, BsonBuildContext context)
     {
-        // Create a context that uses $$item for field references
-        var arrayContext = new BsonBuildContext("$$item");
+        // Create a context that uses $$item for field references ($$item.Status). The variable is the ItemVariable of the context:
+        // with it as the path, a property was written as the text "Status" and every comparison was made with that text.
+        var arrayContext = new BsonBuildContext(null, "$$item");
         return BuildCondition(condition, arrayContext);
     }
 
@@ -1084,24 +1091,52 @@ internal sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, 
             ComparisonOperator.LessThan => new BsonDocument("$lt", new BsonArray { left, right }),
             ComparisonOperator.GreaterThanOrEqual => new BsonDocument("$gte", new BsonArray { left, right }),
             ComparisonOperator.LessThanOrEqual => new BsonDocument("$lte", new BsonArray { left, right }),
-            ComparisonOperator.Contains => new BsonDocument("$regexMatch", new BsonDocument
-            {
-                { "input", left },
-                { "regex", right }
-            }),
-            ComparisonOperator.StartsWith => new BsonDocument("$regexMatch", new BsonDocument
-            {
-                { "input", left },
-                { "regex", new BsonDocument("$concat", new BsonArray { "^", right }) }
-            }),
-            ComparisonOperator.EndsWith => new BsonDocument("$regexMatch", new BsonDocument
-            {
-                { "input", left },
-                { "regex", new BsonDocument("$concat", new BsonArray { right, "$" }) }
-            }),
+            // No regular expression: the text that is searched for would be read as a pattern (a "." or a "+" in it matches
+            // something else), and a "$" at the end of the pattern was read as a field path.
+            ComparisonOperator.Contains => new BsonDocument("$gte",
+                new BsonArray { new BsonDocument("$indexOfCP", new BsonArray { left, right }), 0 }),
+            ComparisonOperator.StartsWith => new BsonDocument("$eq",
+                new BsonArray { new BsonDocument("$indexOfCP", new BsonArray { left, right }), 0 }),
+            ComparisonOperator.EndsWith => BuildEndsWith(left, right),
             _ => throw new InvalidOperationException($"Unknown operator: {node.Operator}")
         };
     }
+
+    /// <summary>
+    /// <c>input endswith suffix</c>: the suffix is as long as the part of the input that starts at (length of input - length of suffix).
+    /// </summary>
+    private static BsonValue BuildEndsWith(BsonValue input, BsonValue suffix) => new BsonDocument("$let", new BsonDocument
+    {
+        {
+            "vars", new BsonDocument
+            {
+                { "fxText", new BsonDocument("$ifNull", new BsonArray { input, "" }) },
+                { "fxSuffix", new BsonDocument("$ifNull", new BsonArray { suffix, "" }) }
+            }
+        },
+        {
+            "in", new BsonDocument("$and", new BsonArray
+            {
+                new BsonDocument("$gte", new BsonArray
+                {
+                    new BsonDocument("$strLenCP", "$$fxText"), new BsonDocument("$strLenCP", "$$fxSuffix")
+                }),
+                new BsonDocument("$eq", new BsonArray
+                {
+                    new BsonDocument("$substrCP", new BsonArray
+                    {
+                        "$$fxText",
+                        new BsonDocument("$subtract", new BsonArray
+                        {
+                            new BsonDocument("$strLenCP", "$$fxText"), new BsonDocument("$strLenCP", "$$fxSuffix")
+                        }),
+                        new BsonDocument("$strLenCP", "$$fxSuffix")
+                    }),
+                    "$$fxSuffix"
+                })
+            })
+        }
+    });
 
     private BsonValue BuildLogicalCondition(LogicalConditionNode node, BsonBuildContext context)
     {
@@ -1154,33 +1189,14 @@ internal sealed class BsonProjectionBuilder : IExpressionNodeVisitor<BsonValue, 
             return new BsonDocument(operation, source);
         }
 
-        // Aggregation with property selector: $reduce
-        return new BsonDocument("$reduce", new BsonDocument
+        // Aggregation with a property selector: the operator ($sum, $avg, $min, $max) over the values of the property.
+        // ($avg was written as the sum, and $min and $max of an empty array answered the largest or the smallest double.)
+        return new BsonDocument(operation, new BsonDocument("$map", new BsonDocument
         {
-            { "input", source },
-            { "initialValue", GetInitialValueForOperation(operation) },
-            {
-                "in", operation switch
-                {
-                    "$sum" => new BsonDocument("$add", new BsonArray { "$$value", $"$$this.{propertyName}" }),
-                    "$min" => new BsonDocument("$min", new BsonArray { "$$value", $"$$this.{propertyName}" }),
-                    "$max" => new BsonDocument("$max", new BsonArray { "$$value", $"$$this.{propertyName}" }),
-                    _ => new BsonDocument("$add", new BsonArray { "$$value", $"$$this.{propertyName}" })
-                }
-            }
-        });
-    }
-
-    private static BsonValue GetInitialValueForOperation(string operation)
-    {
-        return operation switch
-        {
-            "$sum" => 0,
-            "$min" => double.MaxValue,
-            "$max" => double.MinValue,
-            "$avg" => 0,
-            _ => 0
-        };
+            { "input", new BsonDocument("$ifNull", new BsonArray { source, new BsonArray() }) },
+            { "as", "item" },
+            { "in", $"$$item.{propertyName}" }
+        }));
     }
 
     private static BsonValue WrapGetField(BsonValue input, BsonValue fieldOrValue)
