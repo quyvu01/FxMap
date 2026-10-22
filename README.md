@@ -54,6 +54,18 @@ The service that owns the data registers an entity configuration and a data prov
 sends them over a transport (or answers locally when the owner is the same service), and writes the results back.
 No client code per field, and no coupling between the two services beyond a key name.
 
+## Also in Java and Node.js
+
+FxMap speaks one wire format, so services written in different languages can map each other's data:
+
+| Language | Library | Docs |
+|---|---|---|
+| .NET 8, 9, 10 | **FxMap** (this repo) | [fxmapper.net](https://fxmapper.net) |
+| Java 21, Spring Boot 4 | [jfxmap](https://github.com/quyvu01/jfxmap) | [j.fxmapper.net](https://j.fxmapper.net) |
+| Node.js 20+, TypeScript | [nfxmap](https://github.com/quyvu01/nfxmap) | [n.fxmapper.net](https://n.fxmapper.net) |
+
+A .NET service can fill its DTOs from a Java or Node.js service, and the other way around.
+
 ## Features
 
 - **FluentAPI mapping**: declare the mapping with `ProfileOf<T>` and `EntityConfigureOf<T>`; no attributes on your DTOs, and property access is compiled once per type.
@@ -203,9 +215,12 @@ Visit **[fxmapper.net](https://fxmapper.net)** for:
 
 ## Community
 
+If FxMap saves you glue code, a ⭐ on GitHub helps other developers find it.
+
 - Chat and get help on **[Discord](https://discord.gg/XJNzPbqg7)**
 - Ask questions and share ideas in [GitHub Discussions](https://github.com/quyvu01/FxMap/discussions)
 - Coming from OfX? Read the [migration guide](https://fxmapper.net/docs/migrate-from-ofx/)
+- Adopting FxMap at your company and want hands-on help? Open a thread in [GitHub Discussions](https://github.com/quyvu01/FxMap/discussions) or ask on Discord.
 
 ## Contributing
 
