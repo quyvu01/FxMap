@@ -26,6 +26,10 @@
 
 ---
 
+<p align="center">
+  <img src="docs/assets/fxmap-hero.gif" alt="FxMap fills the UserName and UserEmail of an order from the User service in one call" width="900" />
+</p>
+
 In a microservice system a response often carries only keys: an order has a `UserId`, a `ProvinceId`, a `ProductId`.
 Showing it means collecting `UserName`, `ProvinceName`, `ProductName` from the services that own them, and writing
 that glue again for every endpoint. FxMap turns the glue into a declaration:
