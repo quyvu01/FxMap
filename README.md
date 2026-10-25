@@ -68,7 +68,7 @@ FxMap speaks one wire format, so services written in different languages can map
 | Java 21, Spring Boot 4 | [jfxmap](https://github.com/quyvu01/jfxmap) | [j.fxmapper.net](https://j.fxmapper.net) |
 | Node.js 20+, TypeScript | [nfxmap](https://github.com/quyvu01/nfxmap) | [n.fxmapper.net](https://n.fxmapper.net) |
 
-A .NET service can fill its DTOs from a Java or Node.js service, and the other way around.
+A .NET service can fill its DTOs from a Java or Node.js service, and the other way around. To see it run, [dotnet-java-nats](https://github.com/quyvu01/jfxmap/tree/main/samples/dotnet-java-nats) starts a .NET service on FxMap and EF Core and a Java service on jfxmap and JPA that map each other's data over NATS, with one script.
 
 ## Features
 
