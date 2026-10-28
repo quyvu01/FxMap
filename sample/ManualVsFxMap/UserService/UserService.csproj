@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Owns the users. Answers FxMap over gRPC, and has two hand-written endpoints for the manual versions -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FxMap" Version="5.1.1" />
+    <PackageReference Include="FxMap.EntityFrameworkCore" Version="5.1.1" />
+    <PackageReference Include="FxMap.Grpc" Version="5.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.13" />
+  </ItemGroup>
+</Project>

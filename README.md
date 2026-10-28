@@ -58,6 +58,10 @@ The service that owns the data registers an entity configuration and a data prov
 sends them over a transport (or answers locally when the owner is the same service), and writes the results back.
 No client code per field, and no coupling between the two services beyond a key name.
 
+To compare it with the hand-written versions, [sample/ManualVsFxMap](sample/ManualVsFxMap) fills 100 orders one call per
+order, with a hand-written batch, and with FxMap, and shows the request counts and what each does when the user service
+is down or slow.
+
 ## Also in Java and Node.js
 
 FxMap speaks one wire format, so services written in different languages can map each other's data:

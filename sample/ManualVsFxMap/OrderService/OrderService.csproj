@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <!-- Needs the user fields of its orders. Fills them three ways: per-order calls, a hand-written batch, FxMap -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FxMap" Version="5.1.1" />
+    <PackageReference Include="FxMap.Grpc" Version="5.1.1" />
+  </ItemGroup>
+</Project>
