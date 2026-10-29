@@ -5,13 +5,14 @@ using BenchmarkDotNet.Attributes;
 using FxMap.Abstractions;
 using FxMap.EntityFrameworkCore.Extensions;
 using FxMap.Extensions;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace FxMap.Benchmark.Projection;
 
 /// <summary>
-/// End-to-end: EF Core InMemory -> OrderDto (4 levels: Order > Customer > Province > Country, Order > Items > Product > Category).
+/// End-to-end: EF Core InMemory (<see cref="ProjectionBenchmark"/>) or SQLite in memory (<see cref="ProjectionSqliteBenchmark"/>) -> OrderDto (4 levels: Order > Customer > Province > Country, Order > Items > Product > Category).
 /// AutoMapper does a single ProjectTo; FxMap loads the scalar DTO then enriches it locally (no transport).
 /// </summary>
 public abstract class ProjectionBenchmarkBase
@@ -22,12 +23,18 @@ public abstract class ProjectionBenchmarkBase
 
     protected virtual void Configure() { }
 
+    /// <summary>The database under test: the EF Core InMemory provider, which is not relational (no SQL, no joins).</summary>
+    protected virtual void ConfigureDb(DbContextOptionsBuilder options, string dbName) => options.UseInMemoryDatabase(dbName);
+
+    /// <summary>Creates the schema before seeding; the InMemory provider needs none.</summary>
+    protected virtual void CreateSchema(ProjectionDbContext db) { }
+
     [GlobalSetup]
     public void Setup()
     {
         var services = new ServiceCollection();
         var dbName = $"Projection_{Guid.NewGuid()}";
-        services.AddDbContext<ProjectionDbContext>(o => o.UseInMemoryDatabase(dbName));
+        services.AddDbContext<ProjectionDbContext>(o => ConfigureDb(o, dbName));
         services.AddFxMap(cfg =>
             {
                 cfg.AddEntitiesFromAssemblyContaining<IBenchmarkAssemblyMarker>();
@@ -67,6 +74,7 @@ public abstract class ProjectionBenchmarkBase
     {
         using var scope = _provider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ProjectionDbContext>();
+        CreateSchema(db);
         var rnd = new Random(42);
 
         var countries = Enumerable.Range(0, 5)
@@ -193,4 +201,36 @@ public class ProjectionBenchmark : ProjectionBenchmarkBase
             Items = o.Items.Select(i => new OrderItemDto
                 { Id = i.Id, Quantity = i.Quantity, Price = i.Price, ProductId = i.ProductId }).ToList()
         });
+}
+
+/// <summary>
+/// The same comparison on SQLite in memory, a relational provider: ProjectTo and the hand-written Select become one SQL
+/// query with joins, and each FxMap level is a real SQL query. Still no network.
+/// </summary>
+[MemoryDiagnoser]
+public class ProjectionSqliteBenchmark : ProjectionBenchmark
+{
+    [Params(10, 100, 1000)] public override int OrderCount { get; set; }
+
+    private SqliteConnection _connection;
+
+    protected override void ConfigureDb(DbContextOptionsBuilder options, string dbName)
+    {
+        // Called for every DbContext that is created. An in-memory SQLite database lives as long as its connection,
+        // so one connection is opened once and kept open for the run
+        if (_connection is null)
+        {
+            _connection = new SqliteConnection("Data Source=:memory:");
+            _connection.Open();
+        }
+        options.UseSqlite(_connection);
+    }
+
+    protected override void CreateSchema(ProjectionDbContext db) => db.Database.EnsureCreated();
+
+    protected override Task CleanupCore()
+    {
+        _connection?.Dispose();
+        return Task.CompletedTask;
+    }
 }
