@@ -22,6 +22,11 @@
         <PackageReference Include="Grpc.AspNetCore" Version="[2.51.0, )"/>
         <PackageReference Include="Grpc.Core" Version="[2.46.6, )"/>
         <PackageReference Include="Grpc.Net.Client" Version="[2.51.0, )"/>
+        <!-- Build-time only: the protoc bundled with the transitive Grpc.Tools 2.51.0 is x64-only on macOS -->
+        <PackageReference Include="Grpc.Tools" Version="2.85.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
     </ItemGroup>
     <ItemGroup>
         <Protobuf Include="fxMap.proto" Access="Internal">
