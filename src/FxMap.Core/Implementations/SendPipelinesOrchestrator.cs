@@ -45,7 +45,9 @@ internal sealed class SendPipelinesOrchestrator<TDistributedKey>(
     IEnumerable<ISendPipelineBehavior<TDistributedKey>> behaviors) :
     SendPipelinesOrchestrator where TDistributedKey : IDistributedKey
 {
-    private readonly ISendPipelineBehavior<TDistributedKey>[] _behaviors = [.. behaviors];
+    // The container already gives an array; it is not copied, since each mapping resolves a new orchestrator.
+    private readonly ISendPipelineBehavior<TDistributedKey>[] _behaviors =
+        behaviors as ISendPipelineBehavior<TDistributedKey>[] ?? [.. behaviors];
 
     internal override async Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message,
         IContext context)
@@ -56,9 +58,14 @@ internal sealed class SendPipelinesOrchestrator<TDistributedKey>(
 
         var request = new MapRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
         var requestContext = new RequestContextImpl<TDistributedKey>(request, context?.Headers ?? [], cts.Token);
-        var result = await Enumerable.Reverse(_behaviors)
-            .Aggregate((SendHandlerDelegate)(() => handler.RequestAsync(requestContext)),
-                (acc, pipeline) => () => pipeline.HandleAsync(requestContext, acc)).Invoke();
-        return result;
+        SendHandlerDelegate next = () => handler.RequestAsync(requestContext);
+        for (var i = _behaviors.Length - 1; i >= 0; i--)
+        {
+            var behavior = _behaviors[i];
+            var inner = next;
+            next = () => behavior.HandleAsync(requestContext, inner);
+        }
+
+        return await next();
     }
 }

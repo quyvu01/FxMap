@@ -170,7 +170,7 @@ public sealed class FxMapBuilder
             _localHandlers.ToDictionary(kv => kv.Key, kv => kv.Value.Orchestrator), _services, _loggerFactory);
         var senders = new ConcurrentDictionary<Type, SendPipelinesOrchestrator>();
         var runtime = new MapperRuntime(configuration, _configurator.GetProfileConfig,
-            keyType => senders.GetOrAdd(keyType, static (type, state) =>
+            (_, keyType) => senders.GetOrAdd(keyType, static (type, state) =>
                 (SendPipelinesOrchestrator)CreateSenderMethod.MakeGenericMethod(type)
                     .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [state], null)!, setup),
             _services, _loggerFactory.CreateLogger<DistributedMapper>());
