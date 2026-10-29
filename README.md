@@ -182,33 +182,44 @@ ternary operators, and more, visit **[Expression Documentation](https://fxmapper
 
 ## Performance
 
-FxMap is built to enrich data that lives in other services, so most of a real call is spent waiting on the network. This benchmark removes the network to measure only the mapper itself: FxMap enriches DTOs from an EF Core InMemory database in the same process (no transport), compared with AutoMapper 14 `ProjectTo` doing a single projected query.
+FxMap is built to enrich data that lives in other services, so most of a real call is spent waiting on the network. This benchmark removes the network to measure only the mapper itself: FxMap enriches DTOs from an EF Core database in the same process (no transport), compared with AutoMapper 14 `ProjectTo` doing a single projected query. It runs on two EF Core providers, because they behave very differently.
 
 **Scenario:** each order has a customer (customer → province → country) and 3-5 items (item → product → category). Both sides produce the same `OrderDto` graph (the benchmark checks that the results are identical).
 
-- **AutoMapper:** `db.Orders.ProjectTo<OrderDto>(config)`, one query with joins.
+- **AutoMapper:** `db.Orders.ProjectTo<OrderDto>(config)`. On a relational provider this is one SQL query with joins. The InMemory provider builds no SQL at all, so there "one query" is not a join.
 - **FxMap:** load the DTOs with only their scalar values and keys, then `IDistributedMapper.MapDataAsync(dtos)` resolves customer, province, country, product and category through `ProfileOf<T>` and the EF Core data provider.
+
+### Relational (SQLite in-memory, real joins)
 
 | Orders | AutoMapper `ProjectTo` | FxMap (query + enrich) | FxMap time vs AutoMapper | FxMap memory vs AutoMapper |
 |-------:|-----------------------:|-----------------------:|-------------------------:|---------------------------:|
-| 10     | 164 µs / 276 KB        | 277 µs / 382 KB        | 1.69×                    | 1.38×                      |
-| 100    | 2.07 ms / 2.2 MB       | **1.81 ms / 1.1 MB**   | **0.88×**                | **0.50×**                  |
-| 1,000  | 96.4 ms / 21.4 MB      | **93.6 ms / 7.0 MB**   | **0.97×**                | **0.33×**                  |
+| 10     | 303 µs / 114 KB        | 1.08 ms / 587 KB       | 3.57×                    | 5.13×                      |
+| 100    | 2.79 ms / 540 KB       | 3.29 ms / 1.5 MB       | 1.18×                    | 2.71×                      |
+| 1,000  | 21.4 ms / 4.8 MB       | 21.3 ms / 7.7 MB       | 1.00×                    | 1.59×                      |
 
-BenchmarkDotNet 0.15, 3 launches, .NET 10, Apple M1 Pro. Lower is better.
+### InMemory provider (no SQL)
+
+| Orders | AutoMapper `ProjectTo` | FxMap (query + enrich) | FxMap time vs AutoMapper | FxMap memory vs AutoMapper |
+|-------:|-----------------------:|-----------------------:|-------------------------:|---------------------------:|
+| 10     | 181 µs / 276 KB        | 440 µs / 387 KB        | 2.44×                    | 1.40×                      |
+| 100    | 2.25 ms / 2.2 MB       | 2.19 ms / 1.1 MB       | 0.97×                    | 0.52×                      |
+| 1,000  | 101 ms / 21.4 MB       | 98.7 ms / 7.4 MB       | 0.98×                    | 0.35×                      |
+
+BenchmarkDotNet 0.15.6, 1 launch, 3 warmups, 10 iterations, .NET 10, Apple M1 Pro. Lower is better. Single-launch numbers are noisy, especially for small batches.
 
 How to read it:
 
-- Past a few dozen objects FxMap is on par with or faster than a single joined `ProjectTo` and allocates a half to a third of the memory, because it fetches each distinct key once instead of joining every row.
-- With a handful of objects both take well under a millisecond; the fixed cost of one scoped query per distributed key and level shows up (about 0.1 ms here) and FxMap is slower in relative terms.
-- At 1,000 orders the in-memory query itself is most of the time (about 84 ms of the 94 ms), so the gap between the two is small there.
-- This is a local, single-process comparison on an in-memory provider. With a real database or transport, the cost of the round trips dominates and FxMap's batching by key is what matters; these numbers say nothing about network latency.
+- Against a real joined query, FxMap is not faster than `ProjectTo`: it is slower for small batches, on par at about 1,000 orders, and allocates more memory. Do not pick FxMap for speed inside a single database.
+- The memory advantage in the InMemory table does not carry over to a relational provider, because there `ProjectTo` materializes far less than it does on InMemory.
+- The fixed cost of one scoped query per distributed key and level is why small batches are slower in relative terms.
+- FxMap's value is elsewhere: the data a DTO needs lives in another service or database, where a join is not possible. Then the cost is round trips, and FxMap batches them by key. See [`sample/ManualVsFxMap`](sample/ManualVsFxMap), where 100 orders take 100 requests with a per-order call and 1 with FxMap (a hand-written batch endpoint also takes 1).
+- This is a local, single-process comparison. These numbers say nothing about network latency.
 
 To reproduce:
 
 ```bash
 cd FxMap/test/FxMap.Benchmark
-dotnet run -c Release -- --filter '*ProjectionBenchmark*' --launchCount 3
+dotnet run -c Release -- --filter '*.ProjectionBenchmark.*' '*.ProjectionSqliteBenchmark.*'
 ```
 
 ## Documentation
