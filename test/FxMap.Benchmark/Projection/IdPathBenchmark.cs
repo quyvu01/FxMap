@@ -2,7 +2,6 @@ using BenchmarkDotNet.Attributes;
 using FxMap.Helpers;
 using FxMap.Responses;
 using FxMap.Services;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace FxMap.Benchmark.Projection;
 
@@ -27,10 +26,9 @@ public class IdPathBenchmark
     [GlobalSetup]
     public void Setup()
     {
-        var sp = new ServiceCollection().BuildServiceProvider();
-        _guidConverter = new IdConverter<Guid>(sp);
-        _stringConverter = new IdConverter<string>(sp);
-        _intConverter = new IdConverter<int>(sp);
+        _guidConverter = new IdConverter<Guid>();
+        _stringConverter = new IdConverter<string>();
+        _intConverter = new IdConverter<int>();
         var guids = Enumerable.Range(0, Count).Select(_ => Guid.NewGuid()).ToArray();
         _guidIds = guids.Select(g => g.ToString()).ToArray();
         _upperGuidIds = guids.Select(g => g.ToString().ToUpperInvariant()).ToArray();

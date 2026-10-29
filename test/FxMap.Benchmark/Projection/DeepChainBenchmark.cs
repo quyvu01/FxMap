@@ -45,7 +45,7 @@ public class DeepChainBenchmark
         services.AddTransient<IClientRequestHandler<UserOfAttribute>, UserOfHandler>();
         services.AddFxMap(cfg => cfg.AddProfileConfigs(typeof(ChainNodeProfile)));
         _provider = services.BuildServiceProvider();
-        _mapper = new DistributedMapper(_provider);
+        _mapper = (DistributedMapper)_provider.GetRequiredService<IDistributedMapper>();
         _discover = typeof(DistributedMapper)
             .GetMethod("DiscoverResolvableProperties", BindingFlags.NonPublic | BindingFlags.Instance)!;
 

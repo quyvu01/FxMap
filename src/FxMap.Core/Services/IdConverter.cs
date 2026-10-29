@@ -1,5 +1,4 @@
 #nullable enable
-using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
 using FxMap.Exceptions;
 
@@ -65,9 +64,9 @@ internal abstract class AbstractIdConverter
         return ids;
     }
 
-    protected static List<TId> ParseStronglyTypeIds<TId>(IServiceProvider serviceProvider, string[] selectorIds)
+    protected static List<TId> ParseStronglyTypeIds<TId>(IStronglyTypeConverter<TId>? stronglyTypeService,
+        string[] selectorIds)
     {
-        var stronglyTypeService = serviceProvider.GetService<IStronglyTypeConverter<TId>>();
         if (stronglyTypeService is null) throw new DistributedMapException.CurrentIdTypeWasNotSupported();
         return
         [
@@ -87,10 +86,11 @@ internal abstract class AbstractIdConverter
 /// This converter handles both built-in primitive types and custom strongly-typed IDs.
 /// For custom ID types, it delegates to <see cref="IStronglyTypeConverter{TId}"/> implementations.
 /// </remarks>
-internal class IdConverter<TId>(IServiceProvider serviceProvider) : AbstractIdConverter, IIdConverter<TId>
+internal class IdConverter<TId>(IStronglyTypeConverter<TId>? stronglyTypeConverter = null)
+    : AbstractIdConverter, IIdConverter<TId>
 {
     /// <inheritdoc />
     public List<TId> ConvertIds(string[] selectorIds) => IdConverters.TryGetValue(typeof(TId), out var converter)
         ? (List<TId>)converter(selectorIds)
-        : ParseStronglyTypeIds<TId>(serviceProvider, selectorIds);
+        : ParseStronglyTypeIds(stronglyTypeConverter, selectorIds);
 }

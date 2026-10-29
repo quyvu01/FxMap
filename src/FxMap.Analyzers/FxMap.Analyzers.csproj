@@ -41,70 +41,70 @@
     </ItemGroup>
 
     <ItemGroup>
-      <Compile Include="..\FxMap\Expressions\Nodes\AggregationNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\AggregationNode.cs">
         <Link>Nodes\AggregationNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\BinaryConditionNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\BinaryConditionNode.cs">
         <Link>Nodes\BinaryConditionNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\BooleanFunctionNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\BooleanFunctionNode.cs">
         <Link>Nodes\BooleanFunctionNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\CoalesceNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\CoalesceNode.cs">
         <Link>Nodes\CoalesceNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\ExpressionNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\ExpressionNode.cs">
         <Link>Nodes\ExpressionNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\FilterNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\FilterNode.cs">
         <Link>Nodes\FilterNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\FunctionNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\FunctionNode.cs">
         <Link>Nodes\FunctionNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\GroupByNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\GroupByNode.cs">
         <Link>Nodes\GroupByNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\GroupElementsNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\GroupElementsNode.cs">
         <Link>Nodes\GroupElementsNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\OrderDirection.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\OrderDirection.cs">
         <Link>Nodes\OrderDirection.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\LiteralNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\LiteralNode.cs">
         <Link>Nodes\LiteralNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\LogicalConditionNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\LogicalConditionNode.cs">
         <Link>Nodes\LogicalConditionNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\NavigationNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\NavigationNode.cs">
         <Link>Nodes\NavigationNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\ProjectionNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\ProjectionNode.cs">
         <Link>Nodes\ProjectionNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\PropertyNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\PropertyNode.cs">
         <Link>Nodes\PropertyNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\RootProjectionNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\RootProjectionNode.cs">
         <Link>Nodes\RootProjectionNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\SortKeyNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\SortKeyNode.cs">
         <Link>Nodes\SortKeyNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Nodes\TernaryNode.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Nodes\TernaryNode.cs">
         <Link>Nodes\TernaryNode.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Parsing\ExpressionParser.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Parsing\ExpressionParser.cs">
         <Link>Parsing\ExpressionParser.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Tokens\Token.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Tokens\Token.cs">
         <Link>Tokens\Token.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Tokens\Tokenizer.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Tokens\Tokenizer.cs">
         <Link>Tokens\Tokenizer.cs</Link>
       </Compile>
-      <Compile Include="..\FxMap\Expressions\Tokens\TokenType.cs">
+      <Compile Include="..\FxMap.Core\Expressions\Tokens\TokenType.cs">
         <Link>Tokens\TokenType.cs</Link>
       </Compile>
     </ItemGroup>

@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using FxMap.Abstractions;
@@ -21,6 +23,8 @@ namespace FxMap.Extensions;
 /// </summary>
 public static class DependencyExtensions
 {
+    private static readonly ConcurrentDictionary<Type, Type> SendOrchestratorTypes = new();
+
     /// <summary>
     /// Adds the FxMap distributed mapping framework to the service collection.
     /// </summary>
@@ -84,7 +88,12 @@ public static class DependencyExtensions
             });
 
 
-        services.AddTransient<IDistributedMapper, DistributedMapper>();
+        // Transient, so the send behaviors (Scoped by default) come from the scope of whoever asks for the mapper.
+        services.AddTransient<IDistributedMapper>(sp => new DistributedMapper(new MapperRuntime(
+            sp.GetRequiredService<IMapperConfiguration>(), sp.GetRequiredService<GetProfileConfig>(),
+            keyType => (SendPipelinesOrchestrator)sp.GetRequiredService(SendOrchestratorTypes.GetOrAdd(keyType,
+                static t => typeof(SendPipelinesOrchestrator<>).MakeGenericType(t))),
+            sp, sp.GetService<ILogger<DistributedMapper>>())));
 
         services.AddSingleton(typeof(IIdConverter<>), typeof(IdConverter<>));
 

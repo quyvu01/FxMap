@@ -13,7 +13,7 @@ public class IdConverterTests
     private static readonly IServiceProvider Empty = new ServiceCollection().BuildServiceProvider();
 
     private static IIdConverter<TId> ConverterOf<TId>(IServiceProvider sp = null) =>
-        new IdConverter<TId>(sp ?? Empty);
+        new IdConverter<TId>((sp ?? Empty).GetService<IStronglyTypeConverter<TId>>());
 
     [Fact]
     public void Strings_are_returned_as_they_are()

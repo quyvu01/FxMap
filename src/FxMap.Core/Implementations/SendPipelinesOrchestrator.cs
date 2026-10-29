@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using FxMap.Abstractions;
 using FxMap.Delegates;
 using FxMap.Models;
@@ -28,7 +27,9 @@ internal abstract class SendPipelinesOrchestrator
 /// Client-side pipeline orchestrator that executes send pipeline behaviors before transport.
 /// </summary>
 /// <typeparam name="TDistributedKey">The FxMap distributed key type for which pipelines are being executed.</typeparam>
-/// <param name="serviceProvider">The service provider for resolving handlers and pipeline behaviors.</param>
+/// <param name="handler">Sends the request through the transport.</param>
+/// <param name="configuration">The settings of the mapper (the timeout of a request).</param>
+/// <param name="behaviors">The send behaviors; the first one is the outermost.</param>
 /// <remarks>
 /// This orchestrator:
 /// <list type="bullet">
@@ -38,23 +39,24 @@ internal abstract class SendPipelinesOrchestrator
 ///   <item><description>Maps resolved expressions back to original expressions in the response</description></item>
 /// </list>
 /// </remarks>
-internal sealed class SendPipelinesOrchestrator<TDistributedKey>(IServiceProvider serviceProvider) :
+internal sealed class SendPipelinesOrchestrator<TDistributedKey>(
+    IClientRequestHandler<TDistributedKey> handler,
+    IMapperConfiguration configuration,
+    IEnumerable<ISendPipelineBehavior<TDistributedKey>> behaviors) :
     SendPipelinesOrchestrator where TDistributedKey : IDistributedKey
 {
+    private readonly ISendPipelineBehavior<TDistributedKey>[] _behaviors = [.. behaviors];
+
     internal override async Task<ItemsResponse<DataResponse>> ExecuteAsync(DistributedMapRequest message,
         IContext context)
     {
-        var handler = serviceProvider.GetRequiredService<IClientRequestHandler<TDistributedKey>>();
         var cancellationToken = context?.CancellationToken ?? CancellationToken.None;
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-        cts.CancelAfter(fxMapConfiguration.DefaultRequestTimeout);
+        cts.CancelAfter(configuration.DefaultRequestTimeout);
 
         var request = new MapRequest<TDistributedKey>(message.SelectorIds, message.Expressions);
         var requestContext = new RequestContextImpl<TDistributedKey>(request, context?.Headers ?? [], cts.Token);
-        var result = await serviceProvider
-            .GetServices<ISendPipelineBehavior<TDistributedKey>>()
-            .Reverse()
+        var result = await Enumerable.Reverse(_behaviors)
             .Aggregate((SendHandlerDelegate)(() => handler.RequestAsync(requestContext)),
                 (acc, pipeline) => () => pipeline.HandleAsync(requestContext, acc)).Invoke();
         return result;

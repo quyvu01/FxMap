@@ -21,7 +21,7 @@ public class RequestedIdAnswersTests
     };
 
     private static IIdConverter<TId> ConverterOf<TId>(IServiceProvider sp = null) =>
-        new IdConverter<TId>(sp ?? EmptyServices);
+        new IdConverter<TId>((sp ?? EmptyServices).GetService<IStronglyTypeConverter<TId>>());
 
     private static string[] Ids(DataResponse[] answers) => [..answers.Select(a => a.Id).OrderBy(x => x, StringComparer.Ordinal)];
 

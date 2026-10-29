@@ -1,6 +1,11 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
+using FxMap.BuiltInPipelines;
 using FxMap.Exceptions;
+using FxMap.Handlers;
+using FxMap.Helpers;
 using FxMap.Implementations;
 using FxMap.Registries;
 using Microsoft.Extensions.Logging;
@@ -10,8 +15,9 @@ namespace FxMap;
 
 /// <summary>
 /// Builds an <see cref="IDistributedMapper"/> without a dependency injection container: for a console app, a function,
-/// a test, or any host that does not use Microsoft.Extensions.DependencyInjection. <c>services.AddFxMap(...)</c> stays
-/// the way to use FxMap with a container.
+/// a test, or any host that does not use Microsoft.Extensions.DependencyInjection: FxMap.Core does not reference it.
+/// Every object of the mapper is created here with <c>new</c>. <c>services.AddFxMap(...)</c> (FxMap package) stays the
+/// way to use FxMap with a container.
 /// </summary>
 /// <example>
 /// <code>
@@ -26,12 +32,15 @@ namespace FxMap;
 /// </example>
 public sealed class FxMapBuilder
 {
-    // The configurator of AddFxMap without a service collection: only its profiles and its options are used.
-    private readonly MapConfigurator _configurator = new(null);
+    private static readonly MethodInfo CreateSenderMethod = typeof(FxMapBuilder)
+        .GetMethod(nameof(CreateSender), BindingFlags.NonPublic | BindingFlags.Static)!;
+
+    // The profiles and the options, as AddFxMap reads them.
+    private readonly MapSettings _configurator = new();
     private readonly List<Type> _sendBehaviorTypes = [];
     private readonly Dictionary<Type, (Type ModelType, object Orchestrator)> _localHandlers = [];
     private IRequestClient _requestClient;
-    private IServiceProvider _services;
+    private IServiceProvider _services = EmptyServiceProvider.Instance;
     private ILoggerFactory _loggerFactory = NullLoggerFactory.Instance;
 
     private FxMapBuilder()
@@ -141,7 +150,8 @@ public sealed class FxMapBuilder
     }
 
     /// <exception cref="InvalidOperationException">
-    /// A profile uses a distributed key that has neither a local handler nor a request client to send it.
+    /// A profile uses a distributed key that has neither a local handler nor a request client to send it, or a send
+    /// behavior cannot be created from the services given to <see cref="UseServices"/>.
     /// </exception>
     public IDistributedMapper Build()
     {
@@ -153,15 +163,48 @@ public sealed class FxMapBuilder
             throw new InvalidOperationException(
                 $"Nothing answers {string.Join(", ", remoteKeys.Select(k => k.Name))}: call UseRequestClient or AddQueryHandler.");
 
-        // The routing to a local handler reads the handler type of a key here, as with AddFxMap.
-        var localHandlerTypes = _localHandlers.ToDictionary(kv => kv.Key,
-            kv => typeof(IQueryOfHandler<,>).MakeGenericType(kv.Value.ModelType, kv.Key));
-        var configuration = new MapperConfiguration(distributedKeyTypes, [], localHandlerTypes,
+        var configuration = new MapperConfiguration(distributedKeyTypes, [], new Dictionary<Type, Type>(),
             _configurator.MaxNestingDepth, _configurator.MaxConcurrentProcessing, _configurator.ThrowIfExceptions,
             _configurator.DefaultRequestTimeout, _configurator.RetryPolicy, _configurator.SupervisorOptions);
-        var serviceProvider = new StandaloneServiceProvider(configuration, _configurator.GetProfileConfig,
-            _requestClient, [.. _sendBehaviorTypes],
+        var setup = new SenderSetup(configuration, _requestClient, [.. _sendBehaviorTypes],
             _localHandlers.ToDictionary(kv => kv.Key, kv => kv.Value.Orchestrator), _services, _loggerFactory);
-        return new DistributedMapper(serviceProvider);
+        var senders = new ConcurrentDictionary<Type, SendPipelinesOrchestrator>();
+        var runtime = new MapperRuntime(configuration, _configurator.GetProfileConfig,
+            keyType => senders.GetOrAdd(keyType, static (type, state) =>
+                (SendPipelinesOrchestrator)CreateSenderMethod.MakeGenericMethod(type)
+                    .Invoke(null, BindingFlags.DoNotWrapExceptions, null, [state], null)!, setup),
+            _services, _loggerFactory.CreateLogger<DistributedMapper>());
+        // The keys of the profiles get their pipeline now, so a send behavior that cannot be created fails here.
+        foreach (var keyType in distributedKeyTypes) runtime.SenderFor(keyType);
+        return new DistributedMapper(runtime);
+    }
+
+    private sealed record SenderSetup(
+        IMapperConfiguration Configuration,
+        IRequestClient RequestClient,
+        Type[] SendBehaviorTypes,
+        Dictionary<Type, object> LocalHandlers,
+        IServiceProvider Services,
+        ILoggerFactory LoggerFactory);
+
+    // The send pipeline of a key, built once. Same order as AddFxMap: the behaviors of the user (registered in its
+    // options, before the built-in ones), the routing to a local handler, the suppression of the errors, the retries.
+    private static SendPipelinesOrchestrator<TKey> CreateSender<TKey>(SenderSetup setup) where TKey : IDistributedKey
+    {
+        var behaviors = new List<ISendPipelineBehavior<TKey>>();
+        foreach (var type in setup.SendBehaviorTypes)
+        {
+            var closed = type.IsGenericTypeDefinition ? type.MakeGenericType(typeof(TKey)) : type;
+            if (closed.IsAssignableTo(typeof(ISendPipelineBehavior<TKey>)))
+                behaviors.Add((ISendPipelineBehavior<TKey>)ServiceActivator.Create(closed, setup.Services));
+        }
+
+        if (setup.LocalHandlers.GetValueOrDefault(typeof(TKey)) is IReceivedPipelinesOrchestrator<TKey> local)
+            behaviors.Add(new LocalHandlerRoutingBehavior<TKey>(local));
+        behaviors.Add(new ExceptionPipelineBehavior<TKey>(setup.Configuration,
+            setup.LoggerFactory.CreateLogger<ExceptionPipelineBehavior<TKey>>()));
+        behaviors.Add(new RetryPipelineBehavior<TKey>(setup.Configuration));
+        return new SendPipelinesOrchestrator<TKey>(new ClientRequestHandler<TKey>(setup.RequestClient),
+            setup.Configuration, behaviors);
     }
 }

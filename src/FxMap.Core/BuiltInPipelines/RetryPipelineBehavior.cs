@@ -2,7 +2,6 @@ using FxMap.Abstractions;
 using FxMap.Delegates;
 using FxMap.Responses;
 using FxMap.Models;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace FxMap.BuiltInPipelines;
 
@@ -21,15 +20,14 @@ namespace FxMap.BuiltInPipelines;
 ///   <item><description>When the attempts are used up, the last exception is thrown.</description></item>
 /// </list>
 /// </remarks>
-internal sealed class RetryPipelineBehavior<TDistributedKey>(IServiceProvider serviceProvider)
+internal sealed class RetryPipelineBehavior<TDistributedKey>(IMapperConfiguration configuration)
     : ISendPipelineBehavior<TDistributedKey>
     where TDistributedKey : IDistributedKey
 {
     public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
         SendHandlerDelegate next)
     {
-        var mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-        var retryPolicy = mapperConfiguration.RetryPolicy;
+        var retryPolicy = configuration.RetryPolicy;
         if (retryPolicy is null) return await next.Invoke();
         var ct = requestContext.CancellationToken;
         var retry = 0;

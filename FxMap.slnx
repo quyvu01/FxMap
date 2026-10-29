@@ -9,6 +9,7 @@
     <Project Path="test/FxMap.Analyzers.Tests/FxMap.Analyzers.Tests.csproj" />
   </Folder>
   <Folder Name="/FxMap.Core/">
+    <Project Path="src/FxMap.Core/FxMap.Core.csproj" />
     <Project Path="src/FxMap/FxMap.csproj" />
   </Folder>
   <Folder Name="/FxMap.DataProviders/">

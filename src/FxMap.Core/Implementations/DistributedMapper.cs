@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Concurrent;
 using FxMap.Abstractions;
 using FxMap.Helpers;
 using FxMap.Models;
@@ -10,7 +9,6 @@ using FxMap.PublicContracts;
 using FxMap.Responses;
 using FxMap.Delegates;
 using FxMap.Serializable;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace FxMap.Implementations;
@@ -28,12 +26,10 @@ namespace FxMap.Implementations;
 ///   <item><description>Recursively processes nested objects up to a configurable depth limit</description></item>
 /// </list>
 /// </remarks>
-/// <param name="serviceProvider">The service provider for resolving transport handlers and pipelines.</param>
-internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDistributedMapper
+/// <param name="runtime">What the mapper needs: its configuration, the profiles, the send pipeline of each key.</param>
+internal sealed class DistributedMapper(MapperRuntime runtime) : IDistributedMapper
 {
     private readonly ItemsResponse<DataResponse> _emptyResponse = new([]);
-
-    private static readonly ConcurrentDictionary<Type, Type> SendOrchestratorTypes = new();
 
     public async Task MapDataAsync(object value, CancellationToken token = default) =>
         await MapDataAsync(value, null, token);
@@ -48,7 +44,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         token = linked?.Token ?? (context is not null && !token.CanBeCanceled ? context.CancellationToken : token);
         var requestContext = new RequestContext(context?.Headers ?? [], token);
 
-        var fxMapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
+        var fxMapConfiguration = runtime.Configuration;
         var currentNestingLevel = 0;
         while (true)
         {
@@ -101,7 +97,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                             continue;
                         }
 
-                        conditionalTasks.Add(ResolveConditionalAsync(property, serviceProvider, token));
+                        conditionalTasks.Add(ResolveConditionalAsync(property, runtime.Services, token));
                     }
 
                     if (conditionalTasks.Count > 0) await Task.WhenAll(conditionalTasks);
@@ -138,9 +134,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     public async Task<ItemsResponse<DataResponse>> FetchDataAsync(Type runtimeType, DistributedMapRequest query,
         IContext context = null)
     {
-        var sendPipelineType = SendOrchestratorTypes
-            .GetOrAdd(runtimeType, static type => typeof(SendPipelinesOrchestrator<>).MakeGenericType(type));
-        var sendPipelineWrapped = (SendPipelinesOrchestrator)serviceProvider.GetService(sendPipelineType)!;
+        var sendPipelineWrapped = runtime.SenderFor(runtimeType);
         string[] selectorIds = [.. new HashSet<string>(query.SelectorIds.Where(a => a is not null))];
         string[] expressions = [.. new HashSet<string>(query.Expressions)];
         var result = await sendPipelineWrapped
@@ -158,7 +152,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
     {
         var descriptors = new List<PropertyDescriptor>();
         var visited = new HashSet<object>(ReferenceEqualityComparer.Instance);
-        var getProfileConfig = serviceProvider.GetRequiredService<GetProfileConfig>();
+        var getProfileConfig = runtime.GetProfileConfig;
         var pending = new Stack<object>();
         PushIfWalkable(pending, rootObject);
 
@@ -231,10 +225,10 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
         foreach (var (keyType, response) in dataFetched)
         {
             if (response.Errors is not { Length: > 0 } errors) continue;
-            if (serviceProvider.GetRequiredService<IMapperConfiguration>().ThrowIfExceptions)
+            if (runtime.Configuration.ThrowIfExceptions)
                 throw new DistributedMapException.ExpressionsFailed(keyType, errors);
 
-            var logger = serviceProvider.GetService<ILogger<DistributedMapper>>();
+            var logger = runtime.Logger;
             foreach (var error in errors)
             {
                 failed.Add((keyType, error.Expression));
@@ -284,8 +278,7 @@ internal sealed class DistributedMapper(IServiceProvider serviceProvider) : IDis
                 }
                 catch (Exception)
                 {
-                    var mapperConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-                    if (mapperConfiguration.ThrowIfExceptions) throw;
+                    if (runtime.Configuration.ThrowIfExceptions) throw;
                 }
 
                 return value;

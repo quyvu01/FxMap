@@ -38,7 +38,7 @@ public class EnrichPhaseBenchmark : ProjectionBenchmarkBase
             Id = o.Id, CustomerId = o.CustomerId,
             Items = o.Items.Select(i => new OrderItemDto { Id = i.Id, ProductId = i.ProductId }).ToList()
         }).ToList();
-        _mapper = new DistributedMapper(_scope.ServiceProvider);
+        _mapper = (DistributedMapper)_scope.ServiceProvider.GetRequiredService<IDistributedMapper>();
         _mapper.MapDataAsync(_dtos).GetAwaiter().GetResult(); // fills ProvinceId/CategoryId too
         _customerIds = _dtos.Select(d => d.CustomerId).Distinct().ToArray();
 

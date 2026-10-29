@@ -1,4 +1,3 @@
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using FxMap.Abstractions;
 using FxMap.Delegates;
@@ -15,13 +14,12 @@ namespace FxMap.BuiltInPipelines;
 /// and returns an empty response instead of propagating the error. This enables graceful
 /// degradation in production environments where missing data shouldn't crash the application.
 /// </remarks>
-internal sealed class ExceptionPipelineBehavior<TDistributedKey>(IServiceProvider serviceProvider)
+internal sealed class ExceptionPipelineBehavior<TDistributedKey>(
+    IMapperConfiguration configuration,
+    ILogger<ExceptionPipelineBehavior<TDistributedKey>> logger = null)
     : ISendPipelineBehavior<TDistributedKey>
     where TDistributedKey : IDistributedKey
 {
-    private readonly ILogger<ExceptionPipelineBehavior<TDistributedKey>> _logger =
-        serviceProvider.GetService<ILogger<ExceptionPipelineBehavior<TDistributedKey>>>();
-
     public async Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TDistributedKey> requestContext,
         SendHandlerDelegate next)
     {
@@ -31,12 +29,11 @@ internal sealed class ExceptionPipelineBehavior<TDistributedKey>(IServiceProvide
         }
         catch (Exception ex)
         {
-            _logger?.LogError(ex, "Error in pipeline for {@DistributedKey}", typeof(TDistributedKey).Name);
+            logger?.LogError(ex, "Error in pipeline for {@DistributedKey}", typeof(TDistributedKey).Name);
 
             // Only suppress non-critical exceptions
             if (ex is OutOfMemoryException or StackOverflowException or ThreadAbortException) throw;
-            var mapConfiguration = serviceProvider.GetRequiredService<IMapperConfiguration>();
-            if (mapConfiguration.ThrowIfExceptions) throw;
+            if (configuration.ThrowIfExceptions) throw;
             return new ItemsResponse<DataResponse>([]);
         }
     }

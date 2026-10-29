@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using FxMap.Abstractions;
 using FxMap.Abstractions.Transporting;
+using FxMap.Delegates;
 using FxMap.Exceptions;
 using FxMap.Extensions;
 using FxMap.Fluent;
@@ -267,6 +268,24 @@ public class FxMapBuilderTests
         order.ProductName.ShouldBe("cached");
         order.UserName.ShouldBe("remote-Name-u1");
         client.Requests.ShouldHaveSingleItem().Key.ShouldBe(typeof(UserKey));
+    }
+
+    public sealed class NeedsAService<TKey>(SendLog log) : ISendPipelineBehavior<TKey> where TKey : IDistributedKey
+    {
+        public Task<ItemsResponse<DataResponse>> HandleAsync(RequestContext<TKey> requestContext, SendHandlerDelegate next)
+        {
+            log.Add("called");
+            return next();
+        }
+    }
+
+    [Fact]
+    public void A_send_behavior_whose_service_is_missing_fails_the_build()
+    {
+        var error = Should.Throw<InvalidOperationException>(() => Builder(typeof(BuilderOrderViewProfile))
+            .UseRequestClient(new FakeClient()).AddSendBehavior(typeof(NeedsAService<>)).Build());
+
+        error.Message.ShouldContain("NeedsAService");
     }
 
     [Fact]

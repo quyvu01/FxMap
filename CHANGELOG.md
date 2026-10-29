@@ -10,10 +10,18 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ### Added
 
-- **`FxMapBuilder`**: builds an `IDistributedMapper` without a dependency injection container (`FxMapBuilder.Create().AddProfiles(...).UseRequestClient(...).Build()`),
+- **`FxMap.Core` package**: the engine of FxMap (profiles, expression language, distributed mapper, pipelines) without Microsoft.Extensions.DependencyInjection:
+  it references only Microsoft.Extensions.Logging.Abstractions. The `FxMap` package keeps `services.AddFxMap(...)` and the rest of the container integration and
+  references `FxMap.Core`, so an application that uses `AddFxMap` changes nothing. Namespaces are unchanged.
+- **`FxMapBuilder`** (in `FxMap.Core`): builds an `IDistributedMapper` with `new`, no container (`FxMapBuilder.Create().AddProfiles(...).UseRequestClient(...).Build()`),
   with the options of `AddFxMap` (retries, timeout, `ThrowIfException`, nesting depth), send behaviors, local query handlers (`AddQueryHandler`), services for
-  conditional expressions (`UseServices`) and logging (`UseLoggerFactory`). `AddFxMap` is unchanged.
+  conditional expressions (`UseServices`, any `IServiceProvider`) and logging (`UseLoggerFactory`).
 - **NATS**: `FxMapNats.CreateRequestClient(natsClient, topicPrefix)`, the request client of the builder; it uses the subjects of `AddNats`.
+
+### Changed
+
+- The mapper, the send pipeline, the built-in send behaviors and `IdConverter<TId>` take their dependencies through their constructors instead of resolving
+  them from an `IServiceProvider`; `AddFxMap` wires them as before.
 
 ---
 
