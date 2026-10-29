@@ -1,6 +1,8 @@
 using FxMap.Abstractions;
+using FxMap.Nats;
 using FxMap.Nats.Extensions;
 using FxMap.Registries;
+using NATS.Net;
 using Shouldly;
 using Xunit;
 
@@ -98,5 +100,60 @@ public class NatsTransportTests
         await using var h = await StartAsync(NewPrefix());
 
         await TransportScenarios.Concurrent_requests_each_get_their_own_answer(h);
+    }
+
+    // FxMapBuilder on the consumer side, AddFxMap + AddNats on the owner side: the same subjects, the same wire.
+    private static IDistributedMapper BuilderConsumer(NatsClient nats, string prefix, TimeSpan? timeout = null) =>
+        FxMapBuilder.Create()
+            .AddProfiles(typeof(TransportCustomerViewProfile))
+            .UseRequestClient(FxMapNats.CreateRequestClient(nats, prefix, timeout))
+            .ThrowIfException()
+            .Build();
+
+    [NatsFact]
+    public async Task A_consumer_built_without_a_container_is_filled_by_the_owner_through_the_broker()
+    {
+        var prefix = NewPrefix();
+        var recorder = new OwnerRecorder();
+        await using var owner = await OwnerHosts.BrokerAsync(recorder, Nats(prefix));
+        await using var nats = new NatsClient(TransportEnvironment.Get(TransportEnvironment.Nats));
+        var views = new[]
+        {
+            new TransportCustomerView { CustomerId = "c1" },
+            new TransportCustomerView { CustomerId = "c2" },
+            new TransportCustomerView { CustomerId = "nobody" }
+        };
+
+        await BuilderConsumer(nats, prefix).MapDataAsync(views,
+            new TestContext(new Dictionary<string, string> { ["x-tenant"] = "acme" }));
+
+        views.Select(v => v.Name).ShouldBe(["Alice", "Bob", null]);
+        views[0].Email.ShouldNotBeNullOrEmpty();
+        var request = recorder.Requests.ShouldHaveSingleItem();
+        request.Ids.OrderBy(x => x).ShouldBe(["c1", "c2", "nobody"]);
+        request.Headers["x-tenant"].ShouldBe("acme");
+    }
+
+    [NatsFact]
+    public async Task A_consumer_built_without_a_container_gets_the_error_of_the_owner()
+    {
+        var prefix = NewPrefix();
+        var recorder = new OwnerRecorder { Fail = new InvalidOperationException("the owner is broken") };
+        await using var owner = await OwnerHosts.BrokerAsync(recorder, Nats(prefix));
+        await using var nats = new NatsClient(TransportEnvironment.Get(TransportEnvironment.Nats));
+
+        var error = await Should.ThrowAsync<Exception>(() =>
+            BuilderConsumer(nats, prefix).MapDataAsync(new TransportCustomerView { CustomerId = "c1" }));
+
+        error.ToString().ShouldContain("the owner is broken");
+    }
+
+    [NatsFact]
+    public async Task A_consumer_built_without_a_container_times_out_without_an_owner()
+    {
+        await using var nats = new NatsClient(TransportEnvironment.Get(TransportEnvironment.Nats));
+
+        await Should.ThrowAsync<Exception>(() => BuilderConsumer(nats, NewPrefix(), TimeSpan.FromSeconds(1))
+            .MapDataAsync(new TransportCustomerView { CustomerId = "c1" }));
     }
 }

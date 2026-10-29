@@ -6,6 +6,17 @@ Detailed per-release notes live in [`docs/changelogs/`](docs/changelogs/).
 
 ---
 
+## [Unreleased]
+
+### Added
+
+- **`FxMapBuilder`**: builds an `IDistributedMapper` without a dependency injection container (`FxMapBuilder.Create().AddProfiles(...).UseRequestClient(...).Build()`),
+  with the options of `AddFxMap` (retries, timeout, `ThrowIfException`, nesting depth), send behaviors, local query handlers (`AddQueryHandler`), services for
+  conditional expressions (`UseServices`) and logging (`UseLoggerFactory`). `AddFxMap` is unchanged.
+- **NATS**: `FxMapNats.CreateRequestClient(natsClient, topicPrefix)`, the request client of the builder; it uses the subjects of `AddNats`.
+
+---
+
 ## [5.1.1]
 
 Details: [the notes of 5.1.1](docs/changelogs/v5.1.1.md).
